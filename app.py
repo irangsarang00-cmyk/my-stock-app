@@ -8,19 +8,29 @@ import os
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 
+# --- 햄버거 메뉴 & 워터마크 영혼까지 끌어모아 삭제하기 ---
 hide_streamlit_style = """
 <style>
-/* 상단 햄버거 메뉴 및 빈 공간 강제 숨김 */
-[data-testid="stHeader"] {display: none !important;}
+/* 1. 최신 버전 툴바 및 햄버거 메뉴 강제 숨김 */
+[data-testid="stToolbar"] {display: none !important;}
+[data-testid="collapsedControl"] {display: none !important;}
 
-/* 하단 'Hosted with Streamlit' 워터마크 강제 숨김 */
+/* 2. 상단 헤더 공간 전체 숨김 */
+header[data-testid="stHeader"] {display: none !important;}
+header {visibility: hidden !important;}
+
+/* 3. 구버전 햄버거 메뉴 숨김 */
+#MainMenu {display: none !important;}
+
+/* 4. 하단 워터마크 강제 숨김 */
 footer {display: none !important;}
 
-/* 화면 위쪽 쓸데없는 여백 줄이기 */
-.block-container {padding-top: 2rem !important;}
+/* 5. 화면 위쪽 불필요한 여백 좁히기 */
+.block-container {padding-top: 1rem !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+# ---------------------------------------------------------
 
 # ==========================================================
 # 1. 구글 로그인 및 보안 설정
