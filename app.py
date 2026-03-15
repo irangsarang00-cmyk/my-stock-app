@@ -331,11 +331,27 @@ df = load_real_data()
 st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
 
-# 검색창 (안내 문구 placeholder 추가)
 search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
 
-# ✨ 꽉 차는 파란색 검색 버튼 추가!
-# type="primary"를 넣으면 스트림릿 기본 테마의 강조색(주로 파란색/빨간색)으로 예쁘게 칠해집니다.
+# ✨ 검색 버튼을 입고스케줄 제목과 같은 파란색(#4A90E2)으로 바꾸는 마법의 CSS
+st.markdown("""
+    <style>
+    /* primary 타입 버튼의 기본 색상 변경 */
+    button[data-testid="baseButton-primary"] {
+        background-color: #4A90E2 !important;
+        border-color: #4A90E2 !important;
+        color: white !important;
+    }
+    /* 버튼에 마우스를 올리거나 눌렀을 때 살짝 진해지는 효과 */
+    button[data-testid="baseButton-primary"]:hover,
+    button[data-testid="baseButton-primary"]:active {
+        background-color: #357ABD !important; 
+        border-color: #357ABD !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 버튼 생성 (type="primary"가 위의 CSS를 만나 파란색으로 변신합니다!)
 search_button = st.button("🔍 검색", type="primary", use_container_width=True)
 
 # 검색창에 값을 넣고 엔터를 치거나, 값을 넣고 검색 버튼을 눌렀을 때 모두 작동합니다.
