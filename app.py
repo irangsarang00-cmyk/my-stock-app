@@ -61,9 +61,16 @@ authenticator = Authenticate(
 authenticator.check_authentification()
 
 if not st.session_state.get("connected"):
-    st.markdown("<div style='margin-top: 20vh;'></div>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>🔒 재고 시스템 접속</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>보안을 위해 구글 로그인이 필요합니다.</p>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top: 15vh;'></div>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>🔒 빌리브 가평창고 재고조회 시스템</h2>", unsafe_allow_html=True)
+    
+    # ✨ 로그인 화면에 접속 방법 안내 상자 추가
+    st.info("""
+    **💡 접속 및 설치 방법**
+    1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.
+    2. 승인 완료되면 구글 아이디로 로그인하세요.
+    3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
+    """)
 
     client_id = auth_secrets["client_id"]
     redirect_uri = "https://my-stock-app-2dctlxmsqxehndw9vh79pp.streamlit.app"
@@ -83,7 +90,7 @@ if not st.session_state.get("connected"):
                 font-weight: bold;
                 border-radius: 5px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            ">🚀 구글 계정으로 로그인하기</a>
+            ">🚀 구글 계정으로 로그인</a>
         </div>
     ''', unsafe_allow_html=True)
 
@@ -103,9 +110,21 @@ if user_email not in WHITELIST_EMAILS:
 # 2. 메인 화면 시작 (로그인 성공 후)
 # ==========================================================
 
-# ✨ 우측 상단 뷰어 목록 버튼 추가
-col1, col2 = st.columns([6, 4])
+# ✨ 상단에 2개의 버튼(설치 안내 / 뷰어 목록)을 나란히 배치
+col1, col2 = st.columns([5, 5])
+
+with col1:
+    # 로그인 후에도 설치 방법을 다시 확인할 수 있는 버튼
+    with st.expander("📱 앱 설치 방법 안내"):
+        st.markdown("""
+        **💡 접속 및 설치 방법**
+        1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.
+        2. 승인 완료되면 구글 아이디로 로그인하세요.
+        3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
+        """)
+
 with col2:
+    # 기존에 있던 뷰어 목록 버튼
     with st.expander("👥 접근 허용 명단"):
         for email in WHITELIST_EMAILS:
             st.caption(f"✔️ {email}")
