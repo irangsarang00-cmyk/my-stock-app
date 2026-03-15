@@ -14,22 +14,29 @@ WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com"]
 
 auth_secrets = st.secrets["google_oauth"]
 
-# 라이브러리 최신 버전은 구글 정보 3개만 있으면 작동합니다.
 authenticator = Authenticate(
+    secret_credentials_path=None,
+    cookie_name="stock_app_cookie",
+    cookie_key="stock_app_secret_key",
+    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app",
     client_id=auth_secrets["client_id"],
     client_secret=auth_secrets["client_secret"],
-    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app"
 )
 
-# 로그인 상태 확인
-authenticator.check_authentication()
+authenticator.check_authentification()
 
-# 로그인 버튼 및 로그아웃 처리
-if not st.session_state.get('connected'):
+if not st.session_state.get("connected"):
     st.markdown("<h2 style='text-align: center;'>🔒 재고 시스템 접속</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>보안을 위해 구글 로그인이 필요합니다.</p>", unsafe_allow_html=True)
     authenticator.login()
-    st.stop() # 로그인 전까지 아래 코드 실행 안 함
+    st.stop()
+
+user_email = st.session_state.get("user_info", {}).get("email")
+if user_email not in WHITELIST_EMAILS:
+    st.error(f"접근 권한이 없습니다. ({user_email})")
+    if st.button("로그아웃"):
+        authenticator.logout()
+    st.stop()
 
 # 화이트리스트 체크
 user_email = st.session_state.get('user_info', {}).get('email')
