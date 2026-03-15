@@ -13,13 +13,13 @@ WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com"]
 auth_secrets = st.secrets["google_oauth"]
 
 authenticator = Authenticate(
-    secret_token="inventory_app_token",
-    cookie_name="inventory_cookie",
-    key="inventory_key",
-    cookie_expiry_days=1,
     client_id=auth_secrets["client_id"],
     client_secret=auth_secrets["client_secret"],
     redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app",
+    # 아래 세 줄을 일단 빼거나 기본값만 줘서 테스트해봅니다.
+    cookie_name="my_cookie",
+    cookie_key="my_key", # 'key' 대신 'cookie_key'일 수 있습니다.
+    cookie_expiry_days=1
 )
 
 # 로그인 상태 확인
