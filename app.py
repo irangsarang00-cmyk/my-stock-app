@@ -230,30 +230,32 @@ with col3:
             if not sched_data.empty:
                 st.write("") 
                 
-                # 1. 가로 스크롤을 허용하는 감싸는 상자(div) 추가
-                # style="overflow-x: auto;"가 핵심입니다!
+                # 가로 스크롤 및 틀 고정을 위한 CSS 포함 HTML
                 html_code = """
                 <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                    <table style="width: 100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important; min-width: 600px;">
+                    <table style="width: 100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important; min-width: 800px;">
                 """
                 
-                # 2. 제목(헤더) 행 - 배경색을 살짝 진하게 해서 구분감 주기
+                # 1. 제목(헤더) 행 생성
                 html_code += '<tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">'
-                for col in sched_data.columns:
-                    html_code += f'<th style="border: 1px solid #ddd; padding: 10px; font-size: 12px; white-space: nowrap;">{col}</th>'
+                for i, col in enumerate(sched_data.columns):
+                    # 첫 번째 열(날짜) 헤더 고정 스타일
+                    sticky_style = 'position: sticky; left: 0; background-color: #f8f9fa; z-index: 2;' if i == 0 else ''
+                    html_code += f'<th style="border: 1px solid #ddd; padding: 10px; font-size: 12px; white-space: nowrap; {sticky_style}">{col}</th>'
                 html_code += '</tr>'
                 
-                # 3. 데이터 행
+                # 2. 데이터 행 생성
                 for _, row in sched_data.iterrows():
                     html_code += '<tr style="border-bottom: 1px solid #eee;">'
-                    for val in row:
-                        # white-space: nowrap을 써야 글자가 아래로 꺾이지 않고 예쁘게 나옵니다.
-                        html_code += f'<td style="border: 1px solid #ddd; padding: 10px; font-size: 13px; white-space: nowrap;">{val}</td>'
+                    for i, val in enumerate(row):
+                        # 첫 번째 열(날짜) 데이터 고정 스타일 (배경색을 흰색으로 지정해야 뒤의 글자가 안 비쳐요)
+                        sticky_style = 'position: sticky; left: 0; background-color: white; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
+                        html_code += f'<td style="border: 1px solid #ddd; padding: 10px; font-size: 13px; white-space: nowrap; {sticky_style}">{val}</td>'
                     html_code += '</tr>'
                 
                 html_code += '</table></div>'
                 
-                # 4. 최종 HTML 출력
+                # 최종 HTML 출력
                 st.markdown(html_code, unsafe_allow_html=True)
                 
                 st.markdown("---")
