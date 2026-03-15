@@ -253,7 +253,7 @@ with col3:
                     # 날짜가 이전 행과 다르면 색상 변경!
                     if last_date is not None and current_row_date != last_date:
                         # 흰색 <-> 연한 하늘색(#E3F2FD) 스위칭
-                        current_bg = "#EDF7FE" if current_bg == "#E3F2FD" else "#E3F2FD"
+                        current_bg = "#EDF7FE" if current_bg == "#ffffff" else "#ffffff"
                     
                     last_date = current_row_date # 현재 날짜를 기록
                     
