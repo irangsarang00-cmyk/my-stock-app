@@ -12,13 +12,15 @@ WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com"]
 
 auth_secrets = st.secrets["google_oauth"]
 
+# 인자 이름이 라이브러리 버전에 따라 다를 수 있으니 
+# 가장 확률이 높은 최신 규격으로 맞춤 설정합니다.
 authenticator = Authenticate(
-    client_id=auth_secrets["client_id"],
-    client_secret=auth_secrets["client_secret"],
-    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app",
-    # 아래 세 줄을 일단 빼거나 기본값만 줘서 테스트해봅니다.
-    cookie_name="my_cookie",
-    cookie_key="my_key", # 'key' 대신 'cookie_key'일 수 있습니다.
+    secret_token="inventory_app_token",
+    google_client_id=auth_secrets["client_id"],      # client_id -> google_client_id
+    google_client_secret=auth_secrets["client_secret"], # client_secret -> google_client_secret
+    google_redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app", # redirect_uri -> google_redirect_uri
+    cookie_name="inventory_cookie",
+    cookie_key="inventory_key",
     cookie_expiry_days=1
 )
 
