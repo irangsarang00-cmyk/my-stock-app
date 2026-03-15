@@ -33,7 +33,7 @@ authenticator = Authenticate(
     secret_credentials_path=tmp_file.name,
     cookie_name="stock_app_cookie",
     cookie_key="stock_app_secret_key_1234",
-    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app/"
+    redirect_uri="https://my-stock-app-2dctlxmsqxehndw9vh79pp.streamlit.app/"
 )
 
 authenticator.check_authentification()
