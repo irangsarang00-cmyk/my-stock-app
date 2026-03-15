@@ -127,13 +127,16 @@ def get_incoming_schedule():
         if df_raw.empty:
             return pd.DataFrame()
 
-        # 1. 병합된 셀 해결 (위에서 아래로 빈칸 채우기)
+        # 1. 병합된 셀 해결 (빈칸 채우기)
         df_filled = df_raw.replace('', None).ffill()
 
-        # 2. '상품전환'이라는 단어가 포함된 행은 미리 제거 (요청사항)
-        # 행 전체를 검사해서 '상품전환'이 들어있으면 False 반환
-        mask_product_change = df_filled.astype(str).apply(lambda x: x.str.contains('상품전환')).any(axis=1)
-        df_filtered = df_filled[~mask_product_change] # ~은 제외(Not)를 의미
+        # 2. '상품전환', '주차 입고', '기준:날짜' 등 불필요한 행 제외 (수정됨)
+        # 행 전체를 합쳐서 아래 키워드 중 하나라도 있으면 제외합니다.
+        exclude_keywords = ['상품전환', '주차 입고', '기준:날짜']
+        mask_exclude = df_filled.astype(str).apply(
+            lambda x: x.str.contains('|'.join(exclude_keywords))
+        ).any(axis=1)
+        df_filtered = df_filled[~mask_exclude]
 
         # 3. '가평'이 포함된 행 필터링
         mask_gapyeong = df_filtered.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
@@ -145,18 +148,29 @@ def get_incoming_schedule():
         # 5. 최종 조건 만족 행 추출
         schedule_df = df_filtered[mask_gapyeong & mask_date].copy()
 
-        # 6. 열 순서 재배치 및 필요한 열만 선택 (요청하신 순서대로)
-        # 원본 열 번호 기준으로 새로운 순서 정의 (7, 3, 5, 6, 8, 9, 10, 1)
-        # 주의: 파이썬은 0부터 시작하므로 번호를 그대로 사용합니다.
+        # 6. 날짜 형식 통일 (7열) - '3/15' 형식으로 변환 (추가됨)
+        def format_date(val):
+            # 정규식으로 숫자만 추출 (2026.03.15 -> 03, 15)
+            match = re.search(r'(\d{1,2})[.\-/](\d{1,2})', str(val))
+            if match:
+                month = int(match.group(1)) # 앞의 숫자를 월로
+                # 만약 첫 숫자가 2026처럼 연도라면, 뒤의 두 그룹을 다시 찾습니다.
+                if month > 12:
+                    match = re.search(r'(\d{2,4})[.\-/](\d{1,2})[.\-/](\d{1,2})', str(val))
+                    if match:
+                        return f"{int(match.group(2))}/{int(match.group(3))}"
+                return f"{month}/{int(match.group(2))}"
+            return val
+
+        # 7열(인덱스 7)의 날짜 형식을 변환합니다.
+        if len(schedule_df.columns) > 7:
+            schedule_df.iloc[:, 7] = schedule_df.iloc[:, 7].apply(format_date)
+
+        # 7. 열 순서 재배치 (7, 3, 5, 6, 8, 9, 10, 1)
         new_columns = [7, 3, 5, 6, 8, 9, 10, 1]
-        
-        # 실제 존재하는 열 개수 안에서만 재배치 (에러 방지용)
         valid_columns = [c for c in new_columns if c < len(schedule_df.columns)]
         schedule_df = schedule_df.iloc[:, valid_columns]
 
-        # 7. 행 번호(Index) 숨기기 준비
-        # st.table은 인덱스를 무조건 표시하므로, 인덱스를 빈 값으로 만들거나 
-        # 데이터프레임 스타일을 사용하여 숨겨야 합니다.
         return schedule_df
 
     except Exception as e:
