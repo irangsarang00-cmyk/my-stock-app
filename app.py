@@ -333,20 +333,22 @@ st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색
 
 search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
 
-# ✨ 검색 버튼을 입고스케줄 제목과 같은 파란색(#4A90E2)으로 바꾸는 마법의 CSS
+# ✨ 기존 CSS를 지우고 이 코드로 교체해 주세요!
 st.markdown("""
     <style>
-    /* primary 타입 버튼의 기본 색상 변경 */
-    button[data-testid="baseButton-primary"] {
+    /* 스트림릿 최신 버전에 맞춘 강력한 버튼 색상 변경 */
+    button[kind="primary"] {
         background-color: #4A90E2 !important;
         border-color: #4A90E2 !important;
         color: white !important;
     }
-    /* 버튼에 마우스를 올리거나 눌렀을 때 살짝 진해지는 효과 */
-    button[data-testid="baseButton-primary"]:hover,
-    button[data-testid="baseButton-primary"]:active {
+    /* 마우스 올렸을 때 더 진해지는 효과 */
+    button[kind="primary"]:hover,
+    button[kind="primary"]:active,
+    button[kind="primary"]:focus {
         background-color: #357ABD !important; 
         border-color: #357ABD !important;
+        color: white !important;
     }
     </style>
 """, unsafe_allow_html=True)
