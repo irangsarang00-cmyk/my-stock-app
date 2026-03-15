@@ -130,8 +130,7 @@ def get_incoming_schedule():
         # 1. 병합된 셀 해결 (빈칸 채우기)
         df_filled = df_raw.replace('', None).ffill()
 
-        # 2. '상품전환', '주차 입고', '기준:날짜' 등 불필요한 행 제외 (수정됨)
-        # 행 전체를 합쳐서 아래 키워드 중 하나라도 있으면 제외합니다.
+        # 2. 불필요한 행 제외 (상품전환, 주차 입고, 기준:날짜 등)
         exclude_keywords = ['상품전환', '주차 입고', '기준:날짜']
         mask_exclude = df_filled.astype(str).apply(
             lambda x: x.str.contains('|'.join(exclude_keywords))
@@ -142,34 +141,39 @@ def get_incoming_schedule():
         mask_gapyeong = df_filtered.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
 
         # 4. '날짜' 패턴이 포함된 행 필터링
-        date_pattern = r'(\d{2,4}[.\-/]\d{1,2}[.\-/]\d{1,2})'
+        date_pattern = r'(\d{2,4}[.\-/]\d{1,2}[.\-/]\d{1,2})|(\d{1,2}[.\-/]\d{1,2})'
         mask_date = df_filtered.astype(str).apply(lambda x: x.str.contains(date_pattern)).any(axis=1)
 
         # 5. 최종 조건 만족 행 추출
         schedule_df = df_filtered[mask_gapyeong & mask_date].copy()
 
-        # 6. 날짜 형식 통일 (7열) - '3/15' 형식으로 변환 (추가됨)
-        def format_date(val):
-            # 정규식으로 숫자만 추출 (2026.03.15 -> 03, 15)
-            match = re.search(r'(\d{1,2})[.\-/](\d{1,2})', str(val))
-            if match:
-                month = int(match.group(1)) # 앞의 숫자를 월로
-                # 만약 첫 숫자가 2026처럼 연도라면, 뒤의 두 그룹을 다시 찾습니다.
-                if month > 12:
-                    match = re.search(r'(\d{2,4})[.\-/](\d{1,2})[.\-/](\d{1,2})', str(val))
-                    if match:
-                        return f"{int(match.group(2))}/{int(match.group(3))}"
-                return f"{month}/{int(match.group(2))}"
-            return val
+        # 6. 날짜 형식 강제 통일 (월/일)
+        def force_format_date(val):
+            val_str = str(val).strip()
+            # 1단계: 모든 구분자(., -, /)를 공백으로 치환하여 숫자만 추출하기 쉽게 만듦
+            clean_val = re.sub(r'[.\-/]', ' ', val_str)
+            parts = clean_val.split()
+            
+            if len(parts) >= 3: # 연.월.일 형태 (2026 03 15)
+                # 연도가 앞에 오든 뒤에 오든, 1~12 사이의 숫자를 월로, 나머지를 일로 판단
+                # 안전하게 연도를 제외한 두 번째, 세 번째 요소를 가져옴
+                return f"{int(parts[1])}/{int(parts[2])}"
+            elif len(parts) == 2: # 월.일 형태 (03 15)
+                return f"{int(parts[0])}/{int(parts[1])}"
+            return val_str
 
-        # 7열(인덱스 7)의 날짜 형식을 변환합니다.
         if len(schedule_df.columns) > 7:
-            schedule_df.iloc[:, 7] = schedule_df.iloc[:, 7].apply(format_date)
+            schedule_df.iloc[:, 7] = schedule_df.iloc[:, 7].apply(force_format_date)
 
         # 7. 열 순서 재배치 (7, 3, 5, 6, 8, 9, 10, 1)
-        new_columns = [7, 3, 5, 6, 8, 9, 10, 1]
-        valid_columns = [c for c in new_columns if c < len(schedule_df.columns)]
-        schedule_df = schedule_df.iloc[:, valid_columns]
+        new_columns_idx = [7, 3, 5, 6, 8, 9, 10, 1]
+        valid_indices = [c for c in new_columns_idx if c < len(schedule_df.columns)]
+        schedule_df = schedule_df.iloc[:, valid_indices]
+
+        # 8. ✨ 열 제목 변경 (숫자 대신 한글로!)
+        schedule_df.columns = [
+            "날짜", "바코드", "제품명", "수량", "입고시간", "창고", "컨테이너", "거래처"
+        ]
 
         return schedule_df
 
