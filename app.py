@@ -230,34 +230,35 @@ with col3:
             if not sched_data.empty:
                 st.write("") 
                 
-                # 가로 스크롤 및 틀 고정을 위한 CSS 포함 HTML
                 html_code = """
                 <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
                     <table style="width: 100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important; min-width: 800px;">
                 """
                 
-                # 1. 제목(헤더) 행 생성
-                html_code += '<tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">'
+                # 1. 제목(헤더) 행
+                html_code += '<tr style="background-color: #444; color: white; border-bottom: 2px solid #222;">'
                 for i, col in enumerate(sched_data.columns):
-                    # 첫 번째 열(날짜) 헤더 고정 스타일
-                    sticky_style = 'position: sticky; left: 0; background-color: #f8f9fa; z-index: 2;' if i == 0 else ''
+                    # 헤더는 조금 더 진한 색으로 고정
+                    sticky_style = 'position: sticky; left: 0; background-color: #444; z-index: 2;' if i == 0 else ''
                     html_code += f'<th style="border: 1px solid #ddd; padding: 10px; font-size: 12px; white-space: nowrap; {sticky_style}">{col}</th>'
                 html_code += '</tr>'
                 
                 # 2. 데이터 행 생성
-                for _, row in sched_data.iterrows():
-                    html_code += '<tr style="border-bottom: 1px solid #eee;">'
+                for idx, (index, row) in enumerate(sched_data.iterrows()):
+                    # 홀수/짝수 행에 따라 배경색 지정 (줄무늬 효과)
+                    # f9f9f9는 아주 연한 회색입니다.
+                    row_bg_color = "#ffffff" if idx % 2 == 0 else "#f9f9f9"
+                    
+                    html_code += f'<tr style="background-color: {row_bg_color};">'
                     for i, val in enumerate(row):
-                        # 첫 번째 열(날짜) 데이터 고정 스타일 (배경색을 흰색으로 지정해야 뒤의 글자가 안 비쳐요)
-                        sticky_style = 'position: sticky; left: 0; background-color: white; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
+                        # 날짜 열(첫 번째 열) 고정 및 배경색 적용
+                        sticky_style = f'position: sticky; left: 0; background-color: {row_bg_color}; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
                         html_code += f'<td style="border: 1px solid #ddd; padding: 10px; font-size: 13px; white-space: nowrap; {sticky_style}">{val}</td>'
                     html_code += '</tr>'
                 
                 html_code += '</table></div>'
                 
-                # 최종 HTML 출력
                 st.markdown(html_code, unsafe_allow_html=True)
-                
                 st.markdown("---")
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
