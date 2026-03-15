@@ -16,9 +16,9 @@ auth_secrets = st.secrets["google_oauth"]
 
 # 라이브러리 최신 버전은 구글 정보 3개만 있으면 작동합니다.
 authenticator = Authenticate(
-    google_client_id=auth_secrets["client_id"],
-    google_client_secret=auth_secrets["client_secret"],
-    google_redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app"
+    client_id=auth_secrets["client_id"],
+    client_secret=auth_secrets["client_secret"],
+    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app"
 )
 
 # 로그인 상태 확인
