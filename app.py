@@ -56,7 +56,7 @@ if not st.session_state.get("connected"):
     # target="_top"을 사용해 Iframe 액자 탈출!
     st.markdown(f'''
         <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
-            <a href="{auth_url}" target="_top" style="
+            <a href="{auth_url}" target="_blank" style="
                 display: inline-block;
                 padding: 12px 24px;
                 background-color: #4285F4;
