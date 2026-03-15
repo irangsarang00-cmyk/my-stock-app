@@ -10,9 +10,10 @@ from streamlit_google_auth import Authenticate
 
 hide_streamlit_style = """
 <style>
-#MainMenu {visibility: hidden;} /* 우측 상단 햄버거 메뉴 숨기기 */
-header {visibility: hidden;} /* 상단 빈 공간 숨기기 */
-footer {visibility: hidden;} /* 하단 Made with Streamlit 숨기기 */
+/* 우측 상단 햄버거 메뉴 및 헤더 싹 지우기 */
+[data-testid="stHeader"] {visibility: hidden;}
+/* 하단 'Hosted with Streamlit' 워터마크 지우기 */
+footer {visibility: hidden;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
