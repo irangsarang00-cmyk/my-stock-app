@@ -328,11 +328,17 @@ df = load_real_data()
 # ==========================================================
 
 # 기존 검색창 윗부분
-st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True) # vh 숫자를 높이면 간격이 더 벌어집니다.
+st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
 
-search_query = st.text_input("", label_visibility="collapsed")
+# 검색창 (안내 문구 placeholder 추가)
+search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
 
+# ✨ 꽉 차는 파란색 검색 버튼 추가!
+# type="primary"를 넣으면 스트림릿 기본 테마의 강조색(주로 파란색/빨간색)으로 예쁘게 칠해집니다.
+search_button = st.button("🔍 검색", type="primary", use_container_width=True)
+
+# 검색창에 값을 넣고 엔터를 치거나, 값을 넣고 검색 버튼을 눌렀을 때 모두 작동합니다.
 if search_query and not df.empty:
     clean_query = search_query.strip()
 
