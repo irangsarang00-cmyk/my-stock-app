@@ -1,3 +1,4 @@
+import urllib.parse
 import streamlit as st
 import pandas as pd
 import gspread
@@ -41,7 +42,35 @@ authenticator.check_authentification()
 if not st.session_state.get("connected"):
     st.markdown("<h2 style='text-align: center;'>🔒 재고 시스템 접속</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>보안을 위해 구글 로그인이 필요합니다.</p>", unsafe_allow_html=True)
-    authenticator.login()
+
+    # -------------------------------------------------------------------
+    # ✨ 변경된 부분: 구글 로그인 주소를 직접 만들고 액자를 부수는 버튼 생성 ✨
+    # -------------------------------------------------------------------
+    client_id = auth_secrets["client_id"]
+    redirect_uri = "https://my-stock-app-2dctlxmsqxehndw9vh79pp.streamlit.app"
+    scope = "openid email profile"
+    
+    # 구글이 좋아하는 정확한 규격으로 주소 조합
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope={urllib.parse.quote(scope)}"
+
+    # target="_top"을 사용해 Iframe 액자 탈출!
+    st.markdown(f'''
+        <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
+            <a href="{auth_url}" target="_top" style="
+                display: inline-block;
+                padding: 12px 24px;
+                background-color: #4285F4;
+                color: white;
+                text-decoration: none;
+                font-size: 16px;
+                font-weight: bold;
+                border-radius: 5px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            ">🚀 구글 계정으로 로그인하기</a>
+        </div>
+    ''', unsafe_allow_html=True)
+    # -------------------------------------------------------------------
+
     os.unlink(tmp_file.name)
     st.stop()
 
