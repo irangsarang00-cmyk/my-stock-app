@@ -235,24 +235,32 @@ with col3:
                     <table style="width: 100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important; min-width: 800px;">
                 """
                 
-                # 1. 제목(헤더) 행
-                html_code += '<tr style="background-color: #444; color: white; border-bottom: 2px solid #222;">'
+                # 1. 제목(헤더) 행 (진한 하늘색 계열로 변경)
+                html_code += '<tr style="background-color: #4A90E2; color: white; border-bottom: 2px solid #357ABD;">'
                 for i, col in enumerate(sched_data.columns):
-                    # 헤더는 조금 더 진한 색으로 고정
-                    sticky_style = 'position: sticky; left: 0; background-color: #444; z-index: 2;' if i == 0 else ''
+                    sticky_style = 'position: sticky; left: 0; background-color: #4A90E2; z-index: 2;' if i == 0 else ''
                     html_code += f'<th style="border: 1px solid #ddd; padding: 10px; font-size: 12px; white-space: nowrap; {sticky_style}">{col}</th>'
                 html_code += '</tr>'
                 
-                # 2. 데이터 행 생성
-                for idx, (index, row) in enumerate(sched_data.iterrows()):
-                    # 홀수/짝수 행에 따라 배경색 지정 (줄무늬 효과)
-                    # f9f9f9는 아주 연한 회색입니다.
-                    row_bg_color = "#ffffff" if idx % 2 == 0 else "#f9f9f9"
+                # 2. 날짜별 색상 제어 변수
+                current_bg = "#ffffff"  # 초기 배경색 (흰색)
+                last_date = None        # 이전 행의 날짜 저장용
+                
+                # 3. 데이터 행 생성
+                for _, row in sched_data.iterrows():
+                    current_row_date = str(row['날짜']).strip()
                     
-                    html_code += f'<tr style="background-color: {row_bg_color};">'
+                    # 날짜가 이전 행과 다르면 색상 변경!
+                    if last_date is not None and current_row_date != last_date:
+                        # 흰색 <-> 연한 하늘색(#E3F2FD) 스위칭
+                        current_bg = "#E3F2FD" if current_bg == "#ffffff" else "#ffffff"
+                    
+                    last_date = current_row_date # 현재 날짜를 기록
+                    
+                    html_code += f'<tr style="background-color: {current_bg};">'
                     for i, val in enumerate(row):
-                        # 날짜 열(첫 번째 열) 고정 및 배경색 적용
-                        sticky_style = f'position: sticky; left: 0; background-color: {row_bg_color}; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
+                        # 날짜 열(첫 번째 열) 고정 및 현재 배경색 유지
+                        sticky_style = f'position: sticky; left: 0; background-color: {current_bg}; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
                         html_code += f'<td style="border: 1px solid #ddd; padding: 10px; font-size: 13px; white-space: nowrap; {sticky_style}">{val}</td>'
                     html_code += '</tr>'
                 
