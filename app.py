@@ -160,8 +160,22 @@ def get_incoming_schedule():
 # 2. 메인 화면 시작 (로그인 성공 후)
 # ==========================================================
 
-# ✨ 상단에 2개의 버튼(설치 안내 / 뷰어 목록)을 나란히 배치
-col1, col2, col3 = st.columns([3, 3, 3])
+# ✨ 모든 버튼(버튼, 익스팬더)의 높이를 시각적으로 맞추기 위한 CSS
+st.markdown("""
+    <style>
+    div[data-testid="stExpander"] {
+        height: 45px; 
+    }
+    button[data-testid="baseButton-secondary"] {
+        height: 45px !important;
+        width: 100% !important;
+        margin-top: 0px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 1:1:1 비율로 3개의 컬럼 생성
+col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     # 로그인 후에도 설치 방법을 다시 확인할 수 있는 버튼
@@ -180,8 +194,8 @@ with col2:
             st.caption(f"✔️ {email}")
 
 with col3:
-    # ✨ 입고스케줄 버튼 추가!
-    show_schedule = st.button("🚛 입고스케줄")
+    # use_container_width=True를 써서 컬럼 꽉 차게 만듭니다.
+    show_schedule = st.button("🚛 입고스케줄", use_container_width=True)
 
 # --- 입고스케줄 클릭 시 보여주는 로직 ---
 if show_schedule:
