@@ -3,4 +3,4 @@ pandas
 gspread
 google-auth
 google-auth-oauthlib
-streamlit-google-auth==0.0.7
+streamlit-google-auth
