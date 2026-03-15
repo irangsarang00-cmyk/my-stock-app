@@ -124,13 +124,30 @@ def get_incoming_schedule():
         raw_data = worksheet.get_all_values()
         df_raw = pd.DataFrame(raw_data)
 
+        raw_data = worksheet.get_all_values()
+        df_raw = pd.DataFrame(raw_data)
+
         if df_raw.empty:
             return pd.DataFrame()
 
-        # 1. 병합된 셀 해결 (빈칸 채우기)
-        df_filled = df_raw.replace('', None).ffill()
+        # ✨ [수정된 로직] 
+        # 1. 띄어쓰기만 있는 칸도 완벽하게 빈칸(None)으로 인식하도록 변환
+        df_filled = df_raw.replace(r'^\s*$', None, regex=True)
 
-        # 2. 불필요한 행 제외 (상품전환, 주차 입고, 기준:날짜 등)
+        # 2. 모든 칸이 비어있는 '스페이서(빈 행)'를 찾아냅니다.
+        barrier_mask = df_filled.isna().all(axis=1)
+        
+        # 3. 빈 행에 'BARRIER'라는 장벽을 쳐서 ffill이 넘어가지 못하게 막습니다!
+        df_filled.loc[barrier_mask, :] = 'BARRIER'
+
+        # 4. 이제 안심하고 ffill(병합된 셀 채우기)을 실행합니다.
+        # 장벽 밑에 있는 '미정' 데이터들은 남의 날짜를 훔쳐오지 못하고 'BARRIER'를 받게 됩니다.
+        df_filled = df_filled.ffill()
+
+        # 5. 역할을 다한 장벽 행은 깔끔하게 삭제합니다.
+        df_filled = df_filled[~barrier_mask]
+
+        # 6. 불필요한 헤더 행 제외 (기존 로직 유지)
         exclude_keywords = ['상품전환', '주차 입고', '기준:날짜']
         mask_exclude = df_filled.astype(str).apply(
             lambda x: x.str.contains('|'.join(exclude_keywords))
