@@ -194,12 +194,20 @@ with col2:
             st.caption(f"✔️ {email}")
 
 with col3:
-    # 버튼 대신 expander로 통일!
     with st.expander("🚛 입고스케줄"):
         with st.spinner('분석 중...'):
             sched_data = get_incoming_schedule()
             if not sched_data.empty:
+                # 1. 표 바로 위에 아주 살짝 여백을 줍니다.
+                st.write("") 
+                
+                # 2. 표 출력
                 st.table(sched_data)
+                
+                # 3. 표가 끝났음을 알리는 구분선과 여백 추가
+                # 이 부분이 아래 검색창과의 거리를 벌려줍니다.
+                st.markdown("---")
+                st.write("") 
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
