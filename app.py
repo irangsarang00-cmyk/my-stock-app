@@ -49,6 +49,7 @@ tmp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
 json.dump(credentials_dict, tmp_file)
 tmp_file.close()
 
+# 로그인 유지 기간을 아주 길게(약 10년) 설정
 authenticator = Authenticate(
     secret_credentials_path=tmp_file.name,
     cookie_name="stock_app_cookie",
@@ -60,6 +61,7 @@ authenticator = Authenticate(
 authenticator.check_authentification()
 
 if not st.session_state.get("connected"):
+    st.markdown("<div style='margin-top: 20vh;'></div>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>🔒 재고 시스템 접속</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>보안을 위해 구글 로그인이 필요합니다.</p>", unsafe_allow_html=True)
 
@@ -98,7 +100,18 @@ if user_email not in WHITELIST_EMAILS:
     st.stop()
 
 # ==========================================================
-# 2. 실제 구글 시트 데이터 불러오기 함수
+# 2. 메인 화면 시작 (로그인 성공 후)
+# ==========================================================
+
+# ✨ 우측 상단 뷰어 목록 버튼 추가
+col1, col2 = st.columns([6, 4])
+with col2:
+    with st.expander("👥 접근 허용 명단"):
+        for email in WHITELIST_EMAILS:
+            st.caption(f"✔️ {email}")
+
+# ==========================================================
+# 3. 실제 구글 시트 데이터 불러오기 함수
 # ==========================================================
 @st.cache_data(ttl=900)
 def load_real_data():
@@ -133,11 +146,11 @@ def load_real_data():
 df = load_real_data()
 
 # ==========================================================
-# 3. 메인 화면 출력 (✨ 모바일 최적화 및 불용 창고 추가)
+# 4. 모바일 최적화 검색 화면
 # ==========================================================
 
-# 모바일에서 한 손 조작이 편하도록 상단에 시원한 여백(20vh)을 줍니다.
-st.markdown("<div style='margin-top: 20vh;'></div>", unsafe_allow_html=True)
+# ✨ 검색창을 모바일 중간으로 시원하게 내리기 (30vh로 증가)
+st.markdown("<div style='margin-top: 30vh;'></div>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
 
 search_query = st.text_input("", label_visibility="collapsed")
@@ -207,4 +220,3 @@ if search_query and not df.empty:
 
 elif search_query and df.empty:
     st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
-    
