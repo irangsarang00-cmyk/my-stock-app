@@ -160,16 +160,21 @@ def get_incoming_schedule():
 # 2. 메인 화면 시작 (로그인 성공 후)
 # ==========================================================
 
-# ✨ 모든 버튼(버튼, 익스팬더)의 높이를 시각적으로 맞추기 위한 CSS
+# ✨ CSS 수정: 높이를 고정(height)하지 않고 최소 높이(min-height)만 설정합니다.
 st.markdown("""
     <style>
     div[data-testid="stExpander"] {
-        height: 45px; 
+        min-height: 45px; 
+        height: auto !important; /* 내용에 따라 늘어나도록 강제 설정 */
     }
     button[data-testid="baseButton-secondary"] {
         height: 45px !important;
         width: 100% !important;
         margin-top: 0px !important;
+    }
+    /* 입고스케줄 표가 너무 커서 모바일을 가리지 않게 살짝 조정 */
+    .stTable {
+        overflow-x: auto;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -197,15 +202,8 @@ with col3:
     with st.expander("🚛 입고스케줄"):
         with st.spinner('분석 중...'):
             sched_data = get_incoming_schedule()
-            if not sched_data.empty:
-                # 1. 표 바로 위에 아주 살짝 여백을 줍니다.
-                st.write("") 
-                
-                # 2. 표 출력
+            if not sched_data.empty: 
                 st.table(sched_data)
-                
-                # 3. 표가 끝났음을 알리는 구분선과 여백 추가
-                # 이 부분이 아래 검색창과의 거리를 벌려줍니다.
                 st.markdown("---")
                 st.write("") 
             else:
