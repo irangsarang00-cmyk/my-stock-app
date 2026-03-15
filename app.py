@@ -5,6 +5,7 @@ import gspread
 import json
 import tempfile
 import os
+import re
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 
@@ -107,6 +108,50 @@ if user_email not in WHITELIST_EMAILS:
     st.stop()
 
 # ==========================================================
+# [중요] 데이터 처리 함수 (병합 해결 & 유연한 필터링)
+# ==========================================================
+def get_incoming_schedule():
+    try:
+        scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        creds_dict = st.secrets["gcp_service_account"]
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        gc = gspread.authorize(credentials)
+
+        # '시트2'를 불러옵니다 (앱스 스크립트로 디자인까지 복사된 시트)
+        sheet_url = "https://docs.google.com/spreadsheets/d/1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA/edit"
+        doc = gc.open_by_url(sheet_url)
+        worksheet = doc.worksheet("시트2") # 시트2 기준
+
+        # 1. 원시 데이터(Raw Data)로 모두 가져오기 (제목 줄이 유동적이므로)
+        raw_data = worksheet.get_all_values()
+        df_raw = pd.DataFrame(raw_data)
+
+        if df_raw.empty:
+            return pd.DataFrame()
+
+        # 2. 병합된 셀 해결 (Forward Fill)
+        # 빈 문자열을 None으로 바꾸고 위에서 아래로 채웁니다.
+        df_filled = df_raw.replace('', None).ffill()
+
+        # 3. '가평'이 포함된 행 필터링 (행 전체를 문자로 합쳐서 검사)
+        # axis=1로 모든 열을 합쳐서 '가평'이 있는지 확인
+        mask_gapyeong = df_filled.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
+
+        # 4. '날짜' 패턴이 포함된 행 필터링
+        # 정규식: 2026.03.15, 26-03-15 등 다양한 패턴 인식
+        date_pattern = r'(\d{2,4}[.\-/]\d{1,2}[.\-/]\d{1,2})'
+        mask_date = df_filled.astype(str).apply(lambda x: x.str.contains(date_pattern)).any(axis=1)
+
+        # 5. 두 조건(가평 AND 날짜)을 모두 만족하는 행만 추출
+        schedule_df = df_filled[mask_gapyeong & mask_date]
+
+        return schedule_df
+
+    except Exception as e:
+        st.error(f"스케줄을 불러오는 중 오류 발생: {e}")
+        return pd.DataFrame()
+
+# ==========================================================
 # 2. 메인 화면 시작 (로그인 성공 후)
 # ==========================================================
 
@@ -128,6 +173,25 @@ with col2:
     with st.expander("👥 접근 허용 명단"):
         for email in WHITELIST_EMAILS:
             st.caption(f"✔️ {email}")
+
+with col3:
+    # ✨ 입고스케줄 버튼 추가!
+    show_schedule = st.button("🚛 입고스케줄")
+
+# --- 입고스케줄 클릭 시 보여주는 로직 ---
+if show_schedule:
+    st.markdown("---")
+    st.subheader("🗓️ 가평창고 입고 예정 리스트")
+    with st.spinner('스케줄을 분석 중입니다...'):
+        sched_data = get_incoming_schedule()
+        
+        if not sched_data.empty:
+            # 깔끔하게 표로 출력 (데이터프레임 스타일 적용)
+            st.dataframe(sched_data, use_container_width=True, hide_index=True)
+            st.success("가평 관련 입고 일정이 필터링되었습니다.")
+        else:
+            st.warning("현재 예정된 가평 입고 스케줄이 없습니다.")
+    st.markdown("---")
 
 # ==========================================================
 # 3. 실제 구글 시트 데이터 불러오기 함수
