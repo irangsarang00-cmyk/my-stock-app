@@ -10,15 +10,16 @@ from streamlit_google_auth import Authenticate
 # 허용된 사용자 이메일 목록 (여기에 본인과 동료 이메일을 넣으세요)
 WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com"]
 
-# 구글 인증 설정
+auth_secrets = st.secrets["google_oauth"]
+
 authenticator = Authenticate(
-    secret_token="any_random_string", # 세션 암호화용 임의 문자열
-    cookie_name="inventory_app_cookie",
-    key="inventory_app_key",
+    secret_token="inventory_app_token",
+    cookie_name="inventory_cookie",
+    key="inventory_key",
     cookie_expiry_days=1,
-    client_id=st.secrets["google_oauth"]["client_id"],
-    client_secret=st.secrets["google_oauth"]["client_secret"], 
-    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app/",
+    client_id=auth_secrets["client_id"],
+    client_secret=auth_secrets["client_secret"],
+    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app",
 )
 
 # 로그인 상태 확인
