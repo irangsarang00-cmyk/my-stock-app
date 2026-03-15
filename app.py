@@ -10,10 +10,14 @@ from streamlit_google_auth import Authenticate
 
 hide_streamlit_style = """
 <style>
-/* 우측 상단 햄버거 메뉴 및 헤더 싹 지우기 */
-[data-testid="stHeader"] {visibility: hidden;}
-/* 하단 'Hosted with Streamlit' 워터마크 지우기 */
-footer {visibility: hidden;}
+/* 상단 햄버거 메뉴 및 빈 공간 강제 숨김 */
+[data-testid="stHeader"] {display: none !important;}
+
+/* 하단 'Hosted with Streamlit' 워터마크 강제 숨김 */
+footer {display: none !important;}
+
+/* 화면 위쪽 쓸데없는 여백 줄이기 */
+.block-container {padding-top: 2rem !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
