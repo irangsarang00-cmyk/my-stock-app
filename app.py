@@ -141,7 +141,7 @@ def get_incoming_schedule():
         mask_gapyeong = df_filtered.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
 
         # 4. '날짜' 패턴이 포함된 행 필터링
-        date_pattern = r'(\d{2,4}[.\-/]\d{1,2}[.\-/]\d{1,2})|(\d{1,2}[.\-/]\d{1,2})'
+        date_pattern = r'(\d{2,4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2})|(\d{1,2}\s*[.\-/]\s*\d{1,2})'
         mask_date = df_filtered.astype(str).apply(lambda x: x.str.contains(date_pattern)).any(axis=1)
 
         # 5. 최종 조건 만족 행 추출
