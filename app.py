@@ -8,32 +8,19 @@ import os
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 
-# --- 햄버거 메뉴 & 워터마크 & 빨간 로고 영혼까지 끌어모아 암살하기 ---
+# --- 햄버거 메뉴 & 워터마크 영혼까지 끌어모아 암살하기 ---
 hide_streamlit_style = """
 <style>
-/* 1. 최신 버전 툴바 및 햄버거 메뉴 강제 숨김 */
 [data-testid="stToolbar"] {display: none !important;}
 [data-testid="collapsedControl"] {display: none !important;}
-
-/* 2. 상단 헤더 공간 전체 숨김 */
 header[data-testid="stHeader"] {display: none !important;}
 header {visibility: hidden !important;}
-
-/* 3. 구버전 햄버거 메뉴 숨김 */
 #MainMenu {display: none !important;}
-
-/* 4. 하단 일반 워터마크 강제 숨김 */
 footer {display: none !important;}
-
-/* 5. 화면 위쪽 불필요한 여백 좁히기 */
 .block-container {padding-top: 1rem !important;}
-
-/* 💥 6. 우측 하단 빨간색 스트림릿 로고(뱃지) 강제 제거 💥 */
 [class^="viewerBadge"] {display: none !important;}
 .viewerBadge_container__1tSll {display: none !important;}
 .viewerBadge_link__qRIus {display: none !important;}
-
-/* 혹시 모를 최상단 무지개색 장식 줄 숨김 */
 [data-testid="stDecoration"] {display: none !important;}
 </style>
 """
@@ -76,17 +63,12 @@ if not st.session_state.get("connected"):
     st.markdown("<h2 style='text-align: center;'>🔒 재고 시스템 접속</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>보안을 위해 구글 로그인이 필요합니다.</p>", unsafe_allow_html=True)
 
-    # -------------------------------------------------------------------
-    # ✨ 변경된 부분: 구글 로그인 주소를 직접 만들고 액자를 부수는 버튼 생성 ✨
-    # -------------------------------------------------------------------
     client_id = auth_secrets["client_id"]
     redirect_uri = "https://my-stock-app-2dctlxmsqxehndw9vh79pp.streamlit.app"
     scope = "openid email profile"
     
-    # 구글이 좋아하는 정확한 규격으로 주소 조합
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope={urllib.parse.quote(scope)}"
 
-    # target="_top"을 사용해 Iframe 액자 탈출!
     st.markdown(f'''
         <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
             <a href="{auth_url}" target="_blank" style="
@@ -102,7 +84,6 @@ if not st.session_state.get("connected"):
             ">🚀 구글 계정으로 로그인하기</a>
         </div>
     ''', unsafe_allow_html=True)
-    # -------------------------------------------------------------------
 
     os.unlink(tmp_file.name)
     st.stop()
@@ -152,8 +133,11 @@ def load_real_data():
 df = load_real_data()
 
 # ==========================================================
-# 3. 메인 화면 출력
+# 3. 메인 화면 출력 (✨ 모바일 최적화 및 불용 창고 추가)
 # ==========================================================
+
+# 모바일에서 한 손 조작이 편하도록 상단에 시원한 여백(20vh)을 줍니다.
+st.markdown("<div style='margin-top: 20vh;'></div>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
 
 search_query = st.text_input("", label_visibility="collapsed")
@@ -177,6 +161,7 @@ if search_query and not df.empty:
 
             with st.expander(f" [{item_code_short}] {row.get('품목명', '이름없음')}"):
 
+                # ✨ 4창고 옆에 '불용' 열이 자연스럽게 들어가도록 HTML 테이블 수정
                 st.markdown(
                     f"""
                     <table style="width:100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd;">
@@ -185,12 +170,14 @@ if search_query and not df.empty:
                             <th style="border: 1px solid #ddd; padding: 8px;">2창고</th>
                             <th style="border: 1px solid #ddd; padding: 8px;">3창고</th>
                             <th style="border: 1px solid #ddd; padding: 8px;">4창고</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">불용</th>
                         </tr>
                         <tr>
                             <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('1창고 (007)', 0)}</td>
                             <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('2창고 (012)', 0)}</td>
                             <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('3창고 (017)', 0)}</td>
                             <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('4창고 (018)', 0)}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold; color: #e74c3c;">{row.get('불용 (009)', 0)}</td>
                         </tr>
                     </table>
                     """,
@@ -220,3 +207,4 @@ if search_query and not df.empty:
 
 elif search_query and df.empty:
     st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
+    
