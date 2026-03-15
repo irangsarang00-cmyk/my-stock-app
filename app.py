@@ -191,9 +191,8 @@ if show_schedule:
         sched_data = get_incoming_schedule()
         
         if not sched_data.empty:
-            # 깔끔하게 표로 출력 (데이터프레임 스타일 적용)
-            st.dataframe(sched_data, use_container_width=True, hide_index=True)
-            st.success("가평 관련 입고 일정이 필터링되었습니다.")
+            # 깔끔하게 표로 출력 (성공 문구 제거됨)
+            st.table(sched_data)
         else:
             st.warning("현재 예정된 가평 입고 스케줄이 없습니다.")
     st.markdown("---")
