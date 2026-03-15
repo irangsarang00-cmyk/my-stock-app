@@ -19,7 +19,7 @@ credentials_dict = {
     "web": {
         "client_id": auth_secrets["client_id"],
         "client_secret": auth_secrets["client_secret"],
-        "redirect_uris": ["https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app"],
+        "redirect_uris": ["https://my-stock-app-2dctlxmsqxehndw9vh79pp.streamlit.app/"],
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://oauth2.googleapis.com/token"
     }
