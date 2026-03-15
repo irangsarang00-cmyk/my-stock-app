@@ -45,6 +45,7 @@ authenticator = Authenticate(
     cookie_name="stock_app_cookie",
     cookie_key="stock_app_secret_key_1234",
     redirect_uri="https://my-stock-app-2dctlxmsqxehndw9vh79pp.streamlit.app"
+    cookie_expiry_days=3650
 )
 
 authenticator.check_authentification()
