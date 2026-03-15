@@ -250,8 +250,8 @@ df = load_real_data()
 # 4. 모바일 최적화 검색 화면
 # ==========================================================
 
-# ✨ 검색창을 모바일 중간으로 시원하게 내리기 (30vh로 증가)
-st.markdown("<div style='margin-top: 30vh;'></div>", unsafe_allow_html=True)
+# 기존 검색창 윗부분
+st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True) # vh 숫자를 높이면 간격이 더 벌어집니다.
 st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
 
 search_query = st.text_input("", label_visibility="collapsed")
