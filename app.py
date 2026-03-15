@@ -33,7 +33,7 @@ authenticator = Authenticate(
     secret_credentials_path=tmp_file.name,
     cookie_name="stock_app_cookie",
     cookie_key="stock_app_secret_key_1234",
-    redirect_uri="https://my-stock-app-2dctlxmsqxehndw9vh79pp.streamlit.app/"
+    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app"
 )
 
 authenticator.check_authentification()
@@ -158,4 +158,3 @@ if search_query and not df.empty:
 
 elif search_query and df.empty:
     st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
-    
