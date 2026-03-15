@@ -12,7 +12,7 @@ WHITELIST_EMAILS = ["user1@gmail.com", "user2@gmail.com"]
 
 # 구글 인증 설정
 authenticator = Authenticate(
-    secret_token="나만의_비밀_토큰_아무거나_입력", # 세션 암호화용 임의 문자열
+    secret_token="any_random_string", # 세션 암호화용 임의 문자열
     cookie_name="inventory_app_cookie",
     key="inventory_app_key",
     cookie_expiry_days=1,
