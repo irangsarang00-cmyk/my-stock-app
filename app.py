@@ -8,7 +8,7 @@ import os
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 
-# --- 햄버거 메뉴 & 워터마크 영혼까지 끌어모아 삭제하기 ---
+# --- 햄버거 메뉴 & 워터마크 & 빨간 로고 영혼까지 끌어모아 암살하기 ---
 hide_streamlit_style = """
 <style>
 /* 1. 최신 버전 툴바 및 햄버거 메뉴 강제 숨김 */
@@ -22,11 +22,19 @@ header {visibility: hidden !important;}
 /* 3. 구버전 햄버거 메뉴 숨김 */
 #MainMenu {display: none !important;}
 
-/* 4. 하단 워터마크 강제 숨김 */
+/* 4. 하단 일반 워터마크 강제 숨김 */
 footer {display: none !important;}
 
 /* 5. 화면 위쪽 불필요한 여백 좁히기 */
 .block-container {padding-top: 1rem !important;}
+
+/* 💥 6. 우측 하단 빨간색 스트림릿 로고(뱃지) 강제 제거 💥 */
+[class^="viewerBadge"] {display: none !important;}
+.viewerBadge_container__1tSll {display: none !important;}
+.viewerBadge_link__qRIus {display: none !important;}
+
+/* 혹시 모를 최상단 무지개색 장식 줄 숨김 */
+[data-testid="stDecoration"] {display: none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
