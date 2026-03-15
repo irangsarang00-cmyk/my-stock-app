@@ -117,33 +117,38 @@ def get_incoming_schedule():
         credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gc = gspread.authorize(credentials)
 
-        # '시트2'를 불러옵니다 (앱스 스크립트로 디자인까지 복사된 시트)
         sheet_url = "https://docs.google.com/spreadsheets/d/1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA/edit"
         doc = gc.open_by_url(sheet_url)
-        worksheet = doc.worksheet("시트2") # 시트2 기준
+        worksheet = doc.worksheet("시트2")
 
-        # 1. 원시 데이터(Raw Data)로 모두 가져오기 (제목 줄이 유동적이므로)
         raw_data = worksheet.get_all_values()
         df_raw = pd.DataFrame(raw_data)
 
         if df_raw.empty:
             return pd.DataFrame()
 
-        # 2. 병합된 셀 해결 (Forward Fill)
-        # 빈 문자열을 None으로 바꾸고 위에서 아래로 채웁니다.
+        # 1. 병합된 셀 해결 (위에서 아래로 빈칸 채우기)
         df_filled = df_raw.replace('', None).ffill()
 
-        # 3. '가평'이 포함된 행 필터링 (행 전체를 문자로 합쳐서 검사)
-        # axis=1로 모든 열을 합쳐서 '가평'이 있는지 확인
-        mask_gapyeong = df_filled.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
+        # 2. '상품전환'이라는 단어가 포함된 행은 미리 제거 (요청사항)
+        # 행 전체를 검사해서 '상품전환'이 들어있으면 False 반환
+        mask_product_change = df_filled.astype(str).apply(lambda x: x.str.contains('상품전환')).any(axis=1)
+        df_filtered = df_filled[~mask_product_change] # ~은 제외(Not)를 의미
+
+        # 3. '가평'이 포함된 행 필터링
+        mask_gapyeong = df_filtered.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
 
         # 4. '날짜' 패턴이 포함된 행 필터링
-        # 정규식: 2026.03.15, 26-03-15 등 다양한 패턴 인식
         date_pattern = r'(\d{2,4}[.\-/]\d{1,2}[.\-/]\d{1,2})'
-        mask_date = df_filled.astype(str).apply(lambda x: x.str.contains(date_pattern)).any(axis=1)
+        mask_date = df_filtered.astype(str).apply(lambda x: x.str.contains(date_pattern)).any(axis=1)
 
-        # 5. 두 조건(가평 AND 날짜)을 모두 만족하는 행만 추출
-        schedule_df = df_filled[mask_gapyeong & mask_date]
+        # 5. 최종 조건 만족 행 추출
+        schedule_df = df_filtered[mask_gapyeong & mask_date].copy()
+
+        # 6. 특정 열 숨김 처리 (0, 2, 4, 11, 12, 13 열 삭제)
+        # 현재 열 번호를 기준으로 지울 열 리스트 (안전하게 실제 존재하는 열 번호만 타겟팅)
+        cols_to_drop = [c for c in [0, 2, 4, 11, 12, 13] if c < len(schedule_df.columns)]
+        schedule_df = schedule_df.drop(schedule_df.columns[cols_to_drop], axis=1)
 
         return schedule_df
 
