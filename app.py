@@ -158,3 +158,4 @@ if search_query and not df.empty:
 
 elif search_query and df.empty:
     st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
+    
