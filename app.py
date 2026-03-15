@@ -8,7 +8,7 @@ from streamlit_google_auth import Authenticate
 # 1. 구글 로그인 및 보안 설정
 # ==========================================================
 # 허용된 사용자 이메일 목록 (여기에 본인과 동료 이메일을 넣으세요)
-WHITELIST_EMAILS = ["user1@gmail.com", "user2@gmail.com"]
+WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com"]
 
 # 구글 인증 설정
 authenticator = Authenticate(
