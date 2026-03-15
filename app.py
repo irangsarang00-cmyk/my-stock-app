@@ -229,13 +229,30 @@ with col3:
             sched_data = get_incoming_schedule()
             if not sched_data.empty:
                 st.write("") 
-                # ✨ st.dataframe을 쓰되 hide_index=True를 넣으면 행 번호가 완벽히 사라집니다!
-                # use_container_width로 너비를 맞추고, height=None으로 하면 표 길이에 맞춰 늘어납니다.
-                st.dataframe(
-                    sched_data, 
-                    use_container_width=True, 
-                    hide_index=True
-                )
+                
+                # ✨ 텍스트 선택이 가능하도록 직접 HTML 테이블 생성
+                # 스타일 설명: 
+                # - user-select: text (텍스트 선택 강제 허용)
+                # - border-collapse: collapse (깔끔한 테두리)
+                html_table = '<table style="width:100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important;">'
+                
+                # 제목(헤더) 행
+                html_table += '<tr style="background-color: #f2f2f2;">'
+                for col in sched_data.columns:
+                    html_table += f'<th style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">{col}</th>'
+                html_table += '</tr>'
+                
+                # 데이터 행
+                for _, row in sched_data.iterrows():
+                    html_table += '<tr>'
+                    for val in row:
+                        html_table += f'<td style="border: 1px solid #ddd; padding: 8px; font-size: 13px;">{val}</td>'
+                    html_table += '</tr>'
+                html_table += '</table>'
+                
+                # HTML 출력
+                st.markdown(html_table, unsafe_allow_html=True)
+                
                 st.markdown("---")
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
