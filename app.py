@@ -145,11 +145,18 @@ def get_incoming_schedule():
         # 5. 최종 조건 만족 행 추출
         schedule_df = df_filtered[mask_gapyeong & mask_date].copy()
 
-        # 6. 특정 열 숨김 처리 (0, 2, 4, 11, 12, 13 열 삭제)
-        # 현재 열 번호를 기준으로 지울 열 리스트 (안전하게 실제 존재하는 열 번호만 타겟팅)
-        cols_to_drop = [c for c in [0, 2, 4, 11, 12, 13] if c < len(schedule_df.columns)]
-        schedule_df = schedule_df.drop(schedule_df.columns[cols_to_drop], axis=1)
+        # 6. 열 순서 재배치 및 필요한 열만 선택 (요청하신 순서대로)
+        # 원본 열 번호 기준으로 새로운 순서 정의 (7, 3, 5, 6, 8, 9, 10, 1)
+        # 주의: 파이썬은 0부터 시작하므로 번호를 그대로 사용합니다.
+        new_columns = [7, 3, 5, 6, 8, 9, 10, 1]
+        
+        # 실제 존재하는 열 개수 안에서만 재배치 (에러 방지용)
+        valid_columns = [c for c in new_columns if c < len(schedule_df.columns)]
+        schedule_df = schedule_df.iloc[:, valid_columns]
 
+        # 7. 행 번호(Index) 숨기기 준비
+        # st.table은 인덱스를 무조건 표시하므로, 인덱스를 빈 값으로 만들거나 
+        # 데이터프레임 스타일을 사용하여 숨겨야 합니다.
         return schedule_df
 
     except Exception as e:
@@ -202,10 +209,16 @@ with col3:
     with st.expander("🚛 입고스케줄"):
         with st.spinner('분석 중...'):
             sched_data = get_incoming_schedule()
-            if not sched_data.empty: 
-                st.table(sched_data)
-                st.markdown("---")
+            if not sched_data.empty:
                 st.write("") 
+                # ✨ st.dataframe을 쓰되 hide_index=True를 넣으면 행 번호가 완벽히 사라집니다!
+                # use_container_width로 너비를 맞추고, height=None으로 하면 표 길이에 맞춰 늘어납니다.
+                st.dataframe(
+                    sched_data, 
+                    use_container_width=True, 
+                    hide_index=True
+                )
+                st.markdown("---")
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
