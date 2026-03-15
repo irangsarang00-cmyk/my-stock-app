@@ -1,4 +1,3 @@
-%%writefile app.py
 import streamlit as st
 import pandas as pd
 import gspread
@@ -17,13 +16,13 @@ authenticator = Authenticate(
     cookie_name="inventory_app_cookie",
     key="inventory_app_key",
     cookie_expiry_days=1,
-    client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com", # 여기에 발급받은 ID 입력
-    client_secret="YOUR_GOOGLE_CLIENT_SECRET", # 시크릿 키가 있다면 입력 (없어도 진행 가능)
-    redirect_uri="https://YOUR_NGROK_URL.ngrok-free.app", # 현재 사용중인 엔그록 주소
+    client_id=st.secrets["google_oauth"]["client_id"],
+    client_secret=st.secrets["google_oauth"]["client_secret"], 
+    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app/",
 )
 
 # 로그인 상태 확인
-authenticator.check_authentification()
+authenticator.check_authentication()
 
 # 로그인 버튼 및 로그아웃 처리
 if not st.session_state.get('connected'):
@@ -50,7 +49,8 @@ def load_real_data():
             'https://www.googleapis.com/auth/spreadsheets',
             'https://www.googleapis.com/auth/drive'
         ]
-        credentials = Credentials.from_service_account_file('secrets.json', scopes=scopes)
+        creds_dict = st.secrets["gcp_service_account"]
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gc = gspread.authorize(credentials)
 
         # 🌸 여기에 실제 구글 시트 주소창의 전체 링크를 붙여넣어주세요!
