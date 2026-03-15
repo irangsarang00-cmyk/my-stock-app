@@ -194,29 +194,14 @@ with col2:
             st.caption(f"✔️ {email}")
 
 with col3:
-    # 버튼 대신 expander를 사용하여 디자인과 정렬을 통일합니다!
+    # 버튼 대신 expander로 통일!
     with st.expander("🚛 입고스케줄"):
         with st.spinner('분석 중...'):
             sched_data = get_incoming_schedule()
             if not sched_data.empty:
-                # 표를 보여줍니다 (table로 깔끔하게)
                 st.table(sched_data)
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
-
-# --- 입고스케줄 클릭 시 보여주는 로직 ---
-if show_schedule:
-    st.markdown("---")
-    st.subheader("🗓️ 가평창고 입고 예정 리스트")
-    with st.spinner('스케줄을 분석 중입니다...'):
-        sched_data = get_incoming_schedule()
-        
-        if not sched_data.empty:
-            # 깔끔하게 표로 출력 (성공 문구 제거됨)
-            st.table(sched_data)
-        else:
-            st.warning("현재 예정된 가평 입고 스케줄이 없습니다.")
-    st.markdown("---")
 
 # ==========================================================
 # 3. 실제 구글 시트 데이터 불러오기 함수
