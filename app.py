@@ -62,7 +62,7 @@ authenticator.check_authentification()
 
 if not st.session_state.get("connected"):
     st.markdown("<div style='margin-top: 15vh;'></div>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>🔒 빌리브 가평창고 재고조회 시스템</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>🔒 가평창고 재고조회 APP</h2>", unsafe_allow_html=True)
     
     # ✨ 로그인 화면에 접속 방법 안내 상자 추가
     st.info("""
