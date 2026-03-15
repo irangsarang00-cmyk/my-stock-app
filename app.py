@@ -1,26 +1,39 @@
 import streamlit as st
 import pandas as pd
 import gspread
+import json
+import tempfile
+import os
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 
 # ==========================================================
 # 1. 구글 로그인 및 보안 설정
 # ==========================================================
-# 허용된 사용자 이메일 목록 (여기에 본인과 동료 이메일을 넣으세요)
 WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com"]
-
-# app.py 수정 부분
 
 auth_secrets = st.secrets["google_oauth"]
 
+# secrets에서 임시 JSON 파일 생성 (Streamlit Cloud용)
+credentials_dict = {
+    "web": {
+        "client_id": auth_secrets["client_id"],
+        "client_secret": auth_secrets["client_secret"],
+        "redirect_uris": ["https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app"],
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token"
+    }
+}
+
+tmp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+json.dump(credentials_dict, tmp_file)
+tmp_file.close()
+
 authenticator = Authenticate(
-    secret_credentials_path=None,
+    secret_credentials_path=tmp_file.name,
     cookie_name="stock_app_cookie",
-    cookie_key="stock_app_secret_key",
-    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app",
-    client_id=auth_secrets["client_id"],
-    client_secret=auth_secrets["client_secret"],
+    cookie_key="stock_app_secret_key_1234",
+    redirect_uri="https://my-stock-app-ccigj2eobvvlittcqknnu2.streamlit.app"
 )
 
 authenticator.check_authentification()
@@ -29,17 +42,12 @@ if not st.session_state.get("connected"):
     st.markdown("<h2 style='text-align: center;'>🔒 재고 시스템 접속</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>보안을 위해 구글 로그인이 필요합니다.</p>", unsafe_allow_html=True)
     authenticator.login()
+    os.unlink(tmp_file.name)
     st.stop()
+
+os.unlink(tmp_file.name)
 
 user_email = st.session_state.get("user_info", {}).get("email")
-if user_email not in WHITELIST_EMAILS:
-    st.error(f"접근 권한이 없습니다. ({user_email})")
-    if st.button("로그아웃"):
-        authenticator.logout()
-    st.stop()
-
-# 화이트리스트 체크
-user_email = st.session_state.get('user_info', {}).get('email')
 if user_email not in WHITELIST_EMAILS:
     st.error(f"접근 권한이 없습니다. ({user_email})")
     if st.button("로그아웃"):
@@ -60,7 +68,6 @@ def load_real_data():
         credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gc = gspread.authorize(credentials)
 
-        # 🌸 여기에 실제 구글 시트 주소창의 전체 링크를 붙여넣어주세요!
         sheet_url = "https://docs.google.com/spreadsheets/d/1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA/edit?gid=0#gid=0"
 
         doc = gc.open_by_url(sheet_url)
@@ -85,10 +92,8 @@ df = load_real_data()
 # ==========================================================
 # 3. 메인 화면 출력
 # ==========================================================
-# 검색 안내 문구를 HTML을 이용해 가운데 정렬로 큼직하게 넣었어요.
 st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
 
-# 검색창 (기본 라벨은 숨겨서 깔끔하게 만들었어요)
 search_query = st.text_input("", label_visibility="collapsed")
 
 if search_query and not df.empty:
@@ -106,13 +111,10 @@ if search_query and not df.empty:
         st.success(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
 
         for index, row in search_result.iterrows():
-            # 품목코드의 끝 4자리만 잘라서 가져옵니다.
             item_code_short = str(row.get('품목코드', ''))[-4:]
 
-            # 끝 4자리 코드와 품목명만 보이도록 수정했어요.
             with st.expander(f" [{item_code_short}] {row.get('품목명', '이름없음')}"):
 
-                # --- 창고별 재고 (HTML 테이블로 가로 정렬 강제) ---
                 st.markdown(
                     f"""
                     <table style="width:100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd;">
@@ -133,9 +135,8 @@ if search_query and not df.empty:
                     unsafe_allow_html=True
                 )
 
-                st.markdown("---") # 구역을 나누는 얇은 선이에요
+                st.markdown("---")
 
-                # --- SKU 정보 (HTML 테이블로 가로 정렬 강제 및 단위 수정) ---
                 st.markdown("#### 🏷️ SKU 정보")
                 st.markdown(
                     f"""
@@ -157,4 +158,3 @@ if search_query and not df.empty:
 
 elif search_query and df.empty:
     st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
-    
