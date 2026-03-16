@@ -108,7 +108,7 @@ st.markdown(f"""
             <input 
                 id="ibc-input"
                 type="text"
-                placeholder="IBC 뒤에 붙을 숫자 입력"
+                placeholder="IBC 뒤에 붙는 숫자 입력"
                 style="font-size: 20px; padding: 10px; width: 85%; border: 2px solid #ccc; border-radius: 6px; text-align: center; box-sizing: border-box;"
                 oninput="updateIBC(this.value)"
             >
