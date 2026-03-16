@@ -56,7 +56,6 @@ st.markdown("""
 header[data-testid="stHeader"] {
     display: none !important;
 }
-
 .fixed-top-bar {
     position: fixed;
     top: 0;
@@ -69,26 +68,24 @@ header[data-testid="stHeader"] {
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     box-sizing: border-box;
 }
-
 .main-content {
-    margin-top: 180px;   /* 300px → 180px */
+    margin-top: 180px;
 }
-
 .top-barcode-title {
     font-size: 18px;
     font-weight: bold;
     text-align: center;
     margin-bottom: 8px;
 }
-
 .fixed-top-bar img {
-    max-width: 380px;    /* 280px → 380px */
-    max-height: 160px;   /* 110px → 160px */
+    max-width: 380px;
+    max-height: 160px;
     width: 100%;
     object-fit: contain;
     display: block;
     margin: 0 auto;
 }
+iframe { margin-bottom: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -163,16 +160,17 @@ if uploaded_zip:
                 po_num = re.sub(r'[^0-9]', '', fn)
                 if po_num and po_num not in po_numbers:
                     po_numbers.append(po_num)
-                
+
                 with z.open(fi) as f:
                     wb = openpyxl.load_workbook(io.BytesIO(f.read()), data_only=True)
                     ws = wb.active
                     for ri in range(1, ws.max_row + 1):
-                        cv = str(ws.cell(ri, 3).value or "").strip() 
+                        cv = str(ws.cell(ri, 3).value or "").strip()
                         if cv.startswith("PL") or cv.startswith("880"):
-                            qv = str(ws.cell(ri - 1, 8).value or "0").strip() 
+                            qv = str(ws.cell(ri - 1, 8).value or "0").strip()
                             extracted_data.append({"po": po_num, "barcode": cv, "qty": qv})
 
+    # 발주번호 바코드
     st.markdown("**[ 발주번호 ]**")
     po_cols = st.columns(4)
     for idx, po in enumerate(po_numbers):
@@ -189,8 +187,9 @@ if uploaded_zip:
 
     st.divider()
 
+    # 상품 출력 목록
     st.markdown("### 📋 상품 출력 목록")
-    
+
     html_table = """
     <style>
     .table-container { max-height: 800px; overflow-y: auto; border: 1px solid #ddd; }
@@ -211,23 +210,37 @@ if uploaded_zip:
         </tr>
     """
 
+    # 이카운트 재고 현황용 데이터도 여기서 함께 수집
+    inventory_rows = []
+    seen = set()
+
     for item in extracted_data:
         prod_barcode = item["barcode"]
         prod_qty = item["qty"]
         prod_name = "매칭 실패"
         loc_num = "0"
-        
+        w1 = w2 = w3 = w4 = "-"
+
         if not df_sheet.empty:
             match_row = df_sheet[df_sheet.iloc[:, 0].astype(str).str.strip() == prod_barcode]
             if not match_row.empty:
                 if len(match_row.columns) > 2:
                     prod_name = str(match_row.iloc[0, 2])
+                if len(match_row.columns) > 3:
+                    w1 = str(match_row.iloc[0, 3])
+                if len(match_row.columns) > 4:
+                    w2 = str(match_row.iloc[0, 4])
+                if len(match_row.columns) > 5:
+                    w3 = str(match_row.iloc[0, 5])
+                if len(match_row.columns) > 6:
+                    w4 = str(match_row.iloc[0, 6])
                 if len(match_row.columns) > 11:
                     loc_num = str(match_row.iloc[0, 11])
 
+        # 상품 출력 목록 행 추가
         img_prod = get_barcode_base64(prod_barcode)
         img_tote = get_barcode_base64("466-RCRT1-1-1")
-        img_loc = get_barcode_base64(f"466-A1-1-{loc_num}")
+        img_loc  = get_barcode_base64(f"466-A1-1-{loc_num}")
 
         html_table += f"""
         <tr>
@@ -239,23 +252,22 @@ if uploaded_zip:
         </tr>
         """
 
+        # 이카운트 재고 현황 — 중복 제거
+        if prod_barcode not in seen:
+            seen.add(prod_barcode)
+            inventory_rows.append({
+                "상품명": prod_name,
+                "1창고": w1,
+                "2창고": w2,
+                "3창고": w3,
+                "4창고": w4,
+            })
+
     html_table += "</table></div>"
     components.html(html_table, height=850, scrolling=True)
 
-    # 여백 제거용 CSS
-    st.markdown("""
-    <style>
-    /* components.html 감싸는 iframe 아래 여백 제거 */
-    iframe { margin-bottom: 0 !important; }
-    /* 이카운트 제목 위 여백 제거 */
-    .inv-title { margin-top: 0 !important; padding-top: 0 !important; }
-    </style>
-    <div class="inv-title"></div>
-    """, unsafe_allow_html=True)
-
+    # 이카운트 재고 현황
     st.markdown("### 📦 이카운트 재고 현황")
-
-    # ... inventory_rows, unique_rows 만드는 코드 동일 ...
 
     inv_html = """
     <style>
@@ -278,8 +290,8 @@ if uploaded_zip:
     }
     .inv-table tr:nth-child(even) { background-color: #f9f9f9; }
     .inv-table tr:hover { background-color: #EBF5FB; }
-    .inv-name  { text-align: center; font-weight: 500; }
-    .inv-num   { font-weight: bold; color: #1a5276; }
+    .inv-name { text-align: center; font-weight: 500; }
+    .inv-num  { font-weight: bold; color: #1a5276; }
     </style>
     <div class="inv-container">
     <table class="inv-table">
@@ -292,7 +304,7 @@ if uploaded_zip:
         </tr>
     """
 
-    for row in unique_rows:
+    for row in inventory_rows:
         inv_html += f"""
         <tr>
             <td class="inv-name">{row['상품명']}</td>
@@ -305,9 +317,9 @@ if uploaded_zip:
 
     inv_html += "</table></div>"
 
-    # 행 수에 따라 height 자동 계산 후 scrolling=False 로 전체 표시
-    row_count = len(unique_rows)
-    table_height = 60 + (row_count * 52)  # 헤더 60px + 행당 52px
-    components.html(inv_html, height=table_height, scrolling=False)    
+    # 전체 표 높이 계산 (스크롤 없이 전체 표시)
+    row_count = len(inventory_rows)
+    table_height = 60 + (row_count * 52)
+    components.html(inv_html, height=table_height, scrolling=False)
 
 st.markdown('</div>', unsafe_allow_html=True)
