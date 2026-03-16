@@ -48,11 +48,16 @@ def load_google_sheet():
 
 df_sheet = load_google_sheet()
 
-# -------------------------------------------------------
-# 수정 1 & 2: 상단 고정 영역 + 가운데 정렬
-# -------------------------------------------------------
 st.markdown("""
 <style>
+/* Streamlit 기본 상단 여백 제거 */
+.block-container {
+    padding-top: 0rem !important;
+}
+header[data-testid="stHeader"] {
+    display: none !important;
+}
+
 /* 상단 고정 컨테이너 */
 .fixed-top-bar {
     position: fixed;
@@ -61,53 +66,57 @@ st.markdown("""
     width: 100%;
     background-color: white;
     z-index: 9999;
-    padding: 10px 20px 10px 20px;
+    padding: 12px 30px 14px 30px;
     border-bottom: 2px solid #ddd;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-sizing: border-box;
 }
-/* 고정 영역만큼 본문 아래로 밀기 */
+
+/* 고정 영역만큼 본문 아래로 밀기 — 바코드 이미지(약 120px) + 제목 + 여백 */
 .main-content {
-    margin-top: 220px;
+    margin-top: 300px;
 }
-/* 수정 1: 가운데 정렬 */
+
 .top-barcode-title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     text-align: center;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
 }
-.top-barcode-img {
-    display: flex;
-    justify-content: center;
+
+/* 바코드 이미지가 고정 바 밖으로 넘치지 않도록 */
+.fixed-top-bar img {
+    max-width: 280px;
+    max-height: 110px;
+    width: 100%;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 바코드 이미지를 base64로 미리 생성
 workbench_img = get_barcode_base64("RCS0000023061")
 ibc_placeholder_img = get_barcode_base64("IBC")
 
-# 고정 상단 바 HTML (IBC 입력은 별도로 Streamlit 위젯 사용 불가 → JS로 처리)
 st.markdown(f"""
 <div class="fixed-top-bar">
-    <div style="display: flex; justify-content: space-around; align-items: flex-start;">
-        <div style="text-align: center; flex: 1;">
+    <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px;">
+        <div style="text-align: center; flex: 1; min-width: 0;">
             <div class="top-barcode-title">🏷️ 작업대 바코드</div>
-            <img src="{workbench_img}" style="max-width: 320px;">
+            <img src="{workbench_img}">
         </div>
-        <div style="text-align: center; flex: 1;">
+        <div style="text-align: center; flex: 1; min-width: 0;">
             <div class="top-barcode-title">🏷️ IBC 바코드</div>
-            <div id="ibc-barcode-container">
-                <img src="{ibc_placeholder_img}" style="max-width: 320px;" id="ibc-barcode-img">
-            </div>
+            <img src="{ibc_placeholder_img}" id="ibc-barcode-img">
         </div>
-        <div style="text-align: center; flex: 1;">
+        <div style="text-align: center; flex: 1; min-width: 0;">
             <div class="top-barcode-title">✏️ IBC 바코드 입력</div>
             <input 
                 id="ibc-input"
                 type="text"
                 placeholder="IBC 뒤에 붙을 숫자 입력"
-                style="font-size: 22px; padding: 10px; width: 80%; border: 2px solid #ccc; border-radius: 6px; text-align: center;"
+                style="font-size: 20px; padding: 10px; width: 85%; border: 2px solid #ccc; border-radius: 6px; text-align: center; box-sizing: border-box;"
                 oninput="updateIBC(this.value)"
             >
         </div>
@@ -115,8 +124,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# IBC 바코드를 JS로 실시간 업데이트하는 컴포넌트
-# 순수 HTML+JS로 바코드를 그리기 위해 JsBarcode 라이브러리 사용
 components.html("""
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <canvas id="ibc-canvas" style="display:none;"></canvas>
@@ -133,24 +140,19 @@ function updateIBC(val) {
             fontSize: 16
         });
         const dataUrl = canvas.toDataURL('image/png');
-        // 부모 프레임의 이미지 교체
         window.parent.document.getElementById('ibc-barcode-img').src = dataUrl;
     } catch(e) {}
 }
-
-// 입력 이벤트를 부모 프레임의 input과 연결
 window.parent.document.getElementById('ibc-input').addEventListener('input', function() {
     updateIBC(this.value);
 });
 </script>
 """, height=0)
 
-# 본문 시작 (고정바 높이만큼 margin-top 확보)
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 st.divider()
 
-# --- ZIP 파일 업로드 ---
 st.markdown("### 📁 ZIP 파일 업로드 및 발주번호 확인")
 uploaded_zip = st.file_uploader("ZIP 파일을 선택해주세요.", type=["zip"])
 
@@ -175,19 +177,14 @@ if uploaded_zip:
                             qv = str(ws.cell(ri - 1, 8).value or "0").strip() 
                             extracted_data.append({"po": po_num, "barcode": cv, "qty": qv})
 
-    # -------------------------------------------------------
-    # 수정 3: 발주번호 텍스트를 바코드 이미지 위에 가운데 정렬
-    # -------------------------------------------------------
     st.markdown("**[ 발주번호 ]**")
     po_cols = st.columns(4)
     for idx, po in enumerate(po_numbers):
         with po_cols[idx % 4]:
-            # 텍스트를 가운데 정렬로 먼저 출력
             st.markdown(
                 f"<div style='text-align:center; font-size:18px; font-weight:bold; margin-bottom:4px;'>📝 {po}</div>",
                 unsafe_allow_html=True
             )
-            # 바코드 이미지를 가운데 정렬
             img_b64 = get_barcode_base64(po)
             st.markdown(
                 f"<div style='text-align:center;'><img src='{img_b64}' style='max-width:300px;'></div>",
@@ -196,7 +193,6 @@ if uploaded_zip:
 
     st.divider()
 
-    # --- 본문 5열 표 ---
     st.markdown("### 📋 상품 출력 목록")
     
     html_table = """
