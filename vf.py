@@ -242,4 +242,99 @@ if uploaded_zip:
     html_table += "</table></div>"
     components.html(html_table, height=850, scrolling=True)
 
+# --- 이카운트 재고 현황 표 ---
+    st.markdown("### 📦 이카운트 재고 현황")
+
+    inventory_rows = []
+
+    for item in extracted_data:
+        prod_barcode = item["barcode"]
+        prod_name = "매칭 실패"
+        w1 = w2 = w3 = w4 = "-"
+
+        if not df_sheet.empty:
+            match_row = df_sheet[df_sheet.iloc[:, 0].astype(str).str.strip() == prod_barcode]
+            if not match_row.empty:
+                # C열(인덱스2) = 상품명, D열(인덱스3) = 1창고, E열(인덱스4) = 2창고,
+                # F열(인덱스5) = 3창고, G열(인덱스6) = 4창고
+                if len(match_row.columns) > 2:
+                    prod_name = str(match_row.iloc[0, 2])
+                if len(match_row.columns) > 3:
+                    w1 = str(match_row.iloc[0, 3])
+                if len(match_row.columns) > 4:
+                    w2 = str(match_row.iloc[0, 4])
+                if len(match_row.columns) > 5:
+                    w3 = str(match_row.iloc[0, 5])
+                if len(match_row.columns) > 6:
+                    w4 = str(match_row.iloc[0, 6])
+
+        inventory_rows.append({
+            "상품명": prod_name,
+            "1창고": w1,
+            "2창고": w2,
+            "3창고": w3,
+            "4창고": w4,
+        })
+
+    # 중복 상품 제거 (같은 바코드가 여러 행일 경우)
+    seen = set()
+    unique_rows = []
+    for i, item in enumerate(extracted_data):
+        bc = item["barcode"]
+        if bc not in seen:
+            seen.add(bc)
+            unique_rows.append(inventory_rows[i])
+
+    inv_html = """
+    <style>
+    .inv-container { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+    .inv-table { width: 100%; border-collapse: collapse; text-align: center; }
+    .inv-table th {
+        background-color: #4A90D9;
+        color: white;
+        padding: 12px 8px;
+        font-size: 15px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .inv-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        vertical-align: middle;
+    }
+    .inv-table tr:nth-child(even) { background-color: #f9f9f9; }
+    .inv-table tr:hover { background-color: #EBF5FB; }
+    .inv-name { text-align: left; padding-left: 14px; font-weight: 500; }
+    .inv-num  { font-weight: bold; color: #1a5276; }
+    </style>
+    <div class="inv-container">
+    <table class="inv-table">
+        <tr>
+            <th>상품명</th>
+            <th>1창고</th>
+            <th>2창고</th>
+            <th>3창고</th>
+            <th>4창고</th>
+        </tr>
+    """
+
+    for row in unique_rows:
+        inv_html += f"""
+        <tr>
+            <td class="inv-name">{row['상품명']}</td>
+            <td class="inv-num">{row['1창고']}</td>
+            <td class="inv-num">{row['2창고']}</td>
+            <td class="inv-num">{row['3창고']}</td>
+            <td class="inv-num">{row['4창고']}</td>
+        </tr>
+        """
+
+    inv_html += "</table></div>"
+
+    row_count = len(unique_rows)
+    table_height = min(80 + row_count * 46, 600)  # 최대 600px, 행 수에 따라 자동 조절
+    components.html(inv_html, height=table_height, scrolling=True)    
+
 st.markdown('</div>', unsafe_allow_html=True)
