@@ -6,3 +6,6 @@ google-auth-oauthlib
 streamlit-google-auth
 playwright
 oauth2client
+openpyxl
+python-barcode
+Pillow
