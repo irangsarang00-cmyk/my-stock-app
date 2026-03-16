@@ -33,7 +33,7 @@ def get_barcode_base64(data):
         return ""
 
 # --- 3. 구글 시트 데이터 불러오기 (API 서비스 계정 연동) ---
-# ttl=600을 넣으면 10분(600초)마다 최신 데이터를 다시 읽어와서 캐시를 갱신해 줘요.
+# ttl=600을 넣으면 10분(600초)마다 최신 데이터를 다시 읽어와서 캐시를 갱신해 줍니다.
 @st.cache_data(ttl=600)
 def load_google_sheet():
     try:
@@ -67,21 +67,31 @@ def load_google_sheet():
 df_sheet = load_google_sheet()
 
 # --- 4. 최상단: 작업대 및 IBC 바코드 고정 영역 ---
+# CSS를 사용하여 최상단 영역의 글자 크기와 입력칸의 크기를 키웁니다.
+st.markdown("""
+<style>
+/* 최상단 영역 제목 글자 크기 조정 */
+.top-barcode-title { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+/* 입력칸 크기 및 시인성 조정 */
+.st-text-input input { font-size: 28px; padding: 15px; height: 60px; }
+</style>
+""", unsafe_allow_html=True)
+
 st.markdown("### 🏷️ 작업대 & IBC 바코드")
 col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
-    st.markdown("**작업대 바코드**")
+    st.markdown('<div class="top-barcode-title">**작업대 바코드**</div>', unsafe_allow_html=True)
     # 이미지를 더 크게 만들기 위해 width 값을 250에서 350으로 키웠습니다.
     st.image(get_barcode_base64("RCS0000023061"), width=350)
 
 with col3:
-    st.markdown("**IBC 바코드 입력**")
-    # 텍스트 입력 대신 st_keyup을 사용해 실시간으로 값을 받아옵니다.
+    st.markdown('<div class="top-barcode-title">**IBC 바코드 입력**</div>', unsafe_allow_html=True)
+    # st_keyup의 CSS 클래스를 사용하여 스타일을 적용합니다.
     ibc_input = st_keyup("", placeholder="IBC 뒤에 붙을 숫자 입력", label_visibility="collapsed")
 
 with col2:
-    st.markdown("**IBC 바코드**")
+    st.markdown('<div class="top-barcode-title">**IBC 바코드**</div>', unsafe_allow_html=True)
     ibc_full = f"IBC{ibc_input}" if ibc_input else "IBC"
     # 이미지를 더 크게 만들기 위해 width 값을 250에서 350으로 키웠습니다.
     st.image(get_barcode_base64(ibc_full), width=350)
@@ -114,10 +124,12 @@ if uploaded_zip:
                             qv = str(ws.cell(ri - 1, 8).value or "0").strip() 
                             extracted_data.append({"po": po_num, "barcode": cv, "qty": qv})
 
+    # 추출된 발주번호를 바코드 이미지로 출력합니다.
     st.markdown("**[ 추출된 발주번호 ]**")
     po_cols = st.columns(4)
     for idx, po in enumerate(po_numbers):
-        po_cols[idx % 4].write(f"📝 {po}")
+        po_cols[idx % 4].markdown(f"📝 **{po}**")
+        po_cols[idx % 4].image(get_barcode_base64(po), width=300)
         
     st.divider()
 
@@ -133,6 +145,8 @@ if uploaded_zip:
     td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: middle; }
     /* 표 안의 바코드 이미지를 더 크게 만들기 위해 max-width 값을 180px에서 280px로 키웠습니다. */
     img { max-width: 280px; height: auto; }
+    /* 상품명 글자 크기 조정 */
+    .product-name { font-size: 20px; text-align: left; padding-left: 10px; }
     </style>
     <div class="table-container">
     <table>
@@ -172,7 +186,7 @@ if uploaded_zip:
         html_table += f"""
         <tr>
             <td><img src="{img_prod}"></td>
-            <td style="text-align: left;">{prod_name}</td>
+            <td class="product-name">{prod_name}</td>
             <td style="font-size: 24px; font-weight: bold;">{prod_qty}</td>
             <td><img src="{img_tote}"></td>
             <td><img src="{img_loc}"></td>
@@ -183,3 +197,4 @@ if uploaded_zip:
     
     # 완성된 HTML 표를 스트림릿 화면에 안전하게 출력 (높이 850px 고정 및 스크롤 허용)
     components.html(html_table, height=850, scrolling=True)
+        
