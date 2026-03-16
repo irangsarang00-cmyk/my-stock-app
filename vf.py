@@ -293,21 +293,21 @@ if uploaded_zip:
         background-color: #4A90D9;
         color: white;
         padding: 12px 8px;
-        font-size: 15px;
+        font-size: 20px;        /* 15px → 20px */
         position: sticky;
         top: 0;
         z-index: 10;
     }
     .inv-table td {
-        padding: 10px 8px;
+        padding: 12px 8px;
         border-bottom: 1px solid #eee;
-        font-size: 15px;
+        font-size: 19px;        /* 15px → 19px */
         vertical-align: middle;
     }
     .inv-table tr:nth-child(even) { background-color: #f9f9f9; }
     .inv-table tr:hover { background-color: #EBF5FB; }
-    .inv-name { text-align: left; padding-left: 14px; font-weight: 500; }
-    .inv-num  { font-weight: bold; color: #1a5276; }
+    .inv-name  { text-align: center; font-weight: 500; }   /* left → center */
+    .inv-num   { font-weight: bold; color: #1a5276; }
     </style>
     <div class="inv-container">
     <table class="inv-table">
