@@ -50,7 +50,6 @@ df_sheet = load_google_sheet()
 
 st.markdown("""
 <style>
-/* Streamlit 기본 상단 여백 제거 */
 .block-container {
     padding-top: 0rem !important;
 }
@@ -58,7 +57,6 @@ header[data-testid="stHeader"] {
     display: none !important;
 }
 
-/* 상단 고정 컨테이너 */
 .fixed-top-bar {
     position: fixed;
     top: 0;
@@ -72,9 +70,8 @@ header[data-testid="stHeader"] {
     box-sizing: border-box;
 }
 
-/* 고정 영역만큼 본문 아래로 밀기 — 바코드 이미지(약 120px) + 제목 + 여백 */
 .main-content {
-    margin-top: 300px;
+    margin-top: 180px;   /* 300px → 180px */
 }
 
 .top-barcode-title {
@@ -84,10 +81,9 @@ header[data-testid="stHeader"] {
     margin-bottom: 8px;
 }
 
-/* 바코드 이미지가 고정 바 밖으로 넘치지 않도록 */
 .fixed-top-bar img {
-    max-width: 280px;
-    max-height: 110px;
+    max-width: 380px;    /* 280px → 380px */
+    max-height: 160px;   /* 110px → 160px */
     width: 100%;
     object-fit: contain;
     display: block;
