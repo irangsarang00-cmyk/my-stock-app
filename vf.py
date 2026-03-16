@@ -8,12 +8,12 @@ import base64
 from io import BytesIO
 from barcode import Code128
 from barcode.writer import ImageWriter
-from st_keyup import st_keyup
-import streamlit.components.v1 as components
 
 # 새로 추가된 라이브러리들
 import gspread
 from google.oauth2.service_account import Credentials
+from st_keyup import st_keyup
+import streamlit.components.v1 as components
 
 # --- 1. 페이지 기본 설정 ---
 st.set_page_config(page_title="WMS 바코드 출력 시스템", layout="wide")
@@ -24,7 +24,9 @@ def get_barcode_base64(data):
         return ""
     try:
         rv = BytesIO()
-        options = {'write_text': True, 'module_width': 0.25, 'module_height': 8.0, 'font_size': 10}
+        # write_text=True로 설정하여 이미지 자체에 바코드 문자가 포함되도록 합니다.
+        # module_height 값을 조금 더 키워서 이미지 자체를 크게 만듭니다.
+        options = {'write_text': True, 'module_width': 0.25, 'module_height': 10.0, 'font_size': 12}
         Code128(str(data), writer=ImageWriter()).write(rv, options=options)
         return f"data:image/png;base64,{base64.b64encode(rv.getvalue()).decode()}"
     except Exception as e:
@@ -70,7 +72,8 @@ col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     st.markdown("**작업대 바코드**")
-    st.image(get_barcode_base64("RCS0000023061"), width=250)
+    # 이미지를 더 크게 만들기 위해 width 값을 250에서 350으로 키웠습니다.
+    st.image(get_barcode_base64("RCS0000023061"), width=350)
 
 with col3:
     st.markdown("**IBC 바코드 입력**")
@@ -80,7 +83,8 @@ with col3:
 with col2:
     st.markdown("**IBC 바코드**")
     ibc_full = f"IBC{ibc_input}" if ibc_input else "IBC"
-    st.image(get_barcode_base64(ibc_full), width=250)
+    # 이미지를 더 크게 만들기 위해 width 값을 250에서 350으로 키웠습니다.
+    st.image(get_barcode_base64(ibc_full), width=350)
 
 st.divider()
 
@@ -120,13 +124,15 @@ if uploaded_zip:
     # --- 6. 본문 5열 표 렌더링 영역 ---
     st.markdown("### 📋 상품 출력 목록")
     
+    # HTML 문자열로 표 조립 시작 (표 제목 행 고정 CSS 포함)
     html_table = """
     <style>
-    .table-container { max-height: 600px; overflow-y: auto; border: 1px solid #ddd; }
+    .table-container { max-height: 800px; overflow-y: auto; border: 1px solid #ddd; }
     table { width: 100%; border-collapse: collapse; text-align: center; }
     th { position: sticky; top: 0; background-color: #f4f4f4; padding: 10px; border-bottom: 2px solid #ccc; z-index: 10; font-size: 16px;}
-    td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
-    img { max-width: 180px; height: auto; }
+    td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: middle; }
+    /* 표 안의 바코드 이미지를 더 크게 만들기 위해 max-width 값을 180px에서 280px로 키웠습니다. */
+    img { max-width: 280px; height: auto; }
     </style>
     <div class="table-container">
     <table>
@@ -157,20 +163,23 @@ if uploaded_zip:
                 if len(match_row.columns) > 11:
                     loc_num = str(match_row.iloc[0, 11])
 
+        # 각 바코드 이미지 생성
         img_prod = get_barcode_base64(prod_barcode)
         img_tote = get_barcode_base64("466-RCRT1-1-1")
         img_loc = get_barcode_base64(f"466-A1-1-{loc_num}")
 
+        # HTML 행 추가 (요청하신 대로 이미지 밑의 텍스트 출력 부분을 제거했습니다.)
         html_table += f"""
         <tr>
-            <td><img src="{img_prod}"><br>{prod_barcode}</td>
+            <td><img src="{img_prod}"></td>
             <td style="text-align: left;">{prod_name}</td>
-            <td style="font-size: 20px; font-weight: bold;">{prod_qty}</td>
-            <td><img src="{img_tote}"><br>466-RCRT1-1-1</td>
-            <td><img src="{img_loc}"><br>466-A1-1-{loc_num}</td>
+            <td style="font-size: 24px; font-weight: bold;">{prod_qty}</td>
+            <td><img src="{img_tote}"></td>
+            <td><img src="{img_loc}"></td>
         </tr>
         """
 
     html_table += "</table></div>"
-    components.html(html_table, height=650, scrolling=True)
     
+    # 완성된 HTML 표를 스트림릿 화면에 안전하게 출력 (높이 850px 고정 및 스크롤 허용)
+    components.html(html_table, height=850, scrolling=True)
