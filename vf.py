@@ -14,7 +14,7 @@ from google.oauth2.service_account import Credentials
 from st_keyup import st_keyup
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="WMS 바코드 출력 시스템", layout="wide")
+st.set_page_config(page_title="벤더플렉스 입고 도우미", layout="wide")
 
 def get_barcode_base64(data):
     if not data or data == "-": 
