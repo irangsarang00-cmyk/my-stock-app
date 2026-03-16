@@ -8,6 +8,8 @@ import base64
 from io import BytesIO
 from barcode import Code128
 from barcode.writer import ImageWriter
+from st_keyup import st_keyup
+import streamlit.components.v1 as components
 
 # 새로 추가된 라이브러리들
 import gspread
@@ -72,7 +74,8 @@ with col1:
 
 with col3:
     st.markdown("**IBC 바코드 입력**")
-    ibc_input = st.text_input("", placeholder="IBC 뒤에 붙을 숫자 입력", label_visibility="collapsed")
+    # 텍스트 입력 대신 st_keyup을 사용해 실시간으로 값을 받아옵니다.
+    ibc_input = st_keyup("", placeholder="IBC 뒤에 붙을 숫자 입력", label_visibility="collapsed")
 
 with col2:
     st.markdown("**IBC 바코드**")
@@ -169,5 +172,5 @@ if uploaded_zip:
         """
 
     html_table += "</table></div>"
-    st.markdown(html_table, unsafe_allow_html=True)
+    components.html(html_table, height=650, scrolling=True)
     
