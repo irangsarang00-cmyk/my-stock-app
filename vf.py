@@ -245,7 +245,7 @@ if uploaded_files:
     # 미확정 발주서가 하나라도 있으면 제목 옆에 표시
     has_unconfirmed = any(not c for _, c in po_numbers)
     unconfirmed_label = (
-        " <span style='color:#e00000; font-size:16px;'>* 미확정 발주서 포함</span>"
+        " <span style='color:#e00000; font-size:16px;'>* 미확정 발주서</span>"
         if has_unconfirmed else ""
     )
     st.markdown(
