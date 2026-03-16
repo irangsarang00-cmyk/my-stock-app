@@ -58,6 +58,10 @@ def run_crawler(accounts):
 
             # 로그인
             page.goto("https://supplier.coupang.com/dashboard/KR")
+            page.goto("https://supplier.coupang.com/dashboard/KR")
+            page.wait_for_load_state('networkidle')
+            page.screenshot(path=f"error_screen_{account['id']}.png")
+            print("화면 스크린샷을 찍었습니다!")
             page.locator('input[name="username"]').fill(account['id'])
             page.locator('input[name="password"]').fill(account['pw'])
             page.locator('button[type="submit"].btn-primary').click()
