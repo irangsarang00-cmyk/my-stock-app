@@ -34,3 +34,11 @@ jobs:
           COUPANG_PW_2: ${{ secrets.COUPANG_PW_2 }}
           GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
         run: python main.py
+        
+      - name: 에러 스크린샷 구출하기
+        if: always() 
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-screenshot
+          path: '*.png'        
+          
