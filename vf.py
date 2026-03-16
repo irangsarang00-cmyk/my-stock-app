@@ -81,17 +81,17 @@ st.markdown("### 🏷️ 작업대 & IBC 바코드")
 col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
-    st.markdown('<div class="top-barcode-title">**작업대 바코드**</div>', unsafe_allow_html=True)
+    st.markdown('<div class="top-barcode-title">작업대 바코드</div>', unsafe_allow_html=True)
     # 이미지를 더 크게 만들기 위해 width 값을 250에서 350으로 키웠습니다.
     st.image(get_barcode_base64("RCS0000023061"), width=350)
 
 with col3:
-    st.markdown('<div class="top-barcode-title">**IBC 바코드 입력**</div>', unsafe_allow_html=True)
+    st.markdown('<div class="top-barcode-title">IBC 바코드 입력</div>', unsafe_allow_html=True)
     # st_keyup의 CSS 클래스를 사용하여 스타일을 적용합니다.
     ibc_input = st_keyup("", placeholder="IBC 뒤에 붙을 숫자 입력", label_visibility="collapsed")
 
 with col2:
-    st.markdown('<div class="top-barcode-title">**IBC 바코드**</div>', unsafe_allow_html=True)
+    st.markdown('<div class="top-barcode-title">IBC 바코드</div>', unsafe_allow_html=True)
     ibc_full = f"IBC{ibc_input}" if ibc_input else "IBC"
     # 이미지를 더 크게 만들기 위해 width 값을 250에서 350으로 키웠습니다.
     st.image(get_barcode_base64(ibc_full), width=350)
@@ -125,7 +125,7 @@ if uploaded_zip:
                             extracted_data.append({"po": po_num, "barcode": cv, "qty": qv})
 
     # 추출된 발주번호를 바코드 이미지로 출력합니다.
-    st.markdown("**[ 추출된 발주번호 ]**")
+    st.markdown("**[ 발주번호 ]**")
     po_cols = st.columns(4)
     for idx, po in enumerate(po_numbers):
         po_cols[idx % 4].markdown(f"📝 **{po}**")
