@@ -12,7 +12,7 @@ def get_credentials_and_sheet():
     
     # 1. 깃허브 금고에 있는 구글 열쇠 꺼내기 (이건 꼭 있어야 시트를 읽을 수 있어요!)
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    google_secret_json = os.environ.get("secrets.json")
+    google_secret_json = os.environ.get("GOOGLE_JSON")
     creds_dict = json.loads(google_secret_json)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
