@@ -11,7 +11,6 @@ from barcode.writer import ImageWriter
 
 import gspread
 from google.oauth2.service_account import Credentials
-from st_keyup import st_keyup
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="벤더플렉스 입고 도우미", layout="wide")
@@ -48,6 +47,7 @@ def load_google_sheet():
 
 df_sheet = load_google_sheet()
 
+# 스크롤 시 화면 상단에 고정되도록 CSS를 강력하게 설정합니다.
 st.markdown("""
 <style>
 .block-container {
@@ -60,19 +60,19 @@ header[data-testid="stHeader"] {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
+    width: 100vw;
     background-color: white;
-    z-index: 9999;
+    z-index: 999999;
     padding: 12px 30px 14px 30px;
     border-bottom: 2px solid #ddd;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     box-sizing: border-box;
 }
 .main-content {
-    margin-top: 180px;
+    margin-top: 220px; /* 고정 메뉴가 가리지 않도록 여백을 조금 더 주었습니다 */
 }
 .top-barcode-title {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     text-align: center;
     margin-bottom: 8px;
@@ -85,6 +85,7 @@ header[data-testid="stHeader"] {
     display: block;
     margin: 0 auto;
 }
+/* 스트림릿 기본 iframe 여백 제거 */
 iframe { margin-bottom: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -92,6 +93,7 @@ iframe { margin-bottom: 0 !important; }
 workbench_img = get_barcode_base64("466-RCRT1-1-1")
 ibc_placeholder_img = get_barcode_base64("IBC")
 
+# HTML과 CSS를 활용해 글자와 입력칸을 화면 한가운데에 예쁘게 정렬했습니다.
 st.markdown(f"""
 <div class="fixed-top-bar">
     <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px;">
@@ -103,13 +105,13 @@ st.markdown(f"""
             <div class="top-barcode-title">🏷️ IBC 바코드</div>
             <img src="{ibc_placeholder_img}" id="ibc-barcode-img">
         </div>
-        <div style="text-align: center; flex: 1; min-width: 0;">
+        <div style="text-align: center; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;">
             <div class="top-barcode-title">✏️ IBC 바코드 입력</div>
             <input 
                 id="ibc-input"
                 type="text"
-                placeholder="IBC 뒤에 붙는 숫자 입력"
-                style="font-size: 20px; padding: 10px; width: 85%; border: 2px solid #ccc; border-radius: 6px; text-align: center; box-sizing: border-box;"
+                placeholder="숫자 입력"
+                style="font-size: 22px; padding: 12px; width: 80%; max-width: 300px; border: 2px solid #ccc; border-radius: 6px; text-align: center; box-sizing: border-box; display: block; margin: 0 auto;"
                 oninput="updateIBC(this.value)"
             >
         </div>
@@ -144,15 +146,15 @@ window.parent.document.getElementById('ibc-input').addEventListener('input', fun
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
-st.divider()
-
 # --- ZIP 파일 업로드 ---
-st.markdown("### 📁 ZIP 파일 업로드 및 발주번호 확인")
+st.markdown("<h3 style='text-align: center;'>📁 파일 업로드</h3>", unsafe_allow_html=True)
 uploaded_files = st.file_uploader(
     "ZIP 파일 또는 XLSX 파일을 선택해주세요. (복수 선택 가능)",
     type=["zip", "xlsx"],
     accept_multiple_files=True
 )
+
+st.divider()
 
 if uploaded_files:
     po_numbers = []        # (po_num, is_confirmed) 튜플 리스트
@@ -173,13 +175,11 @@ if uploaded_files:
 
     def check_confirmed(ws):
         """Q20~S20 병합셀에 '입고금액' 텍스트 여부 확인"""
-        # 병합셀 확인
         for merged in ws.merged_cells.ranges:
             if (merged.min_row == 20 and merged.max_row == 20 and
                 merged.min_col == 17 and merged.max_col == 19):  # Q=17, R=18, S=19
                 cell_val = str(ws.cell(20, 17).value or "").strip()
                 return cell_val == "입고금액"
-        # 병합 없이 단일 셀에 있는 경우도 체크
         cell_val = str(ws.cell(20, 17).value or "").strip()
         return cell_val == "입고금액"
 
@@ -209,12 +209,13 @@ if uploaded_files:
                 po_numbers.append((po_num, is_confirmed))
             process_xlsx(ws, po_num, is_confirmed)
 
-    # 발주번호 바코드 출력
-    st.markdown("**[ 발주번호 ]**")
+    # 발주번호 타이틀 중앙 정렬
+    st.markdown("<h3 style='text-align: center;'>[ 추출된 발주번호 ]</h3>", unsafe_allow_html=True)
+    st.write("") # 약간의 여백
+    
     po_cols = st.columns(4)
     for idx, (po, is_confirmed) in enumerate(po_numbers):
         with po_cols[idx % 4]:
-            # 미확정이면 빨간색 텍스트
             text_color = "#222222" if is_confirmed else "#e00000"
             label = f"📝 {po}" if is_confirmed else f"📝 {po} ⚠️ 미확정"
             st.markdown(
@@ -223,7 +224,6 @@ if uploaded_files:
                 unsafe_allow_html=True
             )
             img_b64 = get_barcode_base64(po)
-            # 미확정이면 바코드에 빨간 테두리 + 필터로 붉게 표시
             if is_confirmed:
                 st.markdown(
                     f"<div style='text-align:center;'>"
@@ -241,15 +241,14 @@ if uploaded_files:
 
     st.divider()
 
-    # 상품 출력 목록
-    # 미확정 발주서가 하나라도 있으면 제목 옆에 표시
+    # 상품 출력 목록 (토트 바코드 제거됨)
     has_unconfirmed = any(not c for _, c in po_numbers)
     unconfirmed_label = (
         " <span style='color:#e00000; font-size:16px;'>* 미확정 발주서</span>"
         if has_unconfirmed else ""
     )
     st.markdown(
-        f"### 📋 상품 출력 목록{unconfirmed_label}",
+        f"<h3 style='text-align: center;'>📋 상품 출력 목록{unconfirmed_label}</h3>",
         unsafe_allow_html=True
     )
 
@@ -270,7 +269,6 @@ if uploaded_files:
             <th>상품바코드</th>
             <th>상품명</th>
             <th>확정수량</th>
-            <th>토트 바코드</th>
             <th>로케이션 바코드</th>
         </tr>
     """
@@ -303,12 +301,10 @@ if uploaded_files:
                     loc_num = str(match_row.iloc[0, 11])
 
         if is_confirmed:
-            # 확정: 정상 출력
             img_prod_tag = f'<img src="{get_barcode_base64(prod_barcode)}">'
             name_class = "product-name"
             qty_style = "font-size: 24px; font-weight: bold;"
         else:
-            # 미확정: 바코드 없음 + 빨간색
             img_prod_tag = (
                 f'<div style="color:#e00000; font-size:13px; font-weight:bold;">'
                 f'⚠️ 미확정<br>{prod_barcode}</div>'
@@ -316,13 +312,8 @@ if uploaded_files:
             name_class = "unconfirmed-name"
             qty_style = "font-size: 24px; font-weight: bold; color: #e00000;"
             
-        img_tote = get_barcode_base64("466-RCRT1-1-1")
         img_loc  = get_barcode_base64(f"466-A1-1-{loc_num}")
 
-        # 미확정이면 토트/로케이션도 빨간 필터
-        tote_tag = f'<img src="{img_tote}">' if is_confirmed else (
-            f'<img src="{img_tote}" style="filter: sepia(1) saturate(5) hue-rotate(-10deg);">'
-        )
         loc_tag = f'<img src="{img_loc}">' if is_confirmed else (
             f'<img src="{img_loc}" style="filter: sepia(1) saturate(5) hue-rotate(-10deg);">'
         )
@@ -332,7 +323,6 @@ if uploaded_files:
             <td>{img_prod_tag}</td>
             <td class="{name_class}">{prod_name}</td>
             <td style="{qty_style}">{prod_qty}</td>
-            <td>{tote_tag}</td>
             <td>{loc_tag}</td>
         </tr>
         """
@@ -353,7 +343,7 @@ if uploaded_files:
     # 이카운트 재고 현황
     inv_section = """
     <div style="margin-top: 24px;">
-        <div style="font-size: 22px; font-weight: bold; margin-bottom: 8px;">📦 이카운트 재고 현황</div>
+        <div style="font-size: 22px; font-weight: bold; margin-bottom: 8px; text-align: center;">📦 이카운트 재고 현황</div>
         <style>
         .inv-container { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
         .inv-table { width: 100%; border-collapse: collapse; text-align: center; }
