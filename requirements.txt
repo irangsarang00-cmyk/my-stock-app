@@ -10,3 +10,6 @@ openpyxl
 python-barcode
 Pillow
 streamlit-keyup
+google-api-python-client
+pdfplumber
+reportlab
