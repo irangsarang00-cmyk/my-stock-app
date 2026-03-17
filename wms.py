@@ -263,10 +263,19 @@ header[data-testid="stHeader"] { display: none !important; }
 .stDeployButton { display: none !important; }
 #MainMenu, footer { visibility: hidden; }
 
-/* 사이드바 접기 버튼 숨김 */
-[data-testid="collapsedControl"],
-button[kind="header"][aria-label="Close sidebar"],
-button[aria-label="Close sidebar"] { display: none !important; }
+/* 사이드바 항상 열림 고정 + 접기 버튼 완전 제거 */
+[data-testid="collapsedControl"] { display: none !important; }
+[data-testid="stSidebarCollapsedControl"] { display: none !important; }
+section[data-testid="stSidebar"] {
+    transform: none !important;
+    min-width: 230px !important;
+    width: 230px !important;
+    left: 0 !important;
+}
+section[data-testid="stSidebar"][aria-expanded="false"] {
+    margin-left: 0 !important;
+    transform: translateX(0) !important;
+}
 
 /* ── 최상단 헤더 ── */
 .wms-header {
@@ -433,6 +442,21 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     box-shadow: 4px 6px 0 var(--c-outline);
 }
 </style>
+""", unsafe_allow_html=True)
+
+# 사이드바 상태를 로컬스토리지에서 강제로 열림으로 초기화
+st.markdown("""
+<script>
+(function() {
+    // Streamlit이 사이드바 상태를 localStorage에 저장하는 키를 초기화
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => {
+        if (k.includes('sidebar') || k.includes('Sidebar')) {
+            localStorage.removeItem(k);
+        }
+    });
+})();
+</script>
 """, unsafe_allow_html=True)
 
 
