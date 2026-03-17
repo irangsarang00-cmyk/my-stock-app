@@ -537,53 +537,6 @@ with st.sidebar:
             st.rerun()
 
 
-# ── 미인증 시 로그인 강제 이동 ──
-# SA도 없으면 무조건 로그인 페이지
-# SA는 있고 OAuth만 없는 경우 → 사이드바에서 바로 로그인 버튼 제공, 강제 이동 안 함
-_sa_ready    = st.session_state.svc_sa    is not None
-_oauth_ready = st.session_state.svc_oauth is not None
-if not _sa_ready and st.session_state.page != "login":
-    st.session_state.page = "login"
-elif _sa_ready and not _oauth_ready and st.session_state.page not in ("login", "main"):
-    st.session_state.page = "main"   # 메뉴 접근 차단, 메인은 허용
-
-svc_sa    = st.session_state.svc_sa     # ACTUAL_ID 전용
-svc_oauth = st.session_state.svc_oauth  # VENDOR_ID, WAREHOUSE_ID 전용
-
-# ══════════════════════════════════════════════════════════════════
-# 라우터
-# ══════════════════════════════════════════════════════════════════
-page = st.session_state.get("page", "login")
-
-if not _sa_ready:
-    page_login()
-elif not _oauth_ready:
-    # SA는 됐지만 OAuth 미연결 → 메인화면은 보여주되 메뉴 기능 차단
-    # 사이드바의 로그인 버튼으로 OAuth 처리
-    page_main()
-elif page == "login":
-    page_main()
-elif page == "main":
-    page_main()
-elif page == "actual":
-    page_actual()
-elif page == "vendor":
-    page_vendor()
-elif page == "transfer":
-    page_transfer()
-elif page == "receive":
-    page_receive()
-elif page == "dispatch":
-    page_dispatch()
-elif page == "adjust":
-    page_adjust()
-elif page == "po":
-    page_po()
-
-
-# ══════════════════════════════════════════════════════════════════
-# PAGE: LOGIN
-# ══════════════════════════════════════════════════════════════════
 def page_login():
     col_l, col_c, col_r = st.columns([1, 2, 1])
     with col_c:
@@ -1351,10 +1304,26 @@ def page_po():
 # ══════════════════════════════════════════════════════════════════
 # 라우터
 # ══════════════════════════════════════════════════════════════════
-page = st.session_state.get("page", "login")
+_sa_ready    = st.session_state.svc_sa    is not None
+_oauth_ready = st.session_state.svc_oauth is not None
 
-if page == "login" or not (svc_sa and svc_oauth):
+# 페이지 강제 이동 처리
+if not _sa_ready and st.session_state.page != "login":
+    st.session_state.page = "login"
+elif _sa_ready and not _oauth_ready and st.session_state.page not in ("login", "main"):
+    st.session_state.page = "main"
+
+svc_sa    = st.session_state.svc_sa
+svc_oauth = st.session_state.svc_oauth
+page      = st.session_state.get("page", "login")
+
+if not _sa_ready:
     page_login()
+elif not _oauth_ready:
+    # SA는 됐지만 OAuth 미연결 → 메인만 허용, 사이드바에서 로그인 버튼 제공
+    page_main()
+elif page == "login":
+    page_main()
 elif page == "main":
     page_main()
 elif page == "actual":
