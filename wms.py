@@ -263,6 +263,11 @@ header[data-testid="stHeader"] { display: none !important; }
 .stDeployButton { display: none !important; }
 #MainMenu, footer { visibility: hidden; }
 
+/* 사이드바 접기 버튼 숨김 */
+[data-testid="collapsedControl"],
+button[kind="header"][aria-label="Close sidebar"],
+button[aria-label="Close sidebar"] { display: none !important; }
+
 /* ── 최상단 헤더 ── */
 .wms-header {
     background: var(--c-header);
