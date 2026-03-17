@@ -316,7 +316,6 @@ if uploaded_files:
             name_class = "unconfirmed-name"
             qty_style = "font-size: 24px; font-weight: bold; color: #e00000;"
 
-        img_tote = get_barcode_base64("466-RCRT1-1-1")
         img_loc  = get_barcode_base64(f"466-A1-1-{loc_num}")
 
         # 미확정이면 토트/로케이션도 빨간 필터
