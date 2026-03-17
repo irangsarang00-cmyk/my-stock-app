@@ -20,12 +20,14 @@ st.set_page_config(
 )
 
 # ══════════════════════════════════════════════════════════════════
-# 시스템 설정 상수 (민감 정보 직접 포함)
+# 시스템 설정 상수
 # ══════════════════════════════════════════════════════════════════
 LOC_PREFIX   = "466-A1-1-"
-ACTUAL_ID    = "1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA"
-VENDOR_ID    = "10ZbUts1AfX7uscAGs7MAxBIiFwqp7jIgabz8nbjUOjQ"
-WAREHOUSE_ID = "1T2V7w2dM9Zcl0DydJJSb5nK0y8GvZJaVRHSH-f61ses"
+ACTUAL_ID    = "1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA"   # 서비스 계정
+VENDOR_ID    = "10ZbUts1AfX7uscAGs7MAxBIiFwqp7jIgabz8nbjUOjQ"   # 구글 계정 OAuth
+WAREHOUSE_ID = "1T2V7w2dM9Zcl0DydJJSb5nK0y8GvZJaVRHSH-f61ses"  # 구글 계정 OAuth
+
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # ══════════════════════════════════════════════════════════════════
 # 헬퍼 함수
@@ -49,14 +51,92 @@ def col_letter(n):
     return s
 
 
-def build_service(creds_dict: dict):
+def build_sa_service(creds_dict: dict = None):
+    """서비스 계정으로 Sheets 서비스 생성.
+    creds_dict가 없으면 Streamlit Secrets의 [gcp_service_account] 사용."""
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
-    creds = service_account.Credentials.from_service_account_info(
-        creds_dict,
-        scopes=["https://www.googleapis.com/auth/spreadsheets"],
-    )
+    if creds_dict is None:
+        creds_dict = dict(st.secrets["gcp_service_account"])
+    creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     return build("sheets", "v4", credentials=creds, cache_discovery=False)
+
+
+def build_oauth_service_from_token(token: str, refresh_token: str, client_id: str, client_secret: str):
+    """저장된 토큰으로 Sheets 서비스 생성 + 만료 시 자동 갱신"""
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
+    creds = Credentials(
+        token=token,
+        refresh_token=refresh_token,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=client_id,
+        client_secret=client_secret,
+        scopes=SCOPES,
+    )
+    # 액세스 토큰 만료 시 refresh_token으로 자동 갱신
+    if not creds.valid:
+        creds.refresh(Request())
+    return build("sheets", "v4", credentials=creds, cache_discovery=False)
+
+
+def get_oauth_auth_url(redirect_uri: str) -> str:
+    """Secrets의 OAuth 클라이언트 정보로 인증 URL 생성"""
+    from google_auth_oauthlib.flow import Flow
+    client_config = {
+        "web": {
+            "client_id":     st.secrets["OAUTH_CLIENT_ID"],
+            "client_secret": st.secrets["OAUTH_CLIENT_SECRET"],
+            "auth_uri":      "https://accounts.google.com/o/oauth2/auth",
+            "token_uri":     "https://oauth2.googleapis.com/token",
+            "redirect_uris": [redirect_uri],
+        }
+    }
+    flow = Flow.from_client_config(client_config, scopes=SCOPES, redirect_uri=redirect_uri)
+    auth_url, state = flow.authorization_url(
+        access_type="offline",
+        prompt="consent",
+    )
+    st.session_state["_oauth_state"]        = state
+    st.session_state["_oauth_redirect_uri"] = redirect_uri
+    return auth_url
+
+
+def exchange_oauth_code(code: str) -> dict:
+    """인증 코드 → 토큰 교환. 반환값을 Secrets에 저장하도록 안내."""
+    from google_auth_oauthlib.flow import Flow
+    client_config = {
+        "web": {
+            "client_id":     st.secrets["OAUTH_CLIENT_ID"],
+            "client_secret": st.secrets["OAUTH_CLIENT_SECRET"],
+            "auth_uri":      "https://accounts.google.com/o/oauth2/auth",
+            "token_uri":     "https://oauth2.googleapis.com/token",
+            "redirect_uris": [st.session_state["_oauth_redirect_uri"]],
+        }
+    }
+    flow = Flow.from_client_config(
+        client_config, scopes=SCOPES,
+        state=st.session_state.get("_oauth_state"),
+        redirect_uri=st.session_state["_oauth_redirect_uri"],
+    )
+    flow.fetch_token(code=code)
+    c = flow.credentials
+    return {
+        "token":         c.token,
+        "refresh_token": c.refresh_token,
+        "client_id":     c.client_id,
+        "client_secret": c.client_secret,
+    }
+
+
+def _get_redirect_uri() -> str:
+    """현재 Streamlit 앱 URL을 redirect_uri로 반환 (쿼리스트링 제거)"""
+    try:
+        raw = st.context.url
+    except Exception:
+        raw = "http://localhost:8501"
+    return raw.split("?")[0].rstrip("/")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -64,17 +144,81 @@ def build_service(creds_dict: dict):
 # ══════════════════════════════════════════════════════════════════
 def init_state():
     defaults = {
-        "page":        "login",
-        "svc":         None,
-        "vendor_date": datetime.now(),
-        "adjust_log":  [],
-        "items_data":  {},
+        "page":               "login",
+        "svc_sa":             None,
+        "svc_oauth":          None,
+        "vendor_date":        datetime.now(),
+        "adjust_log":         [],
+        "items_data":         {},
+        "_oauth_state":       None,
+        "_oauth_redirect_uri": None,
+        "_first_token_shown": False,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
 
 init_state()
+
+
+# ══════════════════════════════════════════════════════════════════
+# 시작 시 자동 인증 (Secrets에 토큰이 있으면 즉시 복원)
+# ══════════════════════════════════════════════════════════════════
+def _try_auto_sa():
+    """Secrets에 [gcp_service_account]가 있으면 자동으로 SA 서비스 복원"""
+    if st.session_state.svc_sa is not None:
+        return True
+    try:
+        if "gcp_service_account" not in st.secrets:
+            return False
+        svc = build_sa_service()
+        svc.spreadsheets().get(spreadsheetId=ACTUAL_ID).execute()
+        st.session_state.svc_sa = svc
+        return True
+    except Exception:
+        return False
+
+_sa_auto_ok = _try_auto_sa()
+
+def _try_auto_oauth():
+    """OAUTH_REFRESH_TOKEN이 Secrets에 있으면 자동으로 OAuth 서비스 복원"""
+    if st.session_state.svc_oauth is not None:
+        return True
+    try:
+        token         = st.secrets.get("OAUTH_TOKEN", "")
+        refresh_token = st.secrets["OAUTH_REFRESH_TOKEN"]   # 없으면 KeyError → 최초 로그인 필요
+        client_id     = st.secrets["OAUTH_CLIENT_ID"]
+        client_secret = st.secrets["OAUTH_CLIENT_SECRET"]
+        svc = build_oauth_service_from_token(token, refresh_token, client_id, client_secret)
+        # 연결 테스트
+        svc.spreadsheets().get(spreadsheetId=VENDOR_ID).execute()
+        st.session_state.svc_oauth = svc
+        return True
+    except Exception:
+        return False
+
+_oauth_auto_ok = _try_auto_oauth()
+
+# ── OAuth 콜백 코드 처리 (최초 1회 로그인 후 리디렉션) ─────────────
+_qp = st.query_params
+if "code" in _qp and st.session_state.svc_oauth is None:
+    try:
+        token_dict = exchange_oauth_code(_qp["code"])
+        st.session_state.svc_oauth = build_oauth_service_from_token(
+            token_dict["token"],
+            token_dict["refresh_token"],
+            token_dict["client_id"],
+            token_dict["client_secret"],
+        )
+        st.session_state["_new_token_dict"] = token_dict  # 사용자에게 Secrets 저장 안내용
+        st.session_state["_first_token_shown"] = False
+        st.query_params.clear()
+        if st.session_state.svc_sa is not None:
+            st.session_state.page = "main"
+        st.rerun()
+    except Exception as e:
+        st.error(f"OAuth 토큰 교환 실패: {e}")
+        st.query_params.clear()
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -306,8 +450,17 @@ st.markdown(f"""
 # 사이드바
 # ══════════════════════════════════════════════════════════════════
 with st.sidebar:
-    logged_in = st.session_state.svc is not None
-    tag = '<span class="tag-ok">✅ 연결됨</span>' if logged_in else '<span class="tag-no">🔒 미연결</span>'
+    sa_ok    = st.session_state.svc_sa    is not None
+    oauth_ok = st.session_state.svc_oauth is not None
+    both_ok  = sa_ok and oauth_ok
+
+    if both_ok:
+        tag = '<span class="tag-ok">✅ 연결됨</span>'
+    elif sa_ok or oauth_ok:
+        tag = '<span class="tag-no" style="background:#C08010;">⚠️ 일부 연결</span>'
+    else:
+        tag = '<span class="tag-no">🔒 미연결</span>'
+
     st.markdown(f"""
     <div class="sidebar-logo">
       <div class="sidebar-logo-title">WMS</div>
@@ -316,9 +469,16 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    if not logged_in:
-        st.info("Google 인증이 필요합니다.\n서비스 계정 JSON을 업로드하세요.")
-        if st.button("🔑  로그인 / 인증", key="nav_login"):
+    if not both_ok:
+        sa_txt    = "✅" if sa_ok    else "❌"
+        oauth_txt = "✅" if oauth_ok else "❌"
+        st.markdown(f"""
+        <div style="font-size:12px;padding:8px 12px;color:var(--c-text-dk);">
+          {sa_txt} 서비스 계정 (실재고)<br>
+          {oauth_txt} 구글 계정 (벤더/창고)
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🔑  인증 설정", key="nav_login"):
             st.session_state.page = "login"
             st.rerun()
     else:
@@ -341,17 +501,20 @@ with st.sidebar:
             st.session_state.page = "main"
             st.rerun()
         if st.button("🔓  로그아웃", key="nav_logout"):
-            st.session_state.svc = None
+            st.session_state.svc_sa    = None
+            st.session_state.svc_oauth = None
+            st.session_state.oauth_token = None
             st.session_state.page = "login"
             st.cache_data.clear()
             st.rerun()
 
 
 # ── 미인증 시 로그인 강제 이동 ──
-if st.session_state.svc is None and st.session_state.page != "login":
+if not (st.session_state.svc_sa and st.session_state.svc_oauth) and st.session_state.page != "login":
     st.session_state.page = "login"
 
-svc = st.session_state.svc
+svc_sa    = st.session_state.svc_sa     # ACTUAL_ID 전용
+svc_oauth = st.session_state.svc_oauth  # VENDOR_ID, WAREHOUSE_ID 전용
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -371,45 +534,143 @@ def page_login():
           </div>
         </div>
         <div class="login-body">
-          <div style="font-size:20px;font-weight:800;color:var(--c-gold);margin-bottom:6px;">환영합니다! 👋</div>
-          <div style="font-size:14px;color:var(--c-text-dk);margin-bottom:4px;">Google Sheets 연동이 필요합니다.</div>
-          <div style="font-size:13px;color:#6A5840;margin-bottom:18px;">
-            서비스 계정 키 JSON 파일을 업로드해 주세요.<br>
-            <span style="font-size:12px;color:#999;">Google Cloud Console → IAM → 서비스 계정 → 키 생성 → JSON</span>
-          </div>
         """, unsafe_allow_html=True)
 
-        uploaded = st.file_uploader(
-            "🔑 서비스 계정 키 JSON 업로드",
-            type=["json"],
-            key="sa_json",
-        )
+        sa_ok    = st.session_state.svc_sa    is not None
+        oauth_ok = st.session_state.svc_oauth is not None
 
-        if uploaded:
-            try:
-                creds_dict = json.loads(uploaded.read().decode("utf-8"))
-                with st.spinner("Google Sheets 연결 중..."):
-                    service = build_service(creds_dict)
-                    # 연결 테스트
-                    service.spreadsheets().get(spreadsheetId=VENDOR_ID).execute()
-                st.session_state.svc = service
+        # ── STEP 1: 서비스 계정 ──────────────────────────────────
+        step1_icon = "✅" if sa_ok else "1️⃣"
+        sa_method = "Secrets 자동 연결" if "gcp_service_account" in st.secrets else "JSON 파일 업로드"
+        st.markdown(f"""
+        <div style="font-size:16px;font-weight:800;color:var(--c-text-blue);margin-bottom:4px;">
+          {step1_icon}  실재고 시트 — 서비스 계정 연결
+        </div>
+        <div style="font-size:12px;color:#999;margin-bottom:8px;">
+          방식: {sa_method}
+        </div>
+        """, unsafe_allow_html=True)
+
+        if not sa_ok:
+            has_sa_secret = "gcp_service_account" in st.secrets
+            if has_sa_secret:
+                # Secrets에 있는데 아직 안 됐다면 오류 상황
+                st.error("Secrets의 [gcp_service_account] 연결에 실패했습니다. 값을 확인해주세요.")
+                if st.button("🔄 재시도", key="retry_sa"):
+                    _try_auto_sa()
+                    st.rerun()
+            else:
+                # Secrets 없음 → 파일 업로드 fallback
+                st.caption("또는 Secrets에 [gcp_service_account]를 추가하면 자동 연결됩니다.")
+                sa_file = st.file_uploader("서비스 계정 키 JSON 업로드", type=["json"], key="sa_json")
+                if sa_file:
+                    try:
+                        creds_dict = json.loads(sa_file.read().decode("utf-8"))
+                        with st.spinner("서비스 계정 연결 중..."):
+                            service = build_sa_service(creds_dict)
+                            service.spreadsheets().get(spreadsheetId=ACTUAL_ID).execute()
+                        st.session_state.svc_sa = service
+                        st.success("✅ 서비스 계정 연결 성공!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"서비스 계정 연결 실패: {e}")
+        else:
+            src = "Secrets 자동 연결" if "gcp_service_account" in st.secrets else "JSON 업로드"
+            st.success(f"✅ 서비스 계정 연결됨 ({src})")
+
+        st.markdown('<hr class="wms-sep">', unsafe_allow_html=True)
+
+        # ── STEP 2: OAuth (Secrets 기반, 자동 유지) ──────────────
+        step2_icon = "✅" if oauth_ok else "2️⃣"
+        st.markdown(f"""
+        <div style="font-size:16px;font-weight:800;color:var(--c-text-blue);margin-bottom:4px;">
+          {step2_icon}  벤더/창고 시트 — 구글 계정 연결
+        </div>
+        <div style="font-size:12px;color:#999;margin-bottom:8px;">
+          Streamlit Secrets의 refresh_token으로 자동 유지 · 최초 1회만 로그인 필요
+        </div>
+        """, unsafe_allow_html=True)
+
+        if not oauth_ok:
+            has_secrets = ("OAUTH_CLIENT_ID" in st.secrets and "OAUTH_CLIENT_SECRET" in st.secrets)
+            if not has_secrets:
+                st.warning("""
+**Streamlit Secrets 설정 필요**
+
+Streamlit Cloud → 앱 설정 → Secrets에 아래를 추가하세요:
+```toml
+OAUTH_CLIENT_ID     = "..."
+OAUTH_CLIENT_SECRET = "..."
+```
+                """)
+            else:
+                redirect_uri = _get_redirect_uri()
+                auth_url = get_oauth_auth_url(redirect_uri)
+                st.markdown(f"""
+                <div style="background:#E8F4FF;border:2px solid var(--c-blue);
+                            border-radius:10px;padding:14px;margin-top:4px;">
+                  <div style="font-weight:800;color:var(--c-blue);margin-bottom:8px;">
+                    🔗 구글 계정으로 로그인 (최초 1회)
+                  </div>
+                  <a href="{auth_url}" target="_self"
+                     style="display:inline-block;background:var(--c-btn);color:#fff;
+                            font-weight:800;padding:10px 24px;border-radius:20px;
+                            text-decoration:none;border:2px solid var(--c-outline);
+                            box-shadow:0 3px 0 var(--c-outline);">
+                    🔑  구글 계정으로 로그인
+                  </a>
+                  <div style="font-size:11px;color:#888;margin-top:8px;">
+                    로그인 후 발급된 refresh_token을 Secrets에 저장하면 이후 자동 연결됩니다.
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.success("✅ 구글 계정 연결됨 (자동)")
+
+        # ── 최초 로그인 후 토큰 저장 안내 ──────────────────────────
+        new_token = st.session_state.get("_new_token_dict")
+        if new_token and not st.session_state.get("_first_token_shown"):
+            st.session_state["_first_token_shown"] = True
+            refresh = new_token.get("refresh_token", "")
+            st.markdown(f"""
+            <div style="background:#FFF8E0;border:2px solid var(--c-gold);
+                        border-radius:10px;padding:14px;margin-top:10px;">
+              <div style="font-weight:800;color:var(--c-gold);margin-bottom:6px;">
+                🔑 최초 로그인 완료! Secrets에 아래 값을 추가하세요
+              </div>
+              <div style="font-size:12px;color:#555;margin-bottom:8px;">
+                Streamlit Cloud → 앱 설정 → Secrets → 아래 줄 추가 후 앱 재시작<br>
+                이후부터는 구글 계정 로그인 없이 자동 연결됩니다.
+              </div>
+              <code style="display:block;background:#f5f0e0;padding:10px;
+                           border-radius:6px;font-size:12px;word-break:break-all;">
+OAUTH_REFRESH_TOKEN = "{refresh}"
+              </code>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown('<hr class="wms-sep">', unsafe_allow_html=True)
+
+        if sa_ok and oauth_ok:
+            st.success("🎀 모든 인증 완료!")
+            if st.button("🚀  WMS 시작하기", key="go_main"):
                 st.session_state.page = "main"
-                st.success("✅ Google Sheets 연결 성공!")
                 st.rerun()
-            except Exception as e:
-                st.error(f"인증 실패: {e}")
+        else:
+            missing = []
+            if not sa_ok:    missing.append("① 서비스 계정 JSON 업로드")
+            if not oauth_ok: missing.append("② 구글 계정 로그인")
+            st.info(f"남은 단계: {' / '.join(missing)}")
 
         st.markdown("""
-          <div style="margin-top:20px;padding-top:14px;border-top:2px solid var(--c-div);font-size:11px;color:#A09080;text-align:center;">
+          <div style="margin-top:16px;padding-top:12px;border-top:2px solid var(--c-div);
+                      font-size:11px;color:#A09080;text-align:center;">
             벤더플렉스 WMS  v2.0  ·  Streamlit Edition
           </div>
         </div>
         """, unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════════════
-# PAGE: MAIN
-# ══════════════════════════════════════════════════════════════════
 def page_main():
     st.markdown('<div class="page-title">📦 WMS 메인 화면</div>', unsafe_allow_html=True)
     st.markdown("""
@@ -459,22 +720,22 @@ def page_actual():
 
     @st.cache_data(ttl=120, show_spinner="📊 데이터 불러오는 중...")
     def load_actual(_key):
-        sm = svc.spreadsheets().get(spreadsheetId=ACTUAL_ID).execute()
+        sm = svc_oauth.spreadsheets().get(spreadsheetId=ACTUAL_ID).execute()
         sn = sm["sheets"][0]["properties"]["title"]
-        tr = svc.spreadsheets().values().get(spreadsheetId=ACTUAL_ID, range=f"'{sn}'!J1").execute()
+        tr = svc_oauth.spreadsheets().values().get(spreadsheetId=ACTUAL_ID, range=f"'{sn}'!J1").execute()
         j1 = tr.get("values", [])
         upd_txt = j1[0][0] if j1 and j1[0] else "업데이트 기록 없음"
 
-        vr = svc.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="'벤더플렉스 출고량'!D3:E").execute()
+        vr = svc_oauth.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="'벤더플렉스 출고량'!D3:E").execute()
         raw = vr.get("values", [])
-        vm = svc.spreadsheets().get(spreadsheetId=VENDOR_ID, ranges=["'벤더플렉스 출고량'!D3:D"], includeGridData=True).execute()
+        vm = svc_oauth.spreadsheets().get(spreadsheetId=VENDOR_ID, ranges=["'벤더플렉스 출고량'!D3:D"], includeGridData=True).execute()
         rmeta = []
         try: rmeta = vm["sheets"][0]["data"][0].get("rowMetadata", [])
         except Exception: pass
         base2 = [r for i, r in enumerate(raw) if not (i < len(rmeta) and (rmeta[i].get("hiddenByUser") or rmeta[i].get("hiddenByFilter")))]
 
         today = datetime.now()
-        h2 = svc.spreadsheets().values().get(spreadsheetId=WAREHOUSE_ID, range="창고별실재고!1:2", valueRenderOption="FORMATTED_VALUE").execute()
+        h2 = svc_oauth.spreadsheets().values().get(spreadsheetId=WAREHOUSE_ID, range="창고별실재고!1:2", valueRenderOption="FORMATTED_VALUE").execute()
         hrows = h2.get("values", [])
         row1 = hrows[0] if hrows else []
         row2 = hrows[1] if len(hrows) > 1 else []
@@ -494,7 +755,7 @@ def page_actual():
                 if "적재" in h or "2적" in h: jk = i
                 if "집품" in h or "2집" in h: jp = i
             jkl = col_letter(jk); jpl = col_letter(jp)
-            rd = svc.spreadsheets().values().batchGet(
+            rd = svc_oauth.spreadsheets().values().batchGet(
                 spreadsheetId=WAREHOUSE_ID,
                 ranges=["창고별실재고!B3:B", f"창고별실재고!{jpl}3:{jpl}", f"창고별실재고!{jkl}3:{jkl}"],
                 valueRenderOption="UNFORMATTED_VALUE",
@@ -569,7 +830,7 @@ def page_vendor():
     def load_vendor(_ds):
         d = datetime.strptime(_ds, "%Y-%m-%d")
         ts = f"{d.year}. {d.month}. {d.day}"
-        hr = svc.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="벤더플렉스 출고량!1:1", valueRenderOption="FORMATTED_VALUE").execute()
+        hr = svc_oauth.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="벤더플렉스 출고량!1:1", valueRenderOption="FORMATTED_VALUE").execute()
         hrow = hr.get("values", [[]])[0]
         ci = next((i for i, c in enumerate(hrow) if str(c).strip() == ts), -1)
         new_date = None
@@ -579,7 +840,7 @@ def page_vendor():
             if ci2 != -1: ci = ci2; new_date = yd.strftime("%Y-%m-%d"); ts = ts2
         if ci == -1: return None, None, None, ts
         cs = col_letter(ci); ce = col_letter(ci + 2)
-        res = svc.spreadsheets().values().batchGet(
+        res = svc_oauth.spreadsheets().values().batchGet(
             spreadsheetId=VENDOR_ID,
             ranges=["벤더플렉스 출고량!E3:E", f"벤더플렉스 출고량!{cs}3:{ce}"],
             valueRenderOption="UNFORMATTED_VALUE",
@@ -654,7 +915,7 @@ def page_receive():
 
     @st.cache_data(ttl=300, show_spinner=False)
     def load_lim():
-        res = svc.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="벤더플렉스 출고량!B3:E").execute()
+        res = svc_oauth.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="벤더플렉스 출고량!B3:E").execute()
         return [{"loc": str(r[0]).strip(), "item": str(r[3]).strip()} for r in res.get("values", []) if len(r) > 3]
 
     try:
@@ -700,12 +961,12 @@ def page_receive():
         ts = f"{today.year}. {today.month}. {today.day}"
         try:
             with st.spinner("시트에 입고 기록 중... 🚀"):
-                hr = svc.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="벤더플렉스 출고량!1:1", valueRenderOption="FORMATTED_VALUE").execute()
+                hr = svc_oauth.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="벤더플렉스 출고량!1:1", valueRenderOption="FORMATTED_VALUE").execute()
                 hrow = hr.get("values", [[]])[0]
                 ci = next((i for i, c in enumerate(hrow) if str(c).strip() == ts), -1)
                 if ci == -1: st.error(f"시트에서 해당 날짜({ts})를 찾을 수 없어요!"); return
                 il = col_letter(ci + 1)
-                res = svc.spreadsheets().values().batchGet(
+                res = svc_oauth.spreadsheets().values().batchGet(
                     spreadsheetId=VENDOR_ID,
                     ranges=["벤더플렉스 출고량!E:E", f"벤더플렉스 출고량!{il}:{il}"],
                     valueRenderOption="UNFORMATTED_VALUE",
@@ -722,7 +983,7 @@ def page_receive():
                         batch.append({"range": f"'벤더플렉스 출고량'!{il}{ri+1}", "values": [[nw]]})
                         msg += f"[{item}] {cur} + {add} = {nw}개\n"
                 if batch:
-                    svc.spreadsheets().values().batchUpdate(spreadsheetId=VENDOR_ID, body={"valueInputOption": "USER_ENTERED", "data": batch}).execute()
+                    svc_oauth.spreadsheets().values().batchUpdate(spreadsheetId=VENDOR_ID, body={"valueInputOption": "USER_ENTERED", "data": batch}).execute()
                     st.success(f"🎀 입고 완료!\n\n{msg}")
                     load_lim.clear()
         except Exception as e:
@@ -741,7 +1002,7 @@ def page_dispatch():
     @st.cache_data(ttl=60, show_spinner="✏️ 출고량 데이터 분석 중...")
     def load_dispatch(_ts):
         poss = [f"{tgt.year}.{tgt.month}.{tgt.day}", f"{tgt.year}.{tgt.month:02d}.{tgt.day:02d}", tgt.strftime("%m월%d일"), f"{tgt.month}월{tgt.day}일", f"{tgt.year}/{tgt.month}/{tgt.day}", f"{tgt.year}-{tgt.month:02d}-{tgt.day:02d}", f"{tgt.month}.{tgt.day}", f"{tgt.month:02d}.{tgt.day:02d}", str(tgt)]
-        res = svc.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="'벤더플렉스 출고량'", valueRenderOption="FORMATTED_VALUE").execute()
+        res = svc_oauth.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="'벤더플렉스 출고량'", valueRenderOption="FORMATTED_VALUE").execute()
         sd = res.get("values", [])
         if not sd: raise ValueError("시트 데이터가 비어있어요!")
         tidx = -1; hrow_idx = 0
@@ -810,7 +1071,7 @@ def page_dispatch():
         if not batch: st.info("입력된 수량이 없습니다!"); return
         try:
             with st.spinner("시트에 출고 마감 기록 중..."):
-                svc.spreadsheets().values().batchUpdate(spreadsheetId=VENDOR_ID, body={"valueInputOption": "USER_ENTERED", "data": batch}).execute()
+                svc_oauth.spreadsheets().values().batchUpdate(spreadsheetId=VENDOR_ID, body={"valueInputOption": "USER_ENTERED", "data": batch}).execute()
             if warns: st.warning(f"마감 완료! 결품 위험:\n👉 {', '.join(warns)}")
             else: st.success("🌸 출고량 기록이 완벽하게 마감되었습니다!")
             load_dispatch.clear()
@@ -826,7 +1087,7 @@ def page_adjust():
 
     @st.cache_data(ttl=300, show_spinner=False)
     def load_lim_adj():
-        res = svc.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="벤더플렉스 출고량!B3:E").execute()
+        res = svc_oauth.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="벤더플렉스 출고량!B3:E").execute()
         return [{"loc": str(r[0]).strip(), "item": str(r[3]).strip()} for r in res.get("values", []) if len(r) > 3]
 
     try:
@@ -841,25 +1102,25 @@ def page_adjust():
         today = datetime.now()
         poss = [f"{today.year}.{today.month}.{today.day}", f"{today.year}.{today.month:02d}.{today.day:02d}", today.strftime("%m월%d일"), f"{today.month}월{today.day}일"]
         try:
-            meta = svc.spreadsheets().get(spreadsheetId=WAREHOUSE_ID).execute()
+            meta = svc_oauth.spreadsheets().get(spreadsheetId=WAREHOUSE_ID).execute()
             sid = next((s["properties"]["sheetId"] for s in meta.get("sheets", []) if s["properties"]["title"] == "집품창고입출고및조정"), None)
-            hr = svc.spreadsheets().values().get(spreadsheetId=WAREHOUSE_ID, range="'집품창고입출고및조정'!1:2", valueRenderOption="FORMATTED_VALUE").execute()
+            hr = svc_oauth.spreadsheets().values().get(spreadsheetId=WAREHOUSE_ID, range="'집품창고입출고및조정'!1:2", valueRenderOption="FORMATTED_VALUE").execute()
             r1 = hr.get("values", [[]])[0]
             dci = next((i for i, c in enumerate(r1) if str(c).replace(" ", "").strip() in poss), -1)
             if dci == -1: st.error("'집품창고입출고및조정'에서 오늘 날짜를 찾을 수 없어요!"); return False
             tci = dci + 5; tcl = col_letter(tci)
-            bd = svc.spreadsheets().values().get(spreadsheetId=WAREHOUSE_ID, range="'집품창고입출고및조정'!B:B").execute()
+            bd = svc_oauth.spreadsheets().values().get(spreadsheetId=WAREHOUSE_ID, range="'집품창고입출고및조정'!B:B").execute()
             bd_ = bd.get("values", [])
             ri = next((i + 1 for i, r in enumerate(bd_) if r and str(r[0]).strip() == item), -1)
             if ri == -1: st.error(f"B열에서 '{item}'을(를) 찾을 수 없습니다!"); return False
             cr = f"'집품창고입출고및조정'!{tcl}{ri}"
-            vr = svc.spreadsheets().values().get(spreadsheetId=WAREHOUSE_ID, range=cr).execute()
+            vr = svc_oauth.spreadsheets().values().get(spreadsheetId=WAREHOUSE_ID, range=cr).execute()
             vd = vr.get("values", [[0]]); cur = _safe_int(vd[0][0]) if vd and vd[0] else 0
             nw = cur + add
-            svc.spreadsheets().values().update(spreadsheetId=WAREHOUSE_ID, range=cr, valueInputOption="USER_ENTERED", body={"values": [[nw]]}).execute()
+            svc_oauth.spreadsheets().values().update(spreadsheetId=WAREHOUSE_ID, range=cr, valueInputOption="USER_ENTERED", body={"values": [[nw]]}).execute()
             if sid is not None:
                 note = f"[{today.strftime('%Y-%m-%d')} 기록]\n사유: {reason}\n변동: {add}개"
-                svc.spreadsheets().batchUpdate(spreadsheetId=WAREHOUSE_ID, body={"requests": [{"updateCells": {"range": {"sheetId": sid, "startRowIndex": ri-1, "endRowIndex": ri, "startColumnIndex": tci, "endColumnIndex": tci+1}, "rows": [{"values": [{"note": note}]}], "fields": "note"}}]}).execute()
+                svc_oauth.spreadsheets().batchUpdate(spreadsheetId=WAREHOUSE_ID, body={"requests": [{"updateCells": {"range": {"sheetId": sid, "startRowIndex": ri-1, "endRowIndex": ri, "startColumnIndex": tci, "endColumnIndex": tci+1}, "rows": [{"values": [{"note": note}]}], "fields": "note"}}]}).execute()
 
             st.session_state.adjust_log.insert(0, {"time": today.strftime("%Y-%m-%d %H:%M:%S"), "item": item, "reason": reason, "qty": f"+{add}" if add > 0 else str(add)})
 
@@ -962,14 +1223,14 @@ def page_po():
     if uploaded_zip:
         try:
             with st.spinner("🧐 데이터 분석 중..."):
-                am = svc.spreadsheets().get(spreadsheetId=ACTUAL_ID).execute()
+                am = svc_oauth.spreadsheets().get(spreadsheetId=ACTUAL_ID).execute()
                 an = am["sheets"][0]["properties"]["title"]
                 amap = {}
-                for r in svc.spreadsheets().values().get(spreadsheetId=ACTUAL_ID, range=f"'{an}'!A2:G").execute().get("values", []):
+                for r in svc_oauth.spreadsheets().values().get(spreadsheetId=ACTUAL_ID, range=f"'{an}'!A2:G").execute().get("values", []):
                     if r: amap[str(r[0]).strip()] = [str(r[i]).strip() if len(r) > i else "0" for i in range(3, 7)]
 
                 vmap = {}
-                for r in svc.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="'벤더플렉스 출고량'!B3:D").execute().get("values", []):
+                for r in svc_oauth.spreadsheets().values().get(spreadsheetId=VENDOR_ID, range="'벤더플렉스 출고량'!B3:D").execute().get("values", []):
                     loc = str(r[0]).strip() if r else ""; sku = str(r[2]).strip() if len(r) > 2 else ""
                     if sku and loc: vmap[sku] = loc
 
@@ -1028,7 +1289,7 @@ def page_po():
 # ══════════════════════════════════════════════════════════════════
 page = st.session_state.get("page", "login")
 
-if page == "login" or svc is None:
+if page == "login" or not (svc_sa and svc_oauth):
     page_login()
 elif page == "main":
     page_main()
