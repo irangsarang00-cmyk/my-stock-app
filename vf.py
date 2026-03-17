@@ -98,7 +98,7 @@ st.markdown(f"""
 <div class="fixed-top-bar">
     <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px;">
         <div style="text-align: center; flex: 1; min-width: 0;">
-            <div class="top-barcode-title">🏷️ 작업대 바코드</div>
+            <div class="top-barcode-title">🏷️ 토트 바코드</div>
             <img src="{workbench_img}">
         </div>
         <div style="text-align: center; flex: 1; min-width: 0;">
