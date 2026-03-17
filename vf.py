@@ -89,7 +89,7 @@ iframe { margin-bottom: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-workbench_img = get_barcode_base64("RCS0000023061")
+workbench_img = get_barcode_base64("466-RCRT1-1-1")
 ibc_placeholder_img = get_barcode_base64("IBC")
 
 st.markdown(f"""
