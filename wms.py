@@ -478,9 +478,32 @@ with st.sidebar:
           {oauth_txt} 구글 계정 (벤더/창고)
         </div>
         """, unsafe_allow_html=True)
-        if st.button("🔑  인증 설정", key="nav_login"):
-            st.session_state.page = "login"
-            st.rerun()
+
+        # SA는 됐지만 OAuth만 없는 경우 → 사이드바에서 바로 로그인 버튼 제공
+        if sa_ok and not oauth_ok:
+            has_oauth_secrets = ("OAUTH_CLIENT_ID" in st.secrets and "OAUTH_CLIENT_SECRET" in st.secrets)
+            if has_oauth_secrets:
+                redirect_uri = _get_redirect_uri()
+                auth_url = get_oauth_auth_url(redirect_uri)
+                st.markdown(f"""
+                <div style="padding:8px 12px;">
+                  <a href="{auth_url}" target="_self"
+                     style="display:block;text-align:center;background:var(--c-btn);
+                            color:#fff;font-weight:800;padding:10px 0;border-radius:16px;
+                            text-decoration:none;border:2px solid var(--c-outline);
+                            box-shadow:0 3px 0 var(--c-outline);font-size:14px;">
+                    🔑  구글 계정 로그인
+                  </a>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                if st.button("🔑  인증 설정", key="nav_login"):
+                    st.session_state.page = "login"
+                    st.rerun()
+        else:
+            if st.button("🔑  인증 설정", key="nav_login"):
+                st.session_state.page = "login"
+                st.rerun()
     else:
         pages = [
             ("🏠", "실재고 현황",     "actual"),
@@ -510,11 +533,47 @@ with st.sidebar:
 
 
 # ── 미인증 시 로그인 강제 이동 ──
-if not (st.session_state.svc_sa and st.session_state.svc_oauth) and st.session_state.page != "login":
+# SA도 없으면 무조건 로그인 페이지
+# SA는 있고 OAuth만 없는 경우 → 사이드바에서 바로 로그인 버튼 제공, 강제 이동 안 함
+_sa_ready    = st.session_state.svc_sa    is not None
+_oauth_ready = st.session_state.svc_oauth is not None
+if not _sa_ready and st.session_state.page != "login":
     st.session_state.page = "login"
+elif _sa_ready and not _oauth_ready and st.session_state.page not in ("login", "main"):
+    st.session_state.page = "main"   # 메뉴 접근 차단, 메인은 허용
 
 svc_sa    = st.session_state.svc_sa     # ACTUAL_ID 전용
 svc_oauth = st.session_state.svc_oauth  # VENDOR_ID, WAREHOUSE_ID 전용
+
+# ══════════════════════════════════════════════════════════════════
+# 라우터
+# ══════════════════════════════════════════════════════════════════
+page = st.session_state.get("page", "login")
+
+if not _sa_ready:
+    page_login()
+elif not _oauth_ready:
+    # SA는 됐지만 OAuth 미연결 → 메인화면은 보여주되 메뉴 기능 차단
+    # 사이드바의 로그인 버튼으로 OAuth 처리
+    page_main()
+elif page == "login":
+    page_main()
+elif page == "main":
+    page_main()
+elif page == "actual":
+    page_actual()
+elif page == "vendor":
+    page_vendor()
+elif page == "transfer":
+    page_transfer()
+elif page == "receive":
+    page_receive()
+elif page == "dispatch":
+    page_dispatch()
+elif page == "adjust":
+    page_adjust()
+elif page == "po":
+    page_po()
 
 
 # ══════════════════════════════════════════════════════════════════
