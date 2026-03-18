@@ -564,7 +564,7 @@ elif st.session_state.current_page == "ecount":
                         "유통기한": None 
                     })
                     st.session_state.selected_items = new_items
-                    st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
+                    st.success("입고내역을 불러왔어요.")
                 else:
                     st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")
         else:
@@ -587,7 +587,7 @@ elif st.session_state.current_page == "ecount":
         with c3:
             # 엔터를 쳐도 전송되지 않고, 줄바꿈도 생기지 않는 한 줄 입력칸이에요.
             actual_user = st_keyup(
-                "실제 입고 담당자", 
+                "작성자", 
                 placeholder="작성자 이름", 
                 key="ecount_actual_user_keyup"
             )
@@ -615,7 +615,7 @@ elif st.session_state.current_page == "ecount":
         if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "" or str(final_items['품목코드'].iloc[0]) == "nan":
             st.error("입력된 품목이 없습니다.")
         elif not actual_user:
-            st.warning("실제 입고 담당자 이름을 기록해 주세요.")
+            st.warning("작성자 이름을 기록해 주세요.")
         else:
             master_info = {
                 "일자": input_date,
