@@ -514,6 +514,9 @@ elif st.session_state.current_page == "ecount":
         valid_dates = sched_for_selection['날짜'].apply(parse_and_filter)
         sched_for_selection = sched_for_selection[valid_dates >= monday_start]
         
+        # ✨ 거래처 필터링 추가: '이우'라는 글자가 포함된 행은 제외하고 다시 담습니다.
+        sched_for_selection = sched_for_selection[~sched_for_selection['거래처'].str.contains('이우', na=False)]
+        
         if not sched_for_selection.empty:
             
             with st.form("ag_grid_form"):
