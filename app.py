@@ -621,19 +621,29 @@ elif st.session_state.current_page == "ecount":
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
     with c2:
-        # ✨ 거래처 글자와 버튼을 나란히 배치하기 위해 구역을 7:3 비율로 나눕니다.
-        c2_label, c2_btn = st.columns([7, 3])
+        # ✨ 레이아웃 쪼개기: [라벨, 중간 빈칸, 버튼] 순서로 배치합니다.
+        # 비율을 [3, 4, 3]으로 주어서 라벨 30%, 가운데 빈칸 40%, 버튼 30%를 차지하게 합니다.
+        # 가운데 빈칸(c2_spacer)이 넓어져서 버튼을 오른쪽 끝으로 밀어내는 원리입니다.
+        c2_label, c2_spacer, c2_btn = st.columns([3, 4, 3])
         
         with c2_label:
             st.markdown("<div style='font-size: 14px; margin-bottom: 5px;'>거래처</div>", unsafe_allow_html=True)
             
+        # c2_spacer 구역은 건드리지 않고 그냥 비워둡니다.
+        
         with c2_btn:
-            # ✨ 누르면 인앱 팝업이 열리는 마법의 버튼입니다!
+            # ✨ 누르면 인앱 팝업이 열리는 '작성 팁' 버튼입니다!
+            # columns([..., 3])라는 좁은 칸 안에 갇혀 있어서 크기가 아담하게 줄어듭니다.
             with st.popover("💡 작성 팁"):
                 st.markdown("✔️ **#만 있는 것** = 라온글로벌<br>✔️ **[YC]** = 우하모(야코브)", unsafe_allow_html=True)
                 
-        # 기본 라벨은 위에서 따로 적어주었으니, selectbox 자체의 제목은 숨깁니다.
-        vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
+        # 🚀 이제 거래처 선택 드롭박스는 c2 구역의 전체 너비를 다 차지하게 그립니다.
+        vendor_name = st.selectbox(
+            "거래처", # 제목은 collapsed로 숨겨지므로 아무거나 적어도 됩니다.
+            list(vendor_list.keys()), 
+            key="ecount_vendor", 
+            label_visibility="collapsed" # 제목 숨기기
+        )
         vendor_code = vendor_list[vendor_name]
     
     c3, c4 = st.columns(2)
