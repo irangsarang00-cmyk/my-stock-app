@@ -573,6 +573,71 @@ elif st.session_state.current_page == "ecount":
         st.info("현재 예정된 입고 스케줄이 없습니다.")
         
     st.divider()
+
+    # ✨ [새로 추가된 영역] 품목 직접 검색 및 추가
+    st.write("### 🔍 품목 직접 검색 및 추가")
+    
+    # 상단에 만들어둔 시트 불러오기 함수를 여기서도 활용합니다.
+    real_df = load_real_data()
+    
+    # 검색창과 초기화 버튼을 가로로 나란히 배치 (비율 3:1)
+    c_search, c_btn = st.columns([3, 1])
+    with c_search:
+        search_kw = st.text_input("바코드 뒤 4자리 또는 품목명 일부를 입력하세요.", key="manual_search_kw", placeholder="예: 1234 또는 아메리카노")
+    
+    with c_btn:
+        st.write("") # 줄맞춤용 빈칸
+        st.write("")
+        if st.button("🗑️ 추가된 목록 싹 비우기", use_container_width=True):
+            st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
+            st.rerun() # 버튼 누르면 즉시 화면 새로고침
+            
+    if search_kw and not real_df.empty:
+        clean_kw = search_kw.strip()
+        # 품목명에 포함되어 있거나, 품목코드 끝 4자리와 일치하는지 검사
+        mask = (
+            real_df['품목명'].str.contains(clean_kw, case=False, na=False) |
+            (real_df['품목코드'].str[-4:] == clean_kw)
+        )
+        search_result = real_df[mask]
+        
+        if search_result.empty:
+            st.warning("일치하는 품목이 없습니다. 오타가 없는지 확인해 주세요.")
+            
+        elif len(search_result) == 1:
+            # ✨ 결과가 딱 1개일 때
+            row = search_result.iloc[0]
+            st.success(f"✅ **[{row['품목코드']}] {row['품목명']}** 품목이 확인되었습니다.")
+            if st.button("⬇️ 이 품목을 아래 표에 추가하기", type="secondary"):
+                new_row = pd.DataFrame([{
+                    "품목코드": row["품목코드"],
+                    "품목명": row["품목명"],
+                    "수량": "1", # 추가될 때 기본 수량은 1로 세팅
+                    "유통기한": None
+                }])
+                st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
+                st.rerun()
+                
+        else:
+            # ✨ 결과가 2개 이상일 때 (드롭박스 표시)
+            st.info(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
+            options = [f"[{r['품목코드']}] {r['품목명']}" for _, r in search_result.iterrows()]
+            selected_option = st.selectbox("품목 선택", options, key="manual_select_item")
+            
+            if st.button("⬇️ 추가하기", type="secondary"):
+                selected_code = selected_option.split("]")[0].replace("[", "")
+                selected_row = search_result[search_result['품목코드'] == selected_code].iloc[0]
+                
+                new_row = pd.DataFrame([{
+                    "품목코드": selected_row["품목코드"],
+                    "품목명": selected_row["품목명"],
+                    "수량": "1",
+                    "유통기한": None
+                }])
+                st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
+                st.rerun()
+
+    st.divider()
     
     with st.form("ecount_submit_form"):
         c1, c2 = st.columns(2)
