@@ -645,16 +645,13 @@ elif st.session_state.current_page == "ecount":
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
     with c2:
-        c_lbl, c_btn = st.columns([7, 3])
-        with c_lbl:
-            st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 5px;'>거래처</div>", unsafe_allow_html=True)
-        with c_btn:
+        st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 5px;'>거래처</div>", unsafe_allow_html=True)
+        _, tip_col = st.columns([9, 1])
+        with tip_col:
             with st.popover("팁"):
                 st.markdown("✔️ <b>#만 있는 것</b> = 라온글로벌<br>✔️ <b>[YC]</b> = 우하모(야코브)", unsafe_allow_html=True)
-
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
-
     c3, c4 = st.columns(2)
     
     with c3:
