@@ -15,82 +15,63 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSiz
 
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
-<style>
-/* ✨ 1. 구글 웹 폰트 불러오기 (고운돋움) - 반드시 가장 맨 위에 있어야 합니다! */
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
-
-/* ✨ 2. 팁 버튼 작게 만들고 오른쪽으로 정렬하기 (순서를 폰트 아래로 내렸습니다) */
-div[data-testid="stPopover"] {
-    display: flex;
-    justify-content: flex-end;
-}
-div[data-testid="stPopover"] button {
-    width: auto !important;
-    height: 35px !important;
-    padding: 0px 10px !important;
-}
-
-/* ✨ 3. 앱 전체 텍스트에 폰트를 덮어씌웁니다. */
-html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th, ul, li, strong, b {
-    font-family: 'Gowun Dodum', sans-serif;
-}
-
-/* ✨ 4. 아이콘 역할을 하는 녀석들은 무조건 아이콘 폰트를 쓰도록 절대 방어막을 칩니다! */
-.material-icons, 
-.material-symbols-rounded, 
-span[class*="material-icons"], 
-span[class*="material-symbols"], 
-i {
-    font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
-    font-style: normal !important;
-    font-variant: normal !important;
-    text-transform: none !important;
-}
-
-/* ✨ 5. AgGrid 표 내부 폰트 강제 적용 (아이프레임 한계로 완벽하진 않지만 시도는 해둡니다!) */
-.ag-root-wrapper, .ag-theme-alpine, .ag-cell, .ag-header-cell-text {
-    font-family: 'Gowun Dodum', sans-serif !important;
-    --ag-font-family: 'Gowun Dodum', sans-serif !important;
-}
-
-/* --- 여기서부터는 기존 숨김 및 버튼 색상 코드 --- */
-[data-testid="stToolbar"] {display: none !important;}
-[data-testid="collapsedControl"] {display: none !important;}
-header[data-testid="stHeader"] {display: none !important;}
-header {visibility: hidden !important;}
-#MainMenu {display: none !important;}
-footer {display: none !important;}
-.block-container {padding-top: 1rem !important;}
-[class^="viewerBadge"] {display: none !important;}
-.viewerBadge_container__1tSll {display: none !important;}
-.viewerBadge_link__qRIus {display: none !important;}
-[data-testid="stDecoration"] {display: none !important;}
-
 st.markdown("""
-    <style>
-    /* 1. 버튼 스타일 (Primary 버튼) */
+<style>
+    /* 1. 구글 웹 폰트 불러오기 (고운돋움) */
+    @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+
+    /* 2. 앱 전체 텍스트 폰트 적용 */
+    html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th, ul, li, strong, b {
+        font-family: 'Gowun Dodum', sans-serif !important;
+    }
+
+    /* 3. 아이콘 폰트 절대 방어 (아이콘 깨짐 방지) */
+    .material-icons, .material-symbols-rounded, span[class*="material-icons"], span[class*="material-symbols"], i {
+        font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
+    }
+
+    /* 4. 팁(Popover) 버튼 작게 & 오른쪽 정렬 */
+    div[data-testid="stPopover"] {
+        display: flex;
+        justify-content: flex-end;
+    }
+    div[data-testid="stPopover"] button {
+        width: auto !important;
+        height: 35px !important;
+        padding: 0px 10px !important;
+    }
+
+    /* 5. AgGrid 및 표 내부 폰트 강제 적용 */
+    .ag-root-wrapper, .ag-theme-alpine, .ag-cell, .ag-header-cell-text {
+        font-family: 'Gowun Dodum', sans-serif !important;
+        --ag-font-family: 'Gowun Dodum', sans-serif !important;
+    }
+
+    /* 6. 스트림릿 기본 UI 숨기기 (툴바, 푸터, 워터마크 등) */
+    [data-testid="stToolbar"], [data-testid="collapsedControl"], 
+    header[data-testid="stHeader"], header, #MainMenu, footer, 
+    .block-container {padding-top: 1rem !important;}
+    [class^="viewerBadge"], [data-testid="stDecoration"] {display: none !important;}
+
+    /* 7. 버튼 스타일 (Primary 버튼 색상) */
     button[kind="primary"] {
         background-color: #4A90E2 !important;
         border-color: #4A90E2 !important;
         color: white !important;
     }
-    button[kind="primary"]:hover,
-    button[kind="primary"]:active,
-    button[kind="primary"]:focus {
-        background-color: #357ABD !important; 
+    button[kind="primary"]:hover {
+        background-color: #357ABD !important;
         border-color: #357ABD !important;
-        color: white !important;
     }
 
-    /* 2. 표 제목(헤더) 드래그 및 클릭 방지 */
-    /* st.data_editor와 일반 표 모두에 적용되도록 범위를 넓혔어요 */
+    /* 8. ✨ 표 제목(헤더) 드래그 막기 (열 순서 고정) */
     [data-testid="stTable"] th, 
-    [data-testid="stDataFrameHeaderCellProxy"],
+    [data-testid="stDataFrameHeaderCellProxy"], 
     .st-ae {
-        pointer-events: none !important; 
+        pointer-events: none !important;
         user-select: none !important;
     }
-    </style>
+</style>
 """, unsafe_allow_html=True)
 
 # ==========================================================
