@@ -579,10 +579,17 @@ elif st.session_state.current_page == "ecount":
         vendor_code = vendor_list[vendor_name]
         
         c3, c4 = st.columns(2)
-        # ✨ text_input 대신 text_area를 쓰고 높이를 줄여서 엔터 전송을 막는 마법!
-        actual_user_raw = c3.text_area("실제 입고 담당자", placeholder="작성자 이름", height=68, key="ecount_actual_user")
-        actual_user = actual_user_raw.replace("\n", "").strip() # 실수로 엔터를 쳐서 생긴 줄바꿈 문자는 안 보이게 지워줍니다.
         
+        # 1. 실제 입고 담당자 입력칸 (st_keyup 사용)
+        with c3:
+            # 엔터를 쳐도 전송되지 않고, 줄바꿈도 생기지 않는 한 줄 입력칸이에요.
+            actual_user = st_keyup(
+                "실제 입고 담당자", 
+                placeholder="작성자 이름", 
+                key="ecount_actual_user_keyup"
+            )
+
+        # 2. 입고창고 선택칸
         wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()), key="ecount_wh")
         wh_code = warehouse_list[wh_name]
         
