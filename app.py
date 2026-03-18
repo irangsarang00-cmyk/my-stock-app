@@ -283,7 +283,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ✨ 페이지 이동을 위한 상태 변수 초기화
 if "current_page" not in st.session_state:
     st.session_state.current_page = "main"
 
@@ -370,7 +369,6 @@ if st.session_state.current_page == "main":
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
-        # ✨ 별도 페이지로 넘어가는 버튼!
         st.button("📝 이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="primary")
 
     # 기존 검색 화면
@@ -468,7 +466,6 @@ if st.session_state.current_page == "main":
 # ==========================================================
 elif st.session_state.current_page == "ecount":
     
-    # ✨ 왼쪽 상단 메인으로 가기 버튼
     st.button("⬅️ 메인으로", on_click=go_to_main)
     
     st.markdown("## 📝 이카운트 구매입력")
@@ -481,17 +478,23 @@ elif st.session_state.current_page == "ecount":
     if not sched_data.empty:
         sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
         
-        # ✨ 글자 잘림 철벽 방어! 열 너비 강제 고정 및 자동 줄바꿈 설정
         gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
         gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
         
-        # 각 열의 너비를 아주 넉넉하게 고정합니다.
-        gb.configure_column('날짜', pinned='left', width=100)
-        gb.configure_column('바코드', width=150)
-        # 제품명은 너비 400에 줄바꿈 허용(wrapText=True)
-        gb.configure_column('제품명', width=400, wrapText=True, autoHeight=True)
-        gb.configure_column('수량', width=100)
-        gb.configure_column('거래처', width=150)
+        # ✨ 1. 정렬 잠금, 이동 잠금 강제 세팅
+        gb.configure_default_column(
+            sortable=False,        # 제목 눌러도 정렬 안됨!
+            suppressMovable=True,  # 드래그해서 열 이동 안됨!
+            resizable=True
+        )
+        gb.configure_grid_options(suppressMovableColumns=True) # 표 전체에 이동 불가 명령!
+        
+        # ✨ 2. 각 열의 크기를 아주아주 넓게 픽셀(px) 단위로 강제 고정!
+        gb.configure_column('날짜', pinned='left', width=150) # 날짜 절대로 안 잘림
+        gb.configure_column('바코드', width=180)
+        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) # 줄바꿈 + 무조건 500px 확보
+        gb.configure_column('수량', width=120)
+        gb.configure_column('거래처', width=200)
         
         gridOptions = gb.build()
         
@@ -500,7 +503,7 @@ elif st.session_state.current_page == "ecount":
             gridOptions=gridOptions,
             update_mode=GridUpdateMode.SELECTION_CHANGED,
             use_container_width=True, 
-            fit_columns_on_grid_load=False, # 화면에 억지로 끼워 맞추는 기능 끄기 (스크롤 허용)
+            fit_columns_on_grid_load=False, # ✨ 강제로 끼워 맞추는 기능 완전히 끔! (이래야 스크롤이 생겨요)
             theme="alpine",
             reload_data=False,
             key="ag_grid_schedule_page" 
@@ -574,4 +577,3 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
-                    
