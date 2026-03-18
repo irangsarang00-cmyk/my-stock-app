@@ -648,8 +648,8 @@ elif st.session_state.current_page == "ecount":
         st.markdown("<div style='font-size: 14px; margin-bottom: 5px;'>거래처</div>", unsafe_allow_html=True)
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
-        with st.expander("💡 팁 보기"):
-            st.markdown("✔️ <b>#만 있는 것</b> = 라온글로벌<br>✔️ <b>[YC]</b> = 우하모(야코브)", unsafe_allow_html=True)
+        with st.expander("💡 작성 팁"):
+            st.markdown("✔️ <b>#만 있는 것</b> = 라온글로벌<br>✔️ <b>[YC]</b> = 우하모(야코브)<br>✔️ <b>[YC]</b> = 우하모(야코브)<br>✔️ <b>[YC]</b> = 우하모(야코브)", unsafe_allow_html=True)
     c3, c4 = st.columns(2)
     
     with c3:
