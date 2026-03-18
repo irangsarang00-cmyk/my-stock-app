@@ -16,22 +16,27 @@ from st_keyup import st_keyup
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
 <style>
-/* ✨ [추가된 부분 1] 구글 웹 폰트 불러오기 (고운돋움) */
+/* ✨ 1. 구글 웹 폰트 불러오기 (고운돋움) */
 @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
-/* ✨ [추가된 부분 2] 앱 전체 화면에 글꼴 적용하되, 아이콘은 예외로 두기! */
-.stApp, .stApp * {
-    font-family: 'Gowun Dodum', sans-serif !important;
+/* ✨ 2. 너무 강했던 !important를 빼고 부드럽게 전체 텍스트에 폰트를 덮어씌웁니다. */
+html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th {
+    font-family: 'Gowun Dodum', sans-serif;
 }
 
-.stApp .material-icons, 
-.stApp .material-symbols-rounded, 
-.stApp [class*="icon"], 
-.stApp svg, 
-.stApp i {
+/* ✨ 3. 아이콘 역할을 하는 녀석들은 무조건 아이콘 폰트를 쓰도록 절대 방어막을 칩니다! */
+.material-icons, 
+.material-symbols-rounded, 
+span[class*="material-icons"], 
+span[class*="material-symbols"], 
+i {
     font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-transform: none !important;
 }
 
+/* --- 여기서부터는 기존 숨김 및 버튼 색상 코드 --- */
 [data-testid="stToolbar"] {display: none !important;}
 [data-testid="collapsedControl"] {display: none !important;}
 header[data-testid="stHeader"] {display: none !important;}
