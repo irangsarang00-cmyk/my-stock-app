@@ -609,7 +609,7 @@ elif st.session_state.current_page == "ecount":
             }
         )
         
-        submit_clicked = st.form_submit_button("🚀 이카운트로 전송하기", type="primary", use_container_width=True)
+        submit_clicked = st.form_submit_button("🚀 이카운트 입력하기", type="primary", use_container_width=True)
     
     if submit_clicked:
         if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "" or str(final_items['품목코드'].iloc[0]) == "nan":
