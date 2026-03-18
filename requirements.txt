@@ -13,3 +13,4 @@ streamlit-keyup
 google-api-python-client
 pdfplumber
 reportlab
+streamlit-aggrid
