@@ -429,7 +429,7 @@ if st.session_state.current_page == "main":
         search_result = df[mask]
 
         if search_result.empty:
-            st.warning("검색 결과가 없습니다. 다른 키워드로 검색해 보세요.")
+            st.warning("검색 결과가 없습니다.")
         else:
             st.success(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
 
@@ -622,39 +622,45 @@ elif st.session_state.current_page == "ecount":
         search_result = real_df[mask]
         
         if search_result.empty:
-            st.warning("일치하는 품목이 없습니다. 오타가 없는지 확인해 주세요.")
+            st.warning("검색 결과가 없습니다.")
             
         elif len(search_result) == 1:
             row = search_result.iloc[0]
-            st.success(f"✅ **[{row['품목코드']}] {row['품목명']}** 품목이 확인되었습니다.")
-            if st.button("⬇️ 이 품목을 위 표에 추가하기", type="secondary"):
+            # ✨ 바코드 전체 대신 뒤 4자리만 잘라서 보여줍니다.
+            item_code_short = str(row['품목코드'])[-4:]
+            st.success(f"✅ **[{item_code_short}] {row['품목명']}**")
+            
+            if st.button("⬇️ 추가", type="secondary"):
                 new_row = pd.DataFrame([{
-                    "품목코드": row["품목코드"],
+                    "품목코드": row["품목코드"], # 👈 표와 서버로 보낼 때는 원래대로 전체 바코드를 보냅니다.
                     "품목명": row["품목명"],
                     "수량": "1",
                     "유통기한": None
                 }])
-                # 표에서 미리 수정해 둔 수량이나 데이터를 안전하게 저장한 뒤 항목을 추가합니다.
                 st.session_state.selected_items = final_items
                 st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
                 st.rerun()
                 
         else:
-            st.info(f"총 {len(search_result)}개의 품목이 검색되었습니다. 아래에서 정확한 품목을 선택해 주세요.")
-            options = [f"[{r['품목코드']}] {r['품목명']}" for _, r in search_result.iterrows()]
-            selected_option = st.selectbox("품목 선택", options, key="manual_select_item")
+            st.info(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
             
-            if st.button("⬇️ 선택한 품목을 위 표에 추가하기", type="secondary"):
-                selected_code = selected_option.split("]")[0].replace("[", "")
-                selected_row = search_result[search_result['품목코드'] == selected_code].iloc[0]
+            # ✨ 드롭박스 옵션에서도 바코드 뒤 4자리만 잘라서 보여줍니다. (하지만 나중에 전체 바코드를 찾기 위해 전체 바코드도 옵션 값에 몰래 숨겨둡니다.)
+            options = [f"[{str(r['품목코드'])[-4:]}] {r['품목명']} (코드:{r['품목코드']})" for _, r in search_result.iterrows()]
+            
+            # 사용자에게는 앞부분([4자리] 품목명)만 보여주고 선택하게 합니다.
+            selected_option_full = st.selectbox("품목 선택", options, key="manual_select_item", format_func=lambda x: x.split(" (코드:")[0])
+            
+            if st.button("⬇️ 추가", type="secondary"):
+                # 숨겨뒀던 진짜 전체 바코드를 꺼내서 검색합니다.
+                selected_full_code = selected_option_full.split("(코드:")[1].replace(")", "").strip()
+                selected_row = search_result[search_result['품목코드'] == selected_full_code].iloc[0]
                 
                 new_row = pd.DataFrame([{
-                    "품목코드": selected_row["품목코드"],
+                    "품목코드": selected_row["품목코드"], # 👈 표에는 전체 바코드가 들어갑니다.
                     "품목명": selected_row["품목명"],
                     "수량": "1",
                     "유통기한": None
                 }])
-                # 표에서 미리 수정해 둔 수량이나 데이터를 안전하게 저장한 뒤 항목을 추가합니다.
                 st.session_state.selected_items = final_items
                 st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
                 st.rerun()
