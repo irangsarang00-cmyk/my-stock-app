@@ -295,6 +295,15 @@ def go_to_ecount():
 
 def go_to_main():
     st.session_state.current_page = "main"
+    
+    # ✨ 1. 체크해서 불러왔던 품목 표 비우기
+    st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
+    
+    # ✨ 2. 입력했던 기본 정보(날짜, 거래처, 담당자, 창고) 기억 지우기
+    keys_to_clear = ["ecount_date", "ecount_vendor", "ecount_actual_user", "ecount_wh"]
+    for k in keys_to_clear:
+        if k in st.session_state:
+            del st.session_state[k]
 
 vendor_list = {
     "Peter(라온글로벌)": "171-86-02191",
@@ -562,18 +571,20 @@ elif st.session_state.current_page == "ecount":
     st.divider()
     
     with st.form("ecount_submit_form"):
-        # 📋 기본 정보 입력 제목 삭제 완료!
         c1, c2 = st.columns(2)
-        input_date = c1.date_input("일자").strftime("%Y%m%d")
-        vendor_name = c2.selectbox("거래처", list(vendor_list.keys()))
+        # 🔑 각 입력칸마다 key를 달아주어서 나중에 한 번에 지울 수 있게 합니다.
+        input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
+        vendor_name = c2.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor")
         vendor_code = vendor_list[vendor_name]
         
         c3, c4 = st.columns(2)
-        actual_user = c3.text_input("실제 입고 담당자", placeholder="작성자 이름")
-        wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()))
+        # ✨ text_input 대신 text_area를 쓰고 높이를 줄여서 엔터 전송을 막는 마법!
+        actual_user_raw = c3.text_area("실제 입고 담당자", placeholder="작성자 이름", height=68, key="ecount_actual_user")
+        actual_user = actual_user_raw.replace("\n", "").strip() # 실수로 엔터를 쳐서 생긴 줄바꿈 문자는 안 보이게 지워줍니다.
+        
+        wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()), key="ecount_wh")
         wh_code = warehouse_list[wh_name]
         
-        # 🛒 품목 정보 입력 제목 삭제 완료!
         final_items = st.data_editor(
             st.session_state.selected_items,
             use_container_width=True,
