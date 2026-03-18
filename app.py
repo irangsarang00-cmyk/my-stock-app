@@ -10,8 +10,6 @@ import requests
 from datetime import datetime 
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
-
-# --- 새롭게 추가된 Ag-Grid 라이브러리 ---
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # --- 상단 메뉴 및 워터마크 숨기기 ---
@@ -109,7 +107,7 @@ if user_email not in WHITELIST_EMAILS:
     st.stop()
 
 # ==========================================================
-# 스케줄 데이터 가져오기 함수
+# 스케줄 데이터 및 구글 시트 데이터 가져오기 함수
 # ==========================================================
 def get_incoming_schedule():
     try:
@@ -150,7 +148,6 @@ def get_incoming_schedule():
             val_str = str(val).strip()
             clean_val = re.sub(r'[.\-/]', ' ', val_str)
             parts = clean_val.split()
-            
             if len(parts) >= 3: 
                 return f"{int(parts[1])}/{int(parts[2])}"
             elif len(parts) == 2:
@@ -172,6 +169,32 @@ def get_incoming_schedule():
 
     except Exception as e:
         st.error(f"스케줄을 불러오는 중 오류 발생: {e}")
+        return pd.DataFrame()
+
+@st.cache_data(ttl=900)
+def load_real_data():
+    try:
+        scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        creds_dict = st.secrets["gcp_service_account"]
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        gc = gspread.authorize(credentials)
+
+        sheet_url = "https://docs.google.com/spreadsheets/d/1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA/edit?gid=0#gid=0"
+        doc = gc.open_by_url(sheet_url)
+        worksheet = doc.worksheet("시트1")
+
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+
+        if '품목코드' in df.columns:
+            df['품목코드'] = df['품목코드'].astype(str).str.strip()
+        if '품목명' in df.columns:
+            df['품목명'] = df['품목명'].astype(str).str.strip()
+
+        return df
+
+    except Exception as e:
+        st.error(f"시트를 불러오는 중 오류가 발생했습니다: {e}")
         return pd.DataFrame()
 
 # ==========================================================
@@ -240,7 +263,7 @@ def send_ecount_purchase(master_data, detail_data):
         return False, f"API 통신 오류: {e}"
 
 # ==========================================================
-# 2. 메인 화면 시작 
+# 2. 메인 화면 및 페이지 이동 제어
 # ==========================================================
 
 st.markdown("""
@@ -260,16 +283,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# ✨ 페이지 이동을 위한 상태 변수 초기화
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "main"
+
 if "selected_items" not in st.session_state:
     st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
 
-# ✨ 창 열림/닫힘 상태를 기억하는 변수 설정
-if "show_ecount_window" not in st.session_state:
-    st.session_state.show_ecount_window = False
+def go_to_ecount():
+    st.session_state.current_page = "ecount"
 
-# 버튼을 누르면 상태를 반대로 뒤집는 마법의 함수
-def toggle_ecount_window():
-    st.session_state.show_ecount_window = not st.session_state.show_ecount_window
+def go_to_main():
+    st.session_state.current_page = "main"
 
 vendor_list = {
     "주식회사 가나다": "CUST001",
@@ -283,288 +308,270 @@ warehouse_list = {
     "4창고": "018"
 }
 
-col1, col2, col3 = st.columns([1, 1, 1])
+# ==========================================================
+# [페이지 1] 메인 화면
+# ==========================================================
+if st.session_state.current_page == "main":
+    col1, col2, col3 = st.columns([1, 1, 1])
 
-with col1:
-    with st.expander("📱 앱 설치 방법 안내"):
-        st.markdown("""
-        **💡 접속 및 설치 방법**
-        1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.
-        2. 승인 완료되면 구글 아이디로 로그인하세요.
-        3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
-        """)
+    with col1:
+        with st.expander("📱 앱 설치 방법 안내"):
+            st.markdown("""
+            **💡 접속 및 설치 방법**
+            1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.
+            2. 승인 완료되면 구글 아이디로 로그인하세요.
+            3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
+            """)
 
-with col2:
-    with st.expander("👥 접근 허용 명단"):
-        for email in WHITELIST_EMAILS:
-            st.caption(f"✔️ {email}")
+    with col2:
+        with st.expander("👥 접근 허용 명단"):
+            for email in WHITELIST_EMAILS:
+                st.caption(f"✔️ {email}")
 
-with col3:
-    sched_data = pd.DataFrame() 
-    
-    with st.expander("🚛 입고스케줄"):
-        with st.spinner('분석 중...'):
-            sched_data = get_incoming_schedule()
-            if not sched_data.empty:
-                st.write("") 
-                
-                html_code = """
-                <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                    <table style="width: 100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important; min-width: 800px;">
-                """
-                html_code += '<tr style="background-color: #4A90E2; color: white; border-bottom: 2px solid #357ABD;">'
-                
-                for i, col in enumerate(sched_data.columns):
-                    sticky_style = 'position: sticky; left: 0; background-color: #4A90E2; z-index: 2;' if i == 0 else ''
-                    html_code += f'<th style="border: 1px solid #ddd; padding: 10px; font-size: 12px; white-space: nowrap; {sticky_style}">{col}</th>'
-                html_code += '</tr>'
-                
-                current_bg = "#ffffff" 
-                last_date = None        
-                
-                for _, row in sched_data.iterrows():
-                    current_row_date = str(row['날짜']).strip()
-                    if last_date is not None and current_row_date != last_date:
-                        current_bg = "#EDF7FE" if current_bg == "#ffffff" else "#ffffff"
+    with col3:
+        sched_data = pd.DataFrame() 
+        
+        with st.expander("🚛 입고스케줄"):
+            with st.spinner('분석 중...'):
+                sched_data = get_incoming_schedule()
+                if not sched_data.empty:
+                    st.write("") 
                     
-                    last_date = current_row_date 
+                    html_code = """
+                    <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                        <table style="width: 100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important; min-width: 800px;">
+                    """
+                    html_code += '<tr style="background-color: #4A90E2; color: white; border-bottom: 2px solid #357ABD;">'
                     
-                    html_code += f'<tr style="background-color: {current_bg};">'
-                    for i, val in enumerate(row):
-                        sticky_style = f'position: sticky; left: 0; background-color: {current_bg}; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
-                        html_code += f'<td style="border: 1px solid #ddd; padding: 10px; font-size: 13px; white-space: nowrap; {sticky_style}">{val}</td>'
+                    for i, col in enumerate(sched_data.columns):
+                        sticky_style = 'position: sticky; left: 0; background-color: #4A90E2; z-index: 2;' if i == 0 else ''
+                        html_code += f'<th style="border: 1px solid #ddd; padding: 10px; font-size: 12px; white-space: nowrap; {sticky_style}">{col}</th>'
                     html_code += '</tr>'
-                
-                html_code += '</table></div>'
-                st.markdown(html_code, unsafe_allow_html=True)
-                st.markdown("---")
-            else:
-                st.warning("예정된 가평 스케줄이 없습니다.")
-
-    # ✨ 문제의 익스팬더를 과감히 삭제하고, 버튼 형식으로 교체!
-    st.button("📝 이카운트 구매입력 (열기 / 닫기)", on_click=toggle_ecount_window, use_container_width=True, type="primary")
-
-    if st.session_state.show_ecount_window:
-        # 별도의 창처럼 보이도록 시각적 분리
-        st.markdown("""
-        <div style="padding: 15px; border: 2px solid #4A90E2; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; background-color: #f8fbff;">
-            <h3 style="margin-top:0; color:#2C3E50;">📝 구매입력 별도 창</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.write("### 📦 오늘 입고 불러오기")
-        
-        if not sched_data.empty:
-            sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
-            
-            gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
-            gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
-            gb.configure_column('날짜', pinned='left') 
-            gb.configure_default_column(min_column_width=120, resizable=True)
-            gridOptions = gb.build()
-            
-            grid_response = AgGrid(
-                sched_for_selection,
-                gridOptions=gridOptions,
-                update_mode=GridUpdateMode.SELECTION_CHANGED,
-                use_container_width=True, 
-                fit_columns_on_grid_load=False,
-                theme="alpine",
-                reload_data=False,
-                key="ag_grid_schedule" 
-            )
-            
-            if st.button("체크한 항목 불러오기", use_container_width=True):
-                selected_rows = grid_response['selected_rows']
-                
-                if selected_rows is not None and len(selected_rows) > 0:
-                    selected_df = pd.DataFrame(selected_rows)
-                    new_items = pd.DataFrame({
-                        "품목코드": selected_df["바코드"],
-                        "품목명": selected_df["제품명"],
-                        "수량": selected_df["수량"],
-                        "유통기한": None 
-                    })
-                    st.session_state.selected_items = new_items
-                    st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
+                    
+                    current_bg = "#ffffff" 
+                    last_date = None        
+                    
+                    for _, row in sched_data.iterrows():
+                        current_row_date = str(row['날짜']).strip()
+                        if last_date is not None and current_row_date != last_date:
+                            current_bg = "#EDF7FE" if current_bg == "#ffffff" else "#ffffff"
+                        
+                        last_date = current_row_date 
+                        
+                        html_code += f'<tr style="background-color: {current_bg};">'
+                        for i, val in enumerate(row):
+                            sticky_style = f'position: sticky; left: 0; background-color: {current_bg}; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
+                            html_code += f'<td style="border: 1px solid #ddd; padding: 10px; font-size: 13px; white-space: nowrap; {sticky_style}">{val}</td>'
+                        html_code += '</tr>'
+                    
+                    html_code += '</table></div>'
+                    st.markdown(html_code, unsafe_allow_html=True)
+                    st.markdown("---")
                 else:
-                    st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")
+                    st.warning("예정된 가평 스케줄이 없습니다.")
+
+        # ✨ 별도 페이지로 넘어가는 버튼!
+        st.button("📝 이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="primary")
+
+    # 기존 검색 화면
+    df = load_real_data()
+
+    st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
+
+    search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
+
+    st.markdown("""
+        <style>
+        button[kind="primary"] {
+            background-color: #4A90E2 !important;
+            border-color: #4A90E2 !important;
+            color: white !important;
+        }
+        button[kind="primary"]:hover,
+        button[kind="primary"]:active,
+        button[kind="primary"]:focus {
+            background-color: #357ABD !important; 
+            border-color: #357ABD !important;
+            color: white !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    search_button = st.button("🔍 검색", type="primary", use_container_width=True)
+
+    if search_query and not df.empty:
+        clean_query = search_query.strip()
+
+        mask = (
+            df['품목명'].str.contains(clean_query, case=False, na=False) |
+            (df['품목코드'].str[-4:] == clean_query)
+        )
+        search_result = df[mask]
+
+        if search_result.empty:
+            st.warning("검색 결과가 없습니다. 다른 키워드로 검색해 보세요.")
         else:
-            st.info("현재 예정된 입고 스케줄이 없습니다.")
-            
-        st.divider()
-        
-        with st.form("ecount_submit_form"):
-            st.write("### 📋 기본 정보 입력")
-            c1, c2 = st.columns(2)
-            input_date = c1.date_input("일자").strftime("%Y%m%d")
-            vendor_name = c2.selectbox("거래처", list(vendor_list.keys()))
-            vendor_code = vendor_list[vendor_name]
-            
-            c3, c4 = st.columns(2)
-            actual_user = c3.text_input("실제 입고 담당자", placeholder="작성자 이름")
-            wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()))
-            wh_code = warehouse_list[wh_name]
-            
-            st.write("### 🛒 품목 정보 입력")
-            final_items = st.data_editor(
-                st.session_state.selected_items,
-                num_rows="dynamic",
-                use_container_width=True,
-                hide_index=True, 
-                column_config={
-                    "유통기한": st.column_config.DateColumn(
-                        "유통기한",
-                        help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
-                        format="YYYY/MM/DD"
+            st.success(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
+
+            for index, row in search_result.iterrows():
+                item_code_short = str(row.get('품목코드', ''))[-4:]
+
+                with st.expander(f" [{item_code_short}] {row.get('품목명', '이름없음')}"):
+                    st.markdown(
+                        f"""
+                        <table style="width:100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd;">
+                            <tr style="background-color: #f2f2f2;">
+                                <th style="border: 1px solid #ddd; padding: 8px;">1창고</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">2창고</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">3창고</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">4창고</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">불용</th>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('1창고 (007)', 0)}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('2창고 (012)', 0)}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('3창고 (017)', 0)}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('4창고 (018)', 0)}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold; color: #e74c3c;">{row.get('불용 (009)', 0)}</td>
+                            </tr>
+                        </table>
+                        """,
+                        unsafe_allow_html=True
                     )
-                }
-            )
-            
-            submit_clicked = st.form_submit_button("🚀 이카운트로 전송하기", type="primary", use_container_width=True)
-        
-        if submit_clicked:
-            if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "" or str(final_items['품목코드'].iloc[0]) == "nan":
-                st.error("입력된 품목이 없습니다.")
-            elif not actual_user:
-                st.warning("실제 입고 담당자 이름을 기록해 주세요.")
-            else:
-                master_info = {
-                    "일자": input_date,
-                    "거래처코드": vendor_code,
-                    "창고코드": wh_code,
-                    "담당자": actual_user
-                }
-                
-                with st.spinner('이카운트로 데이터를 전송하고 있습니다...'):
-                    is_success, msg = send_ecount_purchase(master_info, final_items)
-                    if is_success:
-                        st.success(msg)
-                    else:
-                        st.error(msg)
+
+                    st.markdown("---")
+                    st.markdown("#### 🏷️ SKU 정보")
+                    st.markdown(
+                        f"""
+                        <table style="width:100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd;">
+                            <tr style="background-color: #f2f2f2;">
+                                <th style="border: 1px solid #ddd; padding: 8px;">BOX 입수량</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">PLT BOX수</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">PLT 입수량</th>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('BOX 입수량', 0)} EA</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('PLT BOX수', 0)} BOX</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('PLT 입수량', 0)} EA</td>
+                            </tr>
+                        </table>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+    elif search_query and df.empty:
+        st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
 
 # ==========================================================
-# 3. 구글 시트 데이터 불러오기 함수
+# [페이지 2] 이카운트 구매입력 전용 화면
 # ==========================================================
-@st.cache_data(ttl=900)
-def load_real_data():
-    try:
-        scopes = [
-            'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive'
-        ]
-        creds_dict = st.secrets["gcp_service_account"]
-        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        gc = gspread.authorize(credentials)
-
-        sheet_url = "https://docs.google.com/spreadsheets/d/1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA/edit?gid=0#gid=0"
-        doc = gc.open_by_url(sheet_url)
-        worksheet = doc.worksheet("시트1")
-
-        data = worksheet.get_all_records()
-        df = pd.DataFrame(data)
-
-        if '품목코드' in df.columns:
-            df['품목코드'] = df['품목코드'].astype(str).str.strip()
-        if '품목명' in df.columns:
-            df['품목명'] = df['품목명'].astype(str).str.strip()
-
-        return df
-
-    except Exception as e:
-        st.error(f"시트를 불러오는 중 오류가 발생했습니다: {e}")
-        return pd.DataFrame()
-
-df = load_real_data()
-
-# ==========================================================
-# 4. 모바일 검색 화면
-# ==========================================================
-
-st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
-st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
-
-search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
-
-st.markdown("""
-    <style>
-    button[kind="primary"] {
-        background-color: #4A90E2 !important;
-        border-color: #4A90E2 !important;
-        color: white !important;
-    }
-    button[kind="primary"]:hover,
-    button[kind="primary"]:active,
-    button[kind="primary"]:focus {
-        background-color: #357ABD !important; 
-        border-color: #357ABD !important;
-        color: white !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-search_button = st.button("🔍 검색", type="primary", use_container_width=True)
-
-if search_query and not df.empty:
-    clean_query = search_query.strip()
-
-    mask = (
-        df['품목명'].str.contains(clean_query, case=False, na=False) |
-        (df['품목코드'].str[-4:] == clean_query)
-    )
-    search_result = df[mask]
-
-    if search_result.empty:
-        st.warning("검색 결과가 없습니다. 다른 키워드로 검색해 보세요.")
-    else:
-        st.success(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
-
-        for index, row in search_result.iterrows():
-            item_code_short = str(row.get('품목코드', ''))[-4:]
-
-            with st.expander(f" [{item_code_short}] {row.get('품목명', '이름없음')}"):
-                st.markdown(
-                    f"""
-                    <table style="width:100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd;">
-                        <tr style="background-color: #f2f2f2;">
-                            <th style="border: 1px solid #ddd; padding: 8px;">1창고</th>
-                            <th style="border: 1px solid #ddd; padding: 8px;">2창고</th>
-                            <th style="border: 1px solid #ddd; padding: 8px;">3창고</th>
-                            <th style="border: 1px solid #ddd; padding: 8px;">4창고</th>
-                            <th style="border: 1px solid #ddd; padding: 8px;">불용</th>
-                        </tr>
-                        <tr>
-                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('1창고 (007)', 0)}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('2창고 (012)', 0)}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('3창고 (017)', 0)}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('4창고 (018)', 0)}</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold; color: #e74c3c;">{row.get('불용 (009)', 0)}</td>
-                        </tr>
-                    </table>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                st.markdown("---")
-                st.markdown("#### 🏷️ SKU 정보")
-                st.markdown(
-                    f"""
-                    <table style="width:100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd;">
-                        <tr style="background-color: #f2f2f2;">
-                            <th style="border: 1px solid #ddd; padding: 8px;">BOX 입수량</th>
-                            <th style="border: 1px solid #ddd; padding: 8px;">PLT BOX수</th>
-                            <th style="border: 1px solid #ddd; padding: 8px;">PLT 입수량</th>
-                        </tr>
-                        <tr>
-                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('BOX 입수량', 0)} EA</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('PLT BOX수', 0)} BOX</td>
-                            <td style="border: 1px solid #ddd; padding: 8px; font-size: 1.2em; font-weight: bold;">{row.get('PLT 입수량', 0)} EA</td>
-                        </tr>
-                    </table>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-elif search_query and df.empty:
-    st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
+elif st.session_state.current_page == "ecount":
     
+    # ✨ 왼쪽 상단 메인으로 가기 버튼
+    st.button("⬅️ 메인으로", on_click=go_to_main)
+    
+    st.markdown("## 📝 이카운트 구매입력")
+    st.markdown("---")
+    
+    st.write("### 📦 오늘 입고 불러오기")
+    
+    sched_data = get_incoming_schedule()
+    
+    if not sched_data.empty:
+        sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
+        
+        # ✨ 글자 잘림 철벽 방어! 열 너비 강제 고정 및 자동 줄바꿈 설정
+        gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
+        gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
+        
+        # 각 열의 너비를 아주 넉넉하게 고정합니다.
+        gb.configure_column('날짜', pinned='left', width=100)
+        gb.configure_column('바코드', width=150)
+        # 제품명은 너비 400에 줄바꿈 허용(wrapText=True)
+        gb.configure_column('제품명', width=400, wrapText=True, autoHeight=True)
+        gb.configure_column('수량', width=100)
+        gb.configure_column('거래처', width=150)
+        
+        gridOptions = gb.build()
+        
+        grid_response = AgGrid(
+            sched_for_selection,
+            gridOptions=gridOptions,
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            use_container_width=True, 
+            fit_columns_on_grid_load=False, # 화면에 억지로 끼워 맞추는 기능 끄기 (스크롤 허용)
+            theme="alpine",
+            reload_data=False,
+            key="ag_grid_schedule_page" 
+        )
+        
+        if st.button("체크한 항목 불러오기", use_container_width=True):
+            selected_rows = grid_response['selected_rows']
+            
+            if selected_rows is not None and len(selected_rows) > 0:
+                selected_df = pd.DataFrame(selected_rows)
+                new_items = pd.DataFrame({
+                    "품목코드": selected_df["바코드"],
+                    "품목명": selected_df["제품명"],
+                    "수량": selected_df["수량"],
+                    "유통기한": None 
+                })
+                st.session_state.selected_items = new_items
+                st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
+            else:
+                st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")
+    else:
+        st.info("현재 예정된 입고 스케줄이 없습니다.")
+        
+    st.divider()
+    
+    with st.form("ecount_submit_form"):
+        st.write("### 📋 기본 정보 입력")
+        c1, c2 = st.columns(2)
+        input_date = c1.date_input("일자").strftime("%Y%m%d")
+        vendor_name = c2.selectbox("거래처", list(vendor_list.keys()))
+        vendor_code = vendor_list[vendor_name]
+        
+        c3, c4 = st.columns(2)
+        actual_user = c3.text_input("실제 입고 담당자", placeholder="작성자 이름")
+        wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()))
+        wh_code = warehouse_list[wh_name]
+        
+        st.write("### 🛒 품목 정보 입력")
+        final_items = st.data_editor(
+            st.session_state.selected_items,
+            num_rows="dynamic",
+            use_container_width=True,
+            hide_index=True, 
+            column_config={
+                "유통기한": st.column_config.DateColumn(
+                    "유통기한",
+                    help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
+                    format="YYYY/MM/DD"
+                )
+            }
+        )
+        
+        submit_clicked = st.form_submit_button("🚀 이카운트로 전송하기", type="primary", use_container_width=True)
+    
+    if submit_clicked:
+        if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "" or str(final_items['품목코드'].iloc[0]) == "nan":
+            st.error("입력된 품목이 없습니다.")
+        elif not actual_user:
+            st.warning("실제 입고 담당자 이름을 기록해 주세요.")
+        else:
+            master_info = {
+                "일자": input_date,
+                "거래처코드": vendor_code,
+                "창고코드": wh_code,
+                "담당자": actual_user
+            }
+            
+            with st.spinner('이카운트로 데이터를 전송하고 있습니다...'):
+                is_success, msg = send_ecount_purchase(master_info, final_items)
+                if is_success:
+                    st.success(msg)
+                else:
+                    st.error(msg)
+                    
