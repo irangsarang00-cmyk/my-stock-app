@@ -36,6 +36,12 @@ i {
     text-transform: none !important;
 }
 
+/* ✨ 4. AgGrid 표 내부까지 완벽하게 고운돋움 폰트 강제 적용! */
+.ag-root-wrapper, .ag-theme-alpine, .ag-cell, .ag-header-cell-text {
+    font-family: 'Gowun Dodum', sans-serif !important;
+    --ag-font-family: 'Gowun Dodum', sans-serif !important;
+}
+
 /* --- 여기서부터는 기존 숨김 및 버튼 색상 코드 --- */
 [data-testid="stToolbar"] {display: none !important;}
 [data-testid="collapsedControl"] {display: none !important;}
@@ -619,20 +625,17 @@ elif st.session_state.current_page == "ecount":
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
     with c2:
-        # ✨ 라벨(7)과 팁 버튼(3)을 7:3 비율로 나누어 팁 버튼을 좁은 방에 가둡니다.
-        col_lbl, col_btn = st.columns([7, 3])
+        # ✨ 칸을 3개로 나누되, 가운데 빈 공간을 넓게(6) 줘서 팁 버튼을 오른쪽 끝으로 밀어냅니다!
+        c_lbl, c_space, c_btn = st.columns([2, 6, 2])
         
-        with col_lbl:
-            # 거래처 글자를 왼쪽, 일자 칸과 높이를 맞추기 위해 살짝 다듬었습니다.
-            st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 2px;'>거래처</div>", unsafe_allow_html=True)
+        with c_lbl:
+            st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 5px;'>거래처</div>", unsafe_allow_html=True)
             
-        with col_btn:
-            # ✨ use_container_width=True를 넣으면 할당된 좁은 칸(3)에 맞춰 버튼이 아담하게 쏙 들어갑니다!
-            # 글자도 "작성 팁" 대신 "💡 팁"으로 줄여서 훨씬 앙증맞게 만들었어요.
-            with st.popover("💡 팁", use_container_width=True):
+        with c_btn:
+            # ✨ 뚱뚱해지는 옵션을 빼고 원래의 앙증맞은 크기로 돌려놓습니다.
+            with st.popover("💡 팁"):
                 st.markdown("✔️ **#만 있는 것** = 라온글로벌<br>✔️ **[YC]** = 우하모(야코브)", unsafe_allow_html=True)
                 
-        # 셀렉트박스는 라벨을 숨기고 아래에 시원하게 넓게 배치합니다.
         vendor_name = st.selectbox(
             "거래처", 
             list(vendor_list.keys()), 
