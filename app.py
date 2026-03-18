@@ -77,8 +77,14 @@ button[kind="primary"]:focus {
     background-color: #357ABD !important; 
     border-color: #357ABD !important;
     color: white !important;
-}
-</style>
+st.markdown("""
+    <style>
+    /* 표의 헤더 부분에서 마우스 드래그를 막아버립니다 */
+    [data-testid="stTable"] th, 
+    .st-ae {
+        pointer-events: none; /* 클릭이나 드래그가 아예 안 먹히게 설정 */
+    }
+    </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
