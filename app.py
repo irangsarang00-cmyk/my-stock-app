@@ -16,7 +16,10 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSiz
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
 <style>
-/* ✨ [여기로 이사왔어요!] 팁 버튼 작게 만들고 오른쪽으로 정렬하기 */
+/* ✨ 1. 구글 웹 폰트 불러오기 (고운돋움) - 반드시 가장 맨 위에 있어야 합니다! */
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+
+/* ✨ 2. 팁 버튼 작게 만들고 오른쪽으로 정렬하기 (순서를 폰트 아래로 내렸습니다) */
 div[data-testid="stPopover"] {
     display: flex;
     justify-content: flex-end;
@@ -27,15 +30,12 @@ div[data-testid="stPopover"] button {
     padding: 0px 10px !important;
 }
 
-/* ✨ 1. 구글 웹 폰트 불러오기 (고운돋움) */
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
-
-/* ✨ 2. 너무 강했던 !important를 빼고 부드럽게 전체 텍스트에 폰트를 덮어씌웁니다. */
+/* ✨ 3. 앱 전체 텍스트에 폰트를 덮어씌웁니다. */
 html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th, ul, li, strong, b {
     font-family: 'Gowun Dodum', sans-serif;
 }
 
-/* ✨ 3. 아이콘 역할을 하는 녀석들은 무조건 아이콘 폰트를 쓰도록 절대 방어막을 칩니다! */
+/* ✨ 4. 아이콘 역할을 하는 녀석들은 무조건 아이콘 폰트를 쓰도록 절대 방어막을 칩니다! */
 .material-icons, 
 .material-symbols-rounded, 
 span[class*="material-icons"], 
@@ -47,7 +47,7 @@ i {
     text-transform: none !important;
 }
 
-/* ✨ 4. AgGrid 표 내부까지 완벽하게 고운돋움 폰트 강제 적용! */
+/* ✨ 5. AgGrid 표 내부 폰트 강제 적용 (아이프레임 한계로 완벽하진 않지만 시도는 해둡니다!) */
 .ag-root-wrapper, .ag-theme-alpine, .ag-cell, .ag-header-cell-text {
     font-family: 'Gowun Dodum', sans-serif !important;
     --ag-font-family: 'Gowun Dodum', sans-serif !important;
