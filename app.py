@@ -6,12 +6,12 @@ import json
 import tempfile
 import os
 import re
-import requests # 새로 추가된 라이브러리
-from datetime import datetime # 새로 추가된 라이브러리
+import requests 
+from datetime import datetime 
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 
-# --- 햄버거 메뉴 & 워터마크 영혼까지 끌어모아 암살하기 ---
+# --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
 <style>
 [data-testid="stToolbar"] {display: none !important;}
@@ -28,16 +28,15 @@ footer {display: none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-# ---------------------------------------------------------
 
 # ==========================================================
-# 1. 구글 로그인 및 보안 설정
+# 1. 구글 로그인 및 권한 설정
 # ==========================================================
 WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com", "ddadung77@gmail.com", "a01066531205@gmail.com", "seohanseung2@gmail.com", "afopis75@gmail.com", "gmsik00@gmail.com", "hamsungbin87@gmail.com", "policelee2@gmail.com", "leetic1224@gmail.com"]
 
 auth_secrets = st.secrets["google_oauth"]
 
-# secrets에서 임시 JSON 파일 생성 (Streamlit Cloud용)
+# 로그인 인증 정보를 담은 임시 파일 생성
 credentials_dict = {
     "web": {
         "client_id": auth_secrets["client_id"],
@@ -52,7 +51,7 @@ tmp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
 json.dump(credentials_dict, tmp_file)
 tmp_file.close()
 
-# 로그인 유지 기간을 아주 길게(약 10년) 설정
+# 로그인 유지 기간 설정 (약 10년)
 authenticator = Authenticate(
     secret_credentials_path=tmp_file.name,
     cookie_name="stock_app_cookie",
@@ -67,7 +66,6 @@ if not st.session_state.get("connected"):
     st.markdown("<div style='margin-top: 15vh;'></div>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>가평창고 재고조회</h2>", unsafe_allow_html=True)
     
-    # ✨ 로그인 화면에 접속 방법 안내 상자 추가
     st.info("""
     **💡 접속 및 설치 방법**
     1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.
@@ -110,7 +108,7 @@ if user_email not in WHITELIST_EMAILS:
     st.stop()
 
 # ==========================================================
-# [중요] 데이터 처리 함수 (병합 해결 & 유연한 필터링)
+# 스케줄 데이터 가져오기 함수
 # ==========================================================
 def get_incoming_schedule():
     try:
@@ -129,39 +127,24 @@ def get_incoming_schedule():
         if df_raw.empty:
             return pd.DataFrame()
 
-        # 1. 띄어쓰기만 있는 칸도 완벽하게 빈칸(None)으로 인식하도록 변환
         df_filled = df_raw.replace(r'^\s*$', None, regex=True)
-
-        # 2. 모든 칸이 비어있는 '스페이서(빈 행)'를 찾아냅니다.
         barrier_mask = df_filled.isna().all(axis=1)
-        
-        # 3. 빈 행에 'BARRIER'라는 장벽을 쳐서 ffill이 넘어가지 못하게 막습니다.
         df_filled.loc[barrier_mask, :] = 'BARRIER'
-
-        # 4. 이제 안심하고 ffill(병합된 셀 채우기)을 실행합니다.
         df_filled = df_filled.ffill()
-
-        # 5. 역할을 다한 장벽 행은 깔끔하게 삭제합니다.
         df_filled = df_filled[~barrier_mask]
 
-        # 6. 불필요한 헤더 행 제외
         exclude_keywords = ['상품전환', '주차 입고', '기준:날짜']
         mask_exclude = df_filled.astype(str).apply(
             lambda x: x.str.contains('|'.join(exclude_keywords))
         ).any(axis=1)
         df_filtered = df_filled[~mask_exclude]
 
-        # 3. '가평'이 포함된 행 필터링
         mask_gapyeong = df_filtered.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
-
-        # 4. '날짜' 패턴이 포함된 행 필터링
         date_pattern = r'(\d{2,4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2})|(\d{1,2}\s*[.\-/]\s*\d{1,2})'
         mask_date = df_filtered.astype(str).apply(lambda x: x.str.contains(date_pattern)).any(axis=1)
 
-        # 5. 최종 조건 만족 행 추출
         schedule_df = df_filtered[mask_gapyeong & mask_date].copy()
 
-        # 6. 날짜 형식 강제 통일 (월/일)
         def force_format_date(val):
             val_str = str(val).strip()
             clean_val = re.sub(r'[.\-/]', ' ', val_str)
@@ -176,12 +159,10 @@ def get_incoming_schedule():
         if len(schedule_df.columns) > 7:
             schedule_df.iloc[:, 7] = schedule_df.iloc[:, 7].apply(force_format_date)
 
-        # 7. 열 순서 재배치 (7, 3, 5, 6, 8, 9, 10, 1)
         new_columns_idx = [7, 3, 5, 6, 8, 9, 10, 1]
         valid_indices = [c for c in new_columns_idx if c < len(schedule_df.columns)]
         schedule_df = schedule_df.iloc[:, valid_indices]
 
-        # 8. 열 제목 변경
         schedule_df.columns = [
             "날짜", "바코드", "제품명", "수량", "입고시간", "창고", "컨테이너", "거래처"
         ]
@@ -193,7 +174,7 @@ def get_incoming_schedule():
         return pd.DataFrame()
 
 # ==========================================================
-# [새로 추가] 이카운트 구매입력 API 전송 함수
+# 이카운트 구매입력 API 전송 함수
 # ==========================================================
 def send_ecount_purchase(master_data, detail_data):
     zone = "CA"
@@ -201,7 +182,6 @@ def send_ecount_purchase(master_data, detail_data):
     user_id = "VILIV0730"
     api_key = "07a00290661fe49c58fd7318a26e4f7100"
     
-    # 1. 세션 ID 발급받기
     login_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/OAPILogin"
     login_payload = {
         "COM_CODE": company_code,
@@ -218,13 +198,21 @@ def send_ecount_purchase(master_data, detail_data):
         if not session_id:
             return False, f"이카운트 로그인 실패: {login_res.get('Error', {}).get('Message', '알 수 없는 오류')}"
             
-        # 2. 구매입력 전송하기
         save_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
         
         purchase_list = []
         for idx, row in detail_data.iterrows():
             if not row.get('품목코드'):
                 continue
+            
+            # 달력에서 선택한 날짜 데이터를 이카운트 양식(YYYYMMDD)에 맞게 변환
+            exp_raw = row.get('유통기한')
+            add_date_02 = ""
+            if exp_raw:
+                try:
+                    add_date_02 = pd.to_datetime(exp_raw).strftime("%Y%m%d")
+                except:
+                    add_date_02 = str(exp_raw).replace("-", "").replace("/", "")
                 
             purchase_item = {
                 "BulkFlag": "M", 
@@ -236,7 +224,7 @@ def send_ecount_purchase(master_data, detail_data):
                 "PROD_CD": str(row['품목코드']).strip(),
                 "PROD_DES": str(row['품목명']).strip(),
                 "QTY": str(row['수량']).strip(),
-                "ADD_DATE_02": str(row['유통기한']).replace("-", "") if row.get('유통기한') else ""
+                "ADD_DATE_02": add_date_02
             }
             purchase_list.append(purchase_item)
             
@@ -252,7 +240,7 @@ def send_ecount_purchase(master_data, detail_data):
         return False, f"API 통신 오류: {e}"
 
 # ==========================================================
-# 2. 메인 화면 시작 (로그인 성공 후)
+# 2. 메인 화면 시작 
 # ==========================================================
 
 st.markdown("""
@@ -272,11 +260,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 세션 상태 초기화 (이카운트 기능에서 선택된 아이템을 저장할 공간)
+# 불러온 항목을 저장할 공간 만들기
 if "selected_items" not in st.session_state:
     st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
 
-# 거래처 및 창고 리스트 (코드 수정 가능)
 vendor_list = {
     "주식회사 가나다": "CUST001",
     "물류파트너스": "CUST002",
@@ -289,7 +276,6 @@ warehouse_list = {
     "4창고": "018"
 }
 
-# 1:1:1 비율로 3개의 컬럼 생성
 col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
@@ -307,8 +293,7 @@ with col2:
             st.caption(f"✔️ {email}")
 
 with col3:
-    # --- 스케줄 데이터를 바깥에서 먼저 불러옵니다 (이카운트 메뉴에서도 써야 하니까요) ---
-    sched_data = pd.DataFrame() # 기본 빈 껍데기
+    sched_data = pd.DataFrame() 
     
     with st.expander("🚛 입고스케줄"):
         with st.spinner('분석 중...'):
@@ -349,7 +334,6 @@ with col3:
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
-    # --- [새로 추가] 구매입력 기능 ---
     with st.expander("📝 이카운트 구매입력 하러가기"):
         st.write("### 📦 오늘 입고 불러오기")
         
@@ -357,15 +341,12 @@ with col3:
             sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량']].copy()
             sched_for_selection.insert(0, "선택", False)
             
+            # 왼쪽 숫자 지우기 (hide_index=True 적용)
             edited_sched = st.data_editor(
                 sched_for_selection,
-                hide_index=True,
+                hide_index=True, 
                 use_container_width=True,
-                disabled=["날짜", "바코드", "제품명", "수량"],
-                column_config={
-                    "선택": st.column_config.CheckboxColumn(pinned=True),
-                    "날짜": st.column_config.TextColumn(pinned=True)
-                }
+                disabled=["날짜", "바코드", "제품명", "수량"] 
             )
             
             if st.button("체크한 항목 불러오기", use_container_width=True):
@@ -376,7 +357,7 @@ with col3:
                         "품목코드": selected["바코드"],
                         "품목명": selected["제품명"],
                         "수량": selected["수량"],
-                        "유통기한": "" 
+                        "유통기한": None # 달력 형태를 위해 초기값을 비워둡니다
                     })
                     st.session_state.selected_items = new_items
                     st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
@@ -400,15 +381,24 @@ with col3:
             wh_code = warehouse_list[wh_name]
             
         st.write("### 🛒 품목 정보 입력")
+        
+        # 품목 정보 표 (달력 기능 추가 및 왼쪽 인덱스 숨기기)
         final_items = st.data_editor(
             st.session_state.selected_items,
             num_rows="dynamic",
             use_container_width=True,
-            hide_index=True
+            hide_index=True, 
+            column_config={
+                "유통기한": st.column_config.DateColumn(
+                    "유통기한",
+                    help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
+                    format="YYYY/MM/DD"
+                )
+            }
         )
         
         if st.button("🚀 이카운트로 전송하기", type="primary", use_container_width=True):
-            if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "":
+            if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "" or str(final_items['품목코드'].iloc[0]) == "nan":
                 st.error("입력된 품목이 없습니다.")
             elif not actual_user:
                 st.warning("실제 입고 담당자 이름을 기록해 주세요.")
@@ -427,9 +417,8 @@ with col3:
                     else:
                         st.error(msg)
 
-
 # ==========================================================
-# 3. 실제 구글 시트 데이터 불러오기 함수
+# 3. 구글 시트 데이터 불러오기 함수
 # ==========================================================
 @st.cache_data(ttl=900)
 def load_real_data():
@@ -463,7 +452,7 @@ def load_real_data():
 df = load_real_data()
 
 # ==========================================================
-# 4. 모바일 최적화 검색 화면
+# 4. 모바일 검색 화면
 # ==========================================================
 
 st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
@@ -552,4 +541,3 @@ if search_query and not df.empty:
 
 elif search_query and df.empty:
     st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
-    
