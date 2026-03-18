@@ -571,11 +571,12 @@ elif st.session_state.current_page == "ecount":
                 
                 gridOptions = gb.build()
                 
-                # ✨ AgGrid 표 껍데기를 뚫고 고운돋움 글꼴을 강제로 주입하는 전용 마법입니다!
+                # ✨ AgGrid의 가장 깊은 곳, '테마 기본 폰트' 자체를 고운돋움으로 덮어씌웁니다!
                 custom_grid_css = {
-                    ".ag-root-wrapper": {"font-family": "'Gowun Dodum', sans-serif !important;"},
-                    ".ag-header-cell-text": {"font-family": "'Gowun Dodum', sans-serif !important;"},
-                    ".ag-cell": {"font-family": "'Gowun Dodum', sans-serif !important;"}
+                    ".ag-theme-alpine": {
+                        "--ag-font-family": "'Gowun Dodum', sans-serif !important",
+                        "--ag-font-size": "15px" # 폰트 크기도 보기 좋게 살짝 맞췄어요!
+                    }
                 }
                 
                 grid_response = AgGrid(
@@ -586,8 +587,9 @@ elif st.session_state.current_page == "ecount":
                     fit_columns_on_grid_load=False, 
                     theme="alpine",
                     reload_data=False,
-                    key="ag_grid_schedule_page",
-                    custom_css=custom_grid_css # ✨ 바로 여기에 전용 마법을 끼워 넣었어요!
+                    # ✨ 이전 폰트를 기억하지 못하도록 이름표(key) 끝에 _v2를 붙여 새로고침을 강제합니다!
+                    key="ag_grid_schedule_page_v2", 
+                    custom_css=custom_grid_css
                 )
                 
                 load_clicked = st.form_submit_button("불러오기", use_container_width=True)
@@ -606,7 +608,7 @@ elif st.session_state.current_page == "ecount":
                     st.session_state.selected_items = new_items
                     st.success("입고내역을 불러왔어요.")
                 else:
-                    st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")
+                    st.warning("선택된 항목이 없습니다.")
         else:
             st.info("이번 주 월요일 이후로 등록된 입고 스케줄이 없습니다.")
     else:
@@ -623,7 +625,8 @@ elif st.session_state.current_page == "ecount":
     c3, c4 = st.columns(2)
     
     with c3:
-        actual_user = st_keyup(
+        # ✨ 기본 텍스트 입력칸으로 복귀! 폰트도 완벽하게 적용되고 사라지는 버그도 없습니다.
+        actual_user = st.text_input(
             "작성자", 
             placeholder="작성자 이름", 
             key="ecount_actual_user_keyup"
