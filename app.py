@@ -27,6 +27,18 @@ footer {display: none !important;}
 .viewerBadge_container__1tSll {display: none !important;}
 .viewerBadge_link__qRIus {display: none !important;}
 [data-testid="stDecoration"] {display: none !important;}
+button[kind="primary"] {
+    background-color: #4A90E2 !important;
+    border-color: #4A90E2 !important;
+    color: white !important;
+}
+button[kind="primary"]:hover,
+button[kind="primary"]:active,
+button[kind="primary"]:focus {
+    background-color: #357ABD !important; 
+    border-color: #357ABD !important;
+    color: white !important;
+}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -399,23 +411,6 @@ if st.session_state.current_page == "main":
     st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
 
     search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
-
-    st.markdown("""
-        <style>
-        button[kind="primary"] {
-            background-color: #4A90E2 !important;
-            border-color: #4A90E2 !important;
-            color: white !important;
-        }
-        button[kind="primary"]:hover,
-        button[kind="primary"]:active,
-        button[kind="primary"]:focus {
-            background-color: #357ABD !important; 
-            border-color: #357ABD !important;
-            color: white !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
 
     search_button = st.button("🔍 검색", type="primary", use_container_width=True)
 
