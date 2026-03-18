@@ -162,7 +162,9 @@ if user_email not in WHITELIST_EMAILS:
     st.stop()
 
 if "secret_log_printed" not in st.session_state:
-    print(f"👀 {user_email} 왔다감.")
+    now_kst = (datetime.utcnow() + timedelta(hours=9)).strftime('%H:%M:%S')
+    print(f"👀 [{now_kst} KST] {user_email} 왔다 감.")
+    
     st.session_state.secret_log_printed = True
 
 # ==========================================================
