@@ -491,7 +491,7 @@ elif st.session_state.current_page == "ecount":
     
     # 📝 불필요한 큰 제목들 삭제 완료!
     
-    st.write("### 📦 오늘 입고 불러오기")
+    st.write("### 📦 입고내역 불러오기")
     
     sched_data = get_incoming_schedule()
     
