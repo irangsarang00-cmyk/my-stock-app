@@ -13,7 +13,7 @@ from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
 from st_keyup import st_keyup
 
-/* 💡 팁 버튼 작게 만들고 오른쪽으로 정렬하기 */
+/*  팁 버튼 작게 만들고 오른쪽으로 정렬하기 */
 div[data-testid="stPopover"] {
     display: flex;
     justify-content: flex-end;
