@@ -468,8 +468,7 @@ elif st.session_state.current_page == "ecount":
     
     st.button("⬅️ 메인으로", on_click=go_to_main)
     
-    st.markdown("## 📝 이카운트 구매입력")
-    st.markdown("---")
+    # 📝 불필요한 큰 제목들 삭제 완료!
     
     st.write("### 📦 오늘 입고 불러오기")
     
@@ -496,7 +495,6 @@ elif st.session_state.current_page == "ecount":
         
         if not sched_for_selection.empty:
             
-            # ✨ [핵심 1] 여기서부터 폼(Form) 상자가 시작됩니다!
             with st.form("ag_grid_form"):
                 gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
                 gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
@@ -526,13 +524,10 @@ elif st.session_state.current_page == "ecount":
                     theme="alpine",
                     reload_data=False,
                     key="ag_grid_schedule_page" 
-                    # 💡 폼 안에 있기 때문에 update_mode 설정은 굳이 없어도 알아서 깜빡임이 멈춥니다!
                 )
                 
-                # ✨ [핵심 2] 폼 전용 버튼으로 바꿉니다! (이 버튼을 누를 때만 화면이 새로고침돼요)
                 load_clicked = st.form_submit_button("체크한 항목 불러오기", use_container_width=True)
             
-            # ✨ [핵심 3] 버튼이 눌렸는지 확인하는 로직은 폼 바깥으로 빼줍니다.
             if load_clicked:
                 selected_rows = grid_response['selected_rows']
                 
@@ -556,7 +551,7 @@ elif st.session_state.current_page == "ecount":
     st.divider()
     
     with st.form("ecount_submit_form"):
-        st.write("### 📋 기본 정보 입력")
+        # 📋 기본 정보 입력 제목 삭제 완료!
         c1, c2 = st.columns(2)
         input_date = c1.date_input("일자").strftime("%Y%m%d")
         vendor_name = c2.selectbox("거래처", list(vendor_list.keys()))
@@ -567,7 +562,7 @@ elif st.session_state.current_page == "ecount":
         wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()))
         wh_code = warehouse_list[wh_name]
         
-        st.write("### 🛒 품목 정보 입력")
+        # 🛒 품목 정보 입력 제목 삭제 완료!
         final_items = st.data_editor(
             st.session_state.selected_items,
             num_rows="dynamic",
