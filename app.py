@@ -162,7 +162,7 @@ if user_email not in WHITELIST_EMAILS:
     st.stop()
 
 if "secret_log_printed" not in st.session_state:
-    print(f"👀 앗! {user_email} 님이 방금 가평창고 앱에 접속했습니다!")
+    print(f"👀 {user_email} 왔다감.")
     st.session_state.secret_log_printed = True
 
 # ==========================================================
