@@ -337,23 +337,27 @@ with col3:
         st.write("### 📦 오늘 입고 불러오기")
         
         if not sched_data.empty:
-            # ✨ 거래처 열을 스케줄에서 함께 추출합니다!
             sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
             
-            # ✨ Ag-Grid 강력한 표 그리기 설정
+            # ✨ Ag-Grid 오류 수정 부분
             gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
-            # 체크박스 다중 선택 기능 켜기
             gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
-            # 날짜 열을 왼쪽에 단단히 고정 (틀 고정)
-            gb.configure_column('날짜', pinned='left')
+            gb.configure_column('날짜', pinned='left') # 날짜 열 틀 고정
+            
+            # ✨ 가로 스크롤 허용 및 글자 잘림 방지 설정
+            gb.configure_default_column(min_column_width=120, resizable=True)
             gridOptions = gb.build()
             
+            # ✨ 튕김 현상 방지: key 부여 및 reload_data=False 설정
             grid_response = AgGrid(
                 sched_for_selection,
                 gridOptions=gridOptions,
                 update_mode=GridUpdateMode.SELECTION_CHANGED,
-                use_container_width=True,
-                theme="alpine" # 깔끔한 기본 테마
+                use_container_width=True, 
+                fit_columns_on_grid_load=False, # 화면 너비에 억지로 끼워맞추지 않음 -> 가로 스크롤 생성
+                theme="alpine",
+                reload_data=False, # ✨ 화면 하얘짐 방지 핵심!
+                key="ag_grid_schedule" # 고유 이름표 부여
             )
             
             if st.button("체크한 항목 불러오기", use_container_width=True):
@@ -376,7 +380,6 @@ with col3:
             
         st.divider()
         
-        # ✨ 튕김 현상을 막아주는 마법의 상자, st.form 시작!
         with st.form("ecount_submit_form"):
             st.write("### 📋 기본 정보 입력")
             c1, c2 = st.columns(2)
@@ -404,10 +407,8 @@ with col3:
                 }
             )
             
-            # 폼 내부에서는 form_submit_button을 사용해야 클릭 시 새로고침 없이 정보를 한 번에 모아서 쏴줍니다.
             submit_clicked = st.form_submit_button("🚀 이카운트로 전송하기", type="primary", use_container_width=True)
         
-        # 사용자가 전송 버튼을 눌렀을 때만 작동!
         if submit_clicked:
             if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "" or str(final_items['품목코드'].iloc[0]) == "nan":
                 st.error("입력된 품목이 없습니다.")
@@ -552,3 +553,4 @@ if search_query and not df.empty:
 
 elif search_query and df.empty:
     st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
+    
