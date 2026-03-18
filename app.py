@@ -13,8 +13,6 @@ from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
 # (st_keyup은 지워도 됩니다!)
 
-# --- 상단 메뉴 및 워터마크 숨기기 ---
-hide_streamlit_style = """
 st.markdown("""
 <style>
     /* 1. 구글 웹 폰트 불러오기 (고운돋움) */
