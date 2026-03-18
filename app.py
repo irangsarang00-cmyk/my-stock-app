@@ -577,12 +577,7 @@ elif st.session_state.current_page == "ecount":
                 
                 gridOptions = gb.build()
                 
-                # ✨ 표(AgGrid) 안의 모든 구역(div)과 글자(span)에 강제로 고운돋움을 덮어씌우는 최종 병기입니다!
-                custom_grid_css = {
-                    "div": {"font-family": "'Gowun Dodum', sans-serif !important;"},
-                    "span": {"font-family": "'Gowun Dodum', sans-serif !important;"}
-                }
-                
+                # ✨ 잡다한 옵션은 싹 지우고 가장 깔끔한 기본 형태로 둡니다! (폰트는 1번 CSS가 알아서 바꿔줍니다)
                 grid_response = AgGrid(
                     sched_for_selection,
                     gridOptions=gridOptions,
@@ -590,10 +585,8 @@ elif st.session_state.current_page == "ecount":
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
                     fit_columns_on_grid_load=False, 
                     theme="alpine",
-                    reload_data=False,
-                    # ✨ 이전 폰트를 절대 기억하지 못하도록 이름표(key) 끝을 v3로 확실하게 갈아버립니다!
-                    key="ag_grid_schedule_page_v3", 
-                    custom_css=custom_grid_css
+                    reload_data=True, 
+                    key="ag_grid_schedule_page_final" 
                 )
                 
                 load_clicked = st.form_submit_button("불러오기", use_container_width=True)
