@@ -66,23 +66,29 @@ footer {display: none !important;}
 .viewerBadge_link__qRIus {display: none !important;}
 [data-testid="stDecoration"] {display: none !important;}
 
-button[kind="primary"] {
-    background-color: #4A90E2 !important;
-    border-color: #4A90E2 !important;
-    color: white !important;
-}
-button[kind="primary"]:hover,
-button[kind="primary"]:active,
-button[kind="primary"]:focus {
-    background-color: #357ABD !important; 
-    border-color: #357ABD !important;
-    color: white !important;
 st.markdown("""
     <style>
-    /* 표의 헤더 부분에서 마우스 드래그를 막아버립니다 */
+    /* 1. 버튼 스타일 (Primary 버튼) */
+    button[kind="primary"] {
+        background-color: #4A90E2 !important;
+        border-color: #4A90E2 !important;
+        color: white !important;
+    }
+    button[kind="primary"]:hover,
+    button[kind="primary"]:active,
+    button[kind="primary"]:focus {
+        background-color: #357ABD !important; 
+        border-color: #357ABD !important;
+        color: white !important;
+    }
+
+    /* 2. 표 제목(헤더) 드래그 및 클릭 방지 */
+    /* st.data_editor와 일반 표 모두에 적용되도록 범위를 넓혔어요 */
     [data-testid="stTable"] th, 
+    [data-testid="stDataFrameHeaderCellProxy"],
     .st-ae {
-        pointer-events: none; /* 클릭이나 드래그가 아예 안 먹히게 설정 */
+        pointer-events: none !important; 
+        user-select: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
