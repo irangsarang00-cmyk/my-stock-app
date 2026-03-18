@@ -619,7 +619,12 @@ elif st.session_state.current_page == "ecount":
     # ✨ 폼(st.form)을 해제하여 검색창 배치를 자유롭게 만들었습니다.
     c1, c2 = st.columns(2)
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
-    vendor_name = c2.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor")
+    vendor_name = c2.selectbox(
+        "거래처", 
+        list(vendor_list.keys()), 
+        key="ecount_vendor",
+        help="💡 **작성 팁**\n\n* **#만 있는 것** = 라온글로벌\n* **[YC]** = 우하모(야코브)"
+    )
     vendor_code = vendor_list[vendor_name]
     
     c3, c4 = st.columns(2)
