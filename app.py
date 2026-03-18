@@ -619,13 +619,22 @@ elif st.session_state.current_page == "ecount":
     # ✨ 폼(st.form)을 해제하여 검색창 배치를 자유롭게 만들었습니다.
     c1, c2 = st.columns(2)
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
-    vendor_name = c2.selectbox(
-        "거래처", 
-        list(vendor_list.keys()), 
-        key="ecount_vendor",
-        help="💡 **작성 팁**\n\n* **#만 있는 것** = 라온글로벌\n* **[YC]** = 우하모(야코브)"
-    )
-    vendor_code = vendor_list[vendor_name]
+    
+    with c2:
+        # ✨ 거래처 글자와 버튼을 나란히 배치하기 위해 구역을 7:3 비율로 나눕니다.
+        c2_label, c2_btn = st.columns([7, 3])
+        
+        with c2_label:
+            st.markdown("<div style='font-size: 14px; margin-bottom: 5px;'>거래처</div>", unsafe_allow_html=True)
+            
+        with c2_btn:
+            # ✨ 누르면 인앱 팝업이 열리는 마법의 버튼입니다!
+            with st.popover("💡 작성 팁"):
+                st.markdown("✔️ **#만 있는 것** = 라온글로벌<br>✔️ **[YC]** = 우하모(야코브)", unsafe_allow_html=True)
+                
+        # 기본 라벨은 위에서 따로 적어주었으니, selectbox 자체의 제목은 숨깁니다.
+        vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
+        vendor_code = vendor_list[vendor_name]
     
     c3, c4 = st.columns(2)
     
