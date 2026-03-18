@@ -288,7 +288,7 @@ def send_ecount_purchase(master_data, detail_data):
             if not row.get('품목코드'):
                 continue
             
-            exp_raw = row.get('유통기한')
+            exp_raw = row.get('제조일자')
             add_date_02 = ""
             if exp_raw:
                 try:
@@ -363,7 +363,7 @@ if "current_page" not in st.session_state:
     st.session_state.current_page = "main"
 
 if "selected_items" not in st.session_state:
-    st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
+    st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "제조일자"])
 
 def go_to_ecount():
     st.session_state.current_page = "ecount"
@@ -372,7 +372,7 @@ def go_to_main():
     st.session_state.current_page = "main"
     
     # ✨ 1. 체크해서 불러왔던 품목 표 비우기
-    st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
+    st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "제조일자"])
     
     # ✨ 2. 입력했던 기본 정보(날짜, 거래처, 담당자, 창고) 기억 지우기
     keys_to_clear = ["ecount_date", "ecount_vendor", "ecount_actual_user", "ecount_wh"]
@@ -634,7 +634,7 @@ elif st.session_state.current_page == "ecount":
                         "품목코드": selected_df["바코드"],
                         "품목명": selected_df["제품명"],
                         "수량": selected_df["수량"],
-                        "유통기한": None 
+                        "제조일자": None 
                     })
                     st.session_state.selected_items = new_items
                     st.success("입고내역을 불러왔어요.")
@@ -677,8 +677,8 @@ elif st.session_state.current_page == "ecount":
         hide_index=True, 
         # ✨ 여기에 있던 height=350, 을 싹 지웠습니다!
         column_config={
-            "유통기한": st.column_config.DateColumn(
-                "유통기한",
+            "제조일자": st.column_config.DateColumn(
+                "제조일자",
                 help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
                 format="YYYY/MM/DD"
             )
@@ -720,7 +720,7 @@ elif st.session_state.current_page == "ecount":
                     "품목코드": row["품목코드"], # 👈 표와 서버로 보낼 때는 원래대로 전체 바코드를 보냅니다.
                     "품목명": row["품목명"],
                     "수량": "1",
-                    "유통기한": None
+                    "제조일자": None
                 }])
                 st.session_state.selected_items = final_items
                 st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
@@ -744,7 +744,7 @@ elif st.session_state.current_page == "ecount":
                     "품목코드": selected_row["품목코드"], # 👈 표에는 전체 바코드가 들어갑니다.
                     "품목명": selected_row["품목명"],
                     "수량": "1",
-                    "유통기한": None
+                    "제조일자": None
                 }])
                 st.session_state.selected_items = final_items
                 st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
