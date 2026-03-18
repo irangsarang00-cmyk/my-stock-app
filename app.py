@@ -612,7 +612,10 @@ elif st.session_state.current_page == "ecount":
         label_visibility="collapsed" # 거슬리던 제목 글자를 완벽히 숨깁니다.
     )
     
-    # 검색 로직 처리
+    # ✨ 요청하신 파란색 검색 버튼을 검색창 바로 밑에 큼직하게 추가했습니다!
+    search_clicked = st.button("🔍 검색", type="primary", use_container_width=True, key="manual_search_btn")
+    
+    # 검색 로직 처리 (엔터를 치거나 파란 버튼을 누르면 아래 로직이 실행됩니다)
     if search_kw and not real_df.empty:
         clean_kw = search_kw.strip()
         mask = (
@@ -630,7 +633,7 @@ elif st.session_state.current_page == "ecount":
             item_code_short = str(row['품목코드'])[-4:]
             st.success(f"✅ **[{item_code_short}] {row['품목명']}**")
             
-            if st.button("⬇️ 추가", type="secondary"):
+            if st.button("✅ 추가", type="secondary"):
                 new_row = pd.DataFrame([{
                     "품목코드": row["품목코드"], # 👈 표와 서버로 보낼 때는 원래대로 전체 바코드를 보냅니다.
                     "품목명": row["품목명"],
@@ -650,7 +653,7 @@ elif st.session_state.current_page == "ecount":
             # 사용자에게는 앞부분([4자리] 품목명)만 보여주고 선택하게 합니다.
             selected_option_full = st.selectbox("품목 선택", options, key="manual_select_item", format_func=lambda x: x.split(" (코드:")[0])
             
-            if st.button("⬇️ 추가", type="secondary"):
+            if st.button("✅ 추가", type="secondary"):
                 # 숨겨뒀던 진짜 전체 바코드를 꺼내서 검색합니다.
                 selected_full_code = selected_option_full.split("(코드:")[1].replace(")", "").strip()
                 selected_row = search_result[search_result['품목코드'] == selected_full_code].iloc[0]
