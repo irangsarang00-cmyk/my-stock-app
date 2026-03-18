@@ -325,11 +325,27 @@ st.markdown("""
         min-height: 45px; 
         height: auto !important;
     }
+    
+    /* 일반 회색 버튼은 기존처럼 100% 꽉 차게 둡니다 */
     button[data-testid="baseButton-secondary"] {
         height: 45px !important;
         width: 100% !important;
         margin-top: 0px !important;
     }
+    
+    /* ✨ [진짜 범인 검거!] 하지만 '팁(Popover)' 안에 있는 버튼만큼은 무조건 작게, 우측으로! (우선순위 최고) */
+    div[data-testid="stPopover"] {
+        display: flex;
+        justify-content: flex-end;
+    }
+    div[data-testid="stPopover"] button[data-testid="baseButton-secondary"] {
+        width: auto !important;
+        min-width: 60px !important;
+        height: 32px !important;
+        padding: 0px 10px !important;
+        margin-bottom: 2px !important;
+    }
+    
     .stTable {
         overflow-x: auto;
     }
