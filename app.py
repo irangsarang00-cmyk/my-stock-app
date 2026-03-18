@@ -481,20 +481,20 @@ elif st.session_state.current_page == "ecount":
         gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
         gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
         
-        # ✨ 1. 정렬 잠금, 이동 잠금 강제 세팅
+        # ✨ 1. 정렬 잠금, 이동 잠금, 그리고 **크기 조절(고무줄) 완벽 잠금**!
         gb.configure_default_column(
             sortable=False,        # 제목 눌러도 정렬 안됨!
             suppressMovable=True,  # 드래그해서 열 이동 안됨!
-            resizable=True
+            resizable=False        # 👈 고무줄처럼 늘어나는 기능 완전히 잠금!
         )
-        gb.configure_grid_options(suppressMovableColumns=True) # 표 전체에 이동 불가 명령!
+        gb.configure_grid_options(suppressMovableColumns=True)
         
-        # ✨ 2. 각 열의 크기를 아주아주 넓게 픽셀(px) 단위로 강제 고정!
-        gb.configure_column('날짜', pinned='left', width=150) # 날짜 절대로 안 잘림
-        gb.configure_column('바코드', width=180)
-        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) # 줄바꿈 + 무조건 500px 확보
-        gb.configure_column('수량', width=120)
-        gb.configure_column('거래처', width=200)
+        # ✨ 2. 각 열의 크기를 아주 시원하게 대폭 확대!
+        gb.configure_column('날짜', pinned='left', width=200) # 더 늘림!
+        gb.configure_column('바코드', width=250)
+        gb.configure_column('제품명', width=800, wrapText=True, autoHeight=True) # 무려 800px 할당!
+        gb.configure_column('수량', width=150)
+        gb.configure_column('거래처', width=300)
         
         gridOptions = gb.build()
         
@@ -503,7 +503,7 @@ elif st.session_state.current_page == "ecount":
             gridOptions=gridOptions,
             update_mode=GridUpdateMode.SELECTION_CHANGED,
             use_container_width=True, 
-            fit_columns_on_grid_load=False, # ✨ 강제로 끼워 맞추는 기능 완전히 끔! (이래야 스크롤이 생겨요)
+            fit_columns_on_grid_load=False, # 화면 폭에 억지로 맞추지 않음!
             theme="alpine",
             reload_data=False,
             key="ag_grid_schedule_page" 
@@ -577,3 +577,4 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
+                    
