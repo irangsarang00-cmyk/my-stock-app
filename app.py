@@ -474,66 +474,66 @@ elif st.session_state.current_page == "ecount":
     st.write("### 📦 오늘 입고 불러오기")
     
     sched_data = get_incoming_schedule()
-
+    
     if not sched_data.empty:
         sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
         
-        # ✨ [새로 추가된 부분] 이번 주 월요일 날짜 구하기
         today = datetime.now()
-        monday = today - timedelta(days=today.weekday()) # 0:월요일 ~ 6:일요일
+        monday = today - timedelta(days=today.weekday()) 
         monday_start = monday.replace(hour=0, minute=0, second=0, microsecond=0)
         
-        # ✨ [새로 추가된 부분] "3/18" 문자열을 진짜 날짜 데이터로 변환
         def parse_and_filter(date_str):
             try:
                 dt = datetime.strptime(f"{today.year}/{date_str.strip()}", "%Y/%m/%d")
-                # 혹시 연말/연초라서 작년 데이터가 섞일 경우를 대비한 안전장치
                 if (dt - today).days > 180: 
                     dt = dt.replace(year=today.year - 1)
                 return dt
             except:
-                return datetime.min # 날짜 형식이 이상하면 제외
+                return datetime.min 
                 
-        # ✨ [새로 추가된 부분] 월요일 이후의 데이터만 남기기
         valid_dates = sched_for_selection['날짜'].apply(parse_and_filter)
         sched_for_selection = sched_for_selection[valid_dates >= monday_start]
         
-        # ✨ 걸러내고 나서도 보여줄 데이터가 남아있을 때만 표 그리기
         if not sched_for_selection.empty:
-            gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
-            gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
-        
-            # ✨ 1. 정렬 잠금, 이동 잠금, 그리고 **크기 조절(고무줄) 완벽 잠금**!
-            gb.configure_default_column(
-                sortable=False,        # 제목 눌러도 정렬 안됨!
-                suppressMovable=True,  # 드래그해서 열 이동 안됨!
-                resizable=False,       # 고무줄처럼 늘어나는 기능 완전히 잠금!
-                suppressSizeToFit=True # 👈 [핵심1] 화면 뚫고 나가도록 허락하는 마법의 명령어!
-            )
-            gb.configure_grid_options(suppressMovableColumns=True)
             
-            # ✨ 2. 각 열의 크기를 지정! (이제 잘리지 않고 지정한 너비만큼 뻗어 나갑니다)
-            gb.configure_column('날짜', pinned='left', width=95) 
-            gb.configure_column('바코드', width=145)
-            gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
-            gb.configure_column('수량', width=80)
-            gb.configure_column('거래처', width=160)
+            # ✨ [핵심 1] 여기서부터 폼(Form) 상자가 시작됩니다!
+            with st.form("ag_grid_form"):
+                gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
+                gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
+                
+                gb.configure_default_column(
+                    sortable=False,        
+                    suppressMovable=True,  
+                    resizable=False,       
+                    suppressSizeToFit=True 
+                )
+                gb.configure_grid_options(suppressMovableColumns=True)
+                
+                gb.configure_column('날짜', pinned='left', width=95) 
+                gb.configure_column('바코드', width=145)
+                gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
+                gb.configure_column('수량', width=80)
+                gb.configure_column('거래처', width=160)
+                
+                gridOptions = gb.build()
+                
+                grid_response = AgGrid(
+                    sched_for_selection,
+                    gridOptions=gridOptions,
+                    use_container_width=True, 
+                    columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
+                    fit_columns_on_grid_load=False, 
+                    theme="alpine",
+                    reload_data=False,
+                    key="ag_grid_schedule_page" 
+                    # 💡 폼 안에 있기 때문에 update_mode 설정은 굳이 없어도 알아서 깜빡임이 멈춥니다!
+                )
+                
+                # ✨ [핵심 2] 폼 전용 버튼으로 바꿉니다! (이 버튼을 누를 때만 화면이 새로고침돼요)
+                load_clicked = st.form_submit_button("체크한 항목 불러오기", use_container_width=True)
             
-            gridOptions = gb.build()
-            
-            grid_response = AgGrid(
-                sched_for_selection,
-                gridOptions=gridOptions,
-                update_mode=GridUpdateMode.SELECTION_CHANGED,
-                use_container_width=True, 
-                columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, # 👈 [핵심2] 최신 버전의 자동 맞춤 완전히 차단!
-                fit_columns_on_grid_load=False, 
-                theme="alpine",
-                reload_data=False,
-                key="ag_grid_schedule_page" 
-            )
-            
-            if st.button("체크한 항목 불러오기", use_container_width=True):
+            # ✨ [핵심 3] 버튼이 눌렸는지 확인하는 로직은 폼 바깥으로 빼줍니다.
+            if load_clicked:
                 selected_rows = grid_response['selected_rows']
                 
                 if selected_rows is not None and len(selected_rows) > 0:
@@ -547,12 +547,10 @@ elif st.session_state.current_page == "ecount":
                     st.session_state.selected_items = new_items
                     st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
                 else:
-                    st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")        
+                    st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")
         else:
-            # 월요일 이후 데이터가 아무것도 없을 때 뜨는 메시지
             st.info("이번 주 월요일 이후로 등록된 입고 스케줄이 없습니다.")
     else:
-        # 아예 스케줄 시트 자체가 비어있을 때 뜨는 메시지
         st.info("현재 예정된 입고 스케줄이 없습니다.")
         
     st.divider()
