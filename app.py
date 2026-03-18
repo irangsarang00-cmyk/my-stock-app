@@ -7,7 +7,7 @@ import tempfile
 import os
 import re
 import requests 
-from datetime import datetime 
+from datetime import datetime, timedelta 
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
@@ -478,8 +478,30 @@ elif st.session_state.current_page == "ecount":
     if not sched_data.empty:
         sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
         
-        gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
-        gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
+        # ✨ [새로 추가된 부분] 이번 주 월요일 날짜 구하기
+        today = datetime.now()
+        monday = today - timedelta(days=today.weekday()) # 0:월요일 ~ 6:일요일
+        monday_start = monday.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # ✨ [새로 추가된 부분] "3/18" 문자열을 진짜 날짜 데이터로 변환
+        def parse_and_filter(date_str):
+            try:
+                dt = datetime.strptime(f"{today.year}/{date_str.strip()}", "%Y/%m/%d")
+                # 혹시 연말/연초라서 작년 데이터가 섞일 경우를 대비한 안전장치
+                if (dt - today).days > 180: 
+                    dt = dt.replace(year=today.year - 1)
+                return dt
+            except:
+                return datetime.min # 날짜 형식이 이상하면 제외
+                
+        # ✨ [새로 추가된 부분] 월요일 이후의 데이터만 남기기
+        valid_dates = sched_for_selection['날짜'].apply(parse_and_filter)
+        sched_for_selection = sched_for_selection[valid_dates >= monday_start]
+        
+        # ✨ 걸러내고 나서도 보여줄 데이터가 남아있을 때만 표 그리기
+        if not sched_for_selection.empty:
+            gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
+            gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
         
         # ✨ 1. 정렬 잠금, 이동 잠금, 그리고 **크기 조절(고무줄) 완벽 잠금**!
         gb.configure_default_column(
@@ -525,7 +547,9 @@ elif st.session_state.current_page == "ecount":
                 st.session_state.selected_items = new_items
                 st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
             else:
-                st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")
+                st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")        
+            else:
+                st.info("이번 주 월요일 이후로 등록된 입고 스케줄이 없습니다.")
     else:
         st.info("현재 예정된 입고 스케줄이 없습니다.")
         
