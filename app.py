@@ -77,6 +77,9 @@ button[kind="primary"]:focus {
     background-color: #357ABD !important; 
     border-color: #357ABD !important;
     color: white !important;
+[data-testid="stTable"] th, 
+    .st-ae {
+        pointer-events: none;
 }
 </style>
 """
