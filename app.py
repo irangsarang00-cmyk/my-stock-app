@@ -645,7 +645,28 @@ elif st.session_state.current_page == "ecount":
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
     with c2:
-        st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 5px;'>거래처</div>", unsafe_allow_html=True)
+        st.markdown("""
+            <style>
+            .tip-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 5px;
+            }
+            .tip-row span {
+                font-size: 14px;
+                padding-top: 5px;
+            }
+            /* 모바일에서도 stPopover 컬럼 가로 유지 */
+            [data-testid="column"] {
+                min-width: 0 !important;
+                flex: unset !important;
+            }
+            </style>
+            <div class="tip-row">
+                <span>거래처</span>
+            </div>
+        """, unsafe_allow_html=True)
         _, tip_col = st.columns([9, 1])
         with tip_col:
             with st.popover("팁"):
