@@ -6,6 +6,8 @@ import json
 import tempfile
 import os
 import re
+import requests # 새로 추가된 라이브러리
+from datetime import datetime # 새로 추가된 라이브러리
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 
@@ -124,30 +126,25 @@ def get_incoming_schedule():
         raw_data = worksheet.get_all_values()
         df_raw = pd.DataFrame(raw_data)
 
-        raw_data = worksheet.get_all_values()
-        df_raw = pd.DataFrame(raw_data)
-
         if df_raw.empty:
             return pd.DataFrame()
 
-        # ✨ [수정된 로직] 
         # 1. 띄어쓰기만 있는 칸도 완벽하게 빈칸(None)으로 인식하도록 변환
         df_filled = df_raw.replace(r'^\s*$', None, regex=True)
 
         # 2. 모든 칸이 비어있는 '스페이서(빈 행)'를 찾아냅니다.
         barrier_mask = df_filled.isna().all(axis=1)
         
-        # 3. 빈 행에 'BARRIER'라는 장벽을 쳐서 ffill이 넘어가지 못하게 막습니다!
+        # 3. 빈 행에 'BARRIER'라는 장벽을 쳐서 ffill이 넘어가지 못하게 막습니다.
         df_filled.loc[barrier_mask, :] = 'BARRIER'
 
         # 4. 이제 안심하고 ffill(병합된 셀 채우기)을 실행합니다.
-        # 장벽 밑에 있는 '미정' 데이터들은 남의 날짜를 훔쳐오지 못하고 'BARRIER'를 받게 됩니다.
         df_filled = df_filled.ffill()
 
         # 5. 역할을 다한 장벽 행은 깔끔하게 삭제합니다.
         df_filled = df_filled[~barrier_mask]
 
-        # 6. 불필요한 헤더 행 제외 (기존 로직 유지)
+        # 6. 불필요한 헤더 행 제외
         exclude_keywords = ['상품전환', '주차 입고', '기준:날짜']
         mask_exclude = df_filled.astype(str).apply(
             lambda x: x.str.contains('|'.join(exclude_keywords))
@@ -167,15 +164,12 @@ def get_incoming_schedule():
         # 6. 날짜 형식 강제 통일 (월/일)
         def force_format_date(val):
             val_str = str(val).strip()
-            # 1단계: 모든 구분자(., -, /)를 공백으로 치환하여 숫자만 추출하기 쉽게 만듦
             clean_val = re.sub(r'[.\-/]', ' ', val_str)
             parts = clean_val.split()
             
-            if len(parts) >= 3: # 연.월.일 형태 (2026 03 15)
-                # 연도가 앞에 오든 뒤에 오든, 1~12 사이의 숫자를 월로, 나머지를 일로 판단
-                # 안전하게 연도를 제외한 두 번째, 세 번째 요소를 가져옴
+            if len(parts) >= 3: 
                 return f"{int(parts[1])}/{int(parts[2])}"
-            elif len(parts) == 2: # 월.일 형태 (03 15)
+            elif len(parts) == 2:
                 return f"{int(parts[0])}/{int(parts[1])}"
             return val_str
 
@@ -187,7 +181,7 @@ def get_incoming_schedule():
         valid_indices = [c for c in new_columns_idx if c < len(schedule_df.columns)]
         schedule_df = schedule_df.iloc[:, valid_indices]
 
-        # 8. ✨ 열 제목 변경 (숫자 대신 한글로!)
+        # 8. 열 제목 변경
         schedule_df.columns = [
             "날짜", "바코드", "제품명", "수량", "입고시간", "창고", "컨테이너", "거래처"
         ]
@@ -199,33 +193,106 @@ def get_incoming_schedule():
         return pd.DataFrame()
 
 # ==========================================================
+# [새로 추가] 이카운트 구매입력 API 전송 함수
+# ==========================================================
+def send_ecount_purchase(master_data, detail_data):
+    zone = "CA"
+    company_code = "614508"
+    user_id = "VILIV0730"
+    api_key = "07a00290661fe49c58fd7318a26e4f7100"
+    
+    # 1. 세션 ID 발급받기
+    login_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/OAPILogin"
+    login_payload = {
+        "COM_CODE": company_code,
+        "USER_ID": user_id,
+        "API_CERT_KEY": api_key,
+        "LAN_TYPE": "ko-KR",
+        "ZONE": zone
+    }
+    
+    try:
+        login_res = requests.post(login_url, json=login_payload).json()
+        session_id = login_res.get("Data", {}).get("V2_SESSION_ID")
+        
+        if not session_id:
+            return False, f"이카운트 로그인 실패: {login_res.get('Error', {}).get('Message', '알 수 없는 오류')}"
+            
+        # 2. 구매입력 전송하기
+        save_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
+        
+        purchase_list = []
+        for idx, row in detail_data.iterrows():
+            if not row.get('품목코드'):
+                continue
+                
+            purchase_item = {
+                "BulkFlag": "M", 
+                "LineReqNo": str(idx + 1),
+                "IO_DATE": master_data['일자'],
+                "CUST": master_data['거래처코드'],
+                "EMP_CD": "00008", 
+                "WH_CD": master_data['창고코드'],
+                "PROD_CD": str(row['품목코드']).strip(),
+                "PROD_DES": str(row['품목명']).strip(),
+                "QTY": str(row['수량']).strip(),
+                "ADD_DATE_02": str(row['유통기한']).replace("-", "") if row.get('유통기한') else ""
+            }
+            purchase_list.append(purchase_item)
+            
+        save_payload = {"PurchaseList": purchase_list}
+        save_res = requests.post(save_url, json=save_payload).json()
+        
+        if save_res.get("Status") == "200":
+            return True, "이카운트 구매입력이 완료되었습니다!"
+        else:
+            return False, f"전송 실패: {save_res.get('Error', {}).get('Message', '오류')}"
+            
+    except Exception as e:
+        return False, f"API 통신 오류: {e}"
+
+# ==========================================================
 # 2. 메인 화면 시작 (로그인 성공 후)
 # ==========================================================
 
-# ✨ CSS 수정: 높이를 고정(height)하지 않고 최소 높이(min-height)만 설정합니다.
 st.markdown("""
     <style>
     div[data-testid="stExpander"] {
         min-height: 45px; 
-        height: auto !important; /* 내용에 따라 늘어나도록 강제 설정 */
+        height: auto !important;
     }
     button[data-testid="baseButton-secondary"] {
         height: 45px !important;
         width: 100% !important;
         margin-top: 0px !important;
     }
-    /* 입고스케줄 표가 너무 커서 모바일을 가리지 않게 살짝 조정 */
     .stTable {
         overflow-x: auto;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# 세션 상태 초기화 (이카운트 기능에서 선택된 아이템을 저장할 공간)
+if "selected_items" not in st.session_state:
+    st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
+
+# 거래처 및 창고 리스트 (코드 수정 가능)
+vendor_list = {
+    "주식회사 가나다": "CUST001",
+    "물류파트너스": "CUST002",
+    "태평양무역": "CUST003"
+}
+warehouse_list = {
+    "1창고": "007",
+    "2창고": "012",
+    "3창고": "017",
+    "4창고": "018"
+}
+
 # 1:1:1 비율로 3개의 컬럼 생성
 col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
-    # 로그인 후에도 설치 방법을 다시 확인할 수 있는 버튼
     with st.expander("📱 앱 설치 방법 안내"):
         st.markdown("""
         **💡 접속 및 설치 방법**
@@ -235,12 +302,14 @@ with col1:
         """)
 
 with col2:
-    # 기존에 있던 뷰어 목록 버튼
     with st.expander("👥 접근 허용 명단"):
         for email in WHITELIST_EMAILS:
             st.caption(f"✔️ {email}")
 
 with col3:
+    # --- 스케줄 데이터를 바깥에서 먼저 불러옵니다 (이카운트 메뉴에서도 써야 하니까요) ---
+    sched_data = pd.DataFrame() # 기본 빈 껍데기
+    
     with st.expander("🚛 입고스케줄"):
         with st.spinner('분석 중...'):
             sched_data = get_incoming_schedule()
@@ -251,42 +320,109 @@ with col3:
                 <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
                     <table style="width: 100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important; min-width: 800px;">
                 """
-                
-                # 1. 제목(헤더) 행 (진한 하늘색 계열로 변경)
                 html_code += '<tr style="background-color: #4A90E2; color: white; border-bottom: 2px solid #357ABD;">'
+                
                 for i, col in enumerate(sched_data.columns):
                     sticky_style = 'position: sticky; left: 0; background-color: #4A90E2; z-index: 2;' if i == 0 else ''
                     html_code += f'<th style="border: 1px solid #ddd; padding: 10px; font-size: 12px; white-space: nowrap; {sticky_style}">{col}</th>'
                 html_code += '</tr>'
                 
-                # 2. 날짜별 색상 제어 변수
-                current_bg = "#ffffff"  # 초기 배경색 (흰색)
-                last_date = None        # 이전 행의 날짜 저장용
+                current_bg = "#ffffff" 
+                last_date = None        
                 
-                # 3. 데이터 행 생성
                 for _, row in sched_data.iterrows():
                     current_row_date = str(row['날짜']).strip()
-                    
-                    # 날짜가 이전 행과 다르면 색상 변경!
                     if last_date is not None and current_row_date != last_date:
-                        # 흰색 <-> 연한 하늘색(#E3F2FD) 스위칭
                         current_bg = "#EDF7FE" if current_bg == "#ffffff" else "#ffffff"
                     
-                    last_date = current_row_date # 현재 날짜를 기록
+                    last_date = current_row_date 
                     
                     html_code += f'<tr style="background-color: {current_bg};">'
                     for i, val in enumerate(row):
-                        # 날짜 열(첫 번째 열) 고정 및 현재 배경색 유지
                         sticky_style = f'position: sticky; left: 0; background-color: {current_bg}; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
                         html_code += f'<td style="border: 1px solid #ddd; padding: 10px; font-size: 13px; white-space: nowrap; {sticky_style}">{val}</td>'
                     html_code += '</tr>'
                 
                 html_code += '</table></div>'
-                
                 st.markdown(html_code, unsafe_allow_html=True)
                 st.markdown("---")
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
+
+    # --- [새로 추가] 구매입력 기능 ---
+    with st.expander("📝 이카운트 구매입력 하러가기"):
+        st.write("### 📦 오늘 입고 불러오기")
+        
+        if not sched_data.empty:
+            sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량']].copy()
+            sched_for_selection.insert(0, "선택", False)
+            
+            edited_sched = st.data_editor(
+                sched_for_selection,
+                hide_index=True,
+                use_container_width=True,
+                disabled=["날짜", "바코드", "제품명", "수량"] 
+            )
+            
+            if st.button("체크한 항목 불러오기", use_container_width=True):
+                selected = edited_sched[edited_sched["선택"] == True]
+                
+                if not selected.empty:
+                    new_items = pd.DataFrame({
+                        "품목코드": selected["바코드"],
+                        "품목명": selected["제품명"],
+                        "수량": selected["수량"],
+                        "유통기한": "" 
+                    })
+                    st.session_state.selected_items = new_items
+                    st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
+                else:
+                    st.warning("선택된 항목이 없습니다.")
+        else:
+            st.info("현재 예정된 입고 스케줄이 없습니다.")
+            
+        st.divider()
+        
+        st.write("### 📋 기본 정보 입력")
+        with st.container():
+            c1, c2 = st.columns(2)
+            input_date = c1.date_input("일자").strftime("%Y%m%d")
+            vendor_name = c2.selectbox("거래처", list(vendor_list.keys()))
+            vendor_code = vendor_list[vendor_name]
+            
+            c3, c4 = st.columns(2)
+            actual_user = c3.text_input("실제 입고 담당자", placeholder="작성자 이름")
+            wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()))
+            wh_code = warehouse_list[wh_name]
+            
+        st.write("### 🛒 품목 정보 입력")
+        final_items = st.data_editor(
+            st.session_state.selected_items,
+            num_rows="dynamic",
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        if st.button("🚀 이카운트로 전송하기", type="primary", use_container_width=True):
+            if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "":
+                st.error("입력된 품목이 없습니다.")
+            elif not actual_user:
+                st.warning("실제 입고 담당자 이름을 기록해 주세요.")
+            else:
+                master_info = {
+                    "일자": input_date,
+                    "거래처코드": vendor_code,
+                    "창고코드": wh_code,
+                    "담당자": actual_user
+                }
+                
+                with st.spinner('이카운트로 데이터를 전송하고 있습니다...'):
+                    is_success, msg = send_ecount_purchase(master_info, final_items)
+                    if is_success:
+                        st.success(msg)
+                    else:
+                        st.error(msg)
+
 
 # ==========================================================
 # 3. 실제 구글 시트 데이터 불러오기 함수
@@ -303,7 +439,6 @@ def load_real_data():
         gc = gspread.authorize(credentials)
 
         sheet_url = "https://docs.google.com/spreadsheets/d/1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA/edit?gid=0#gid=0"
-
         doc = gc.open_by_url(sheet_url)
         worksheet = doc.worksheet("시트1")
 
@@ -327,22 +462,18 @@ df = load_real_data()
 # 4. 모바일 최적화 검색 화면
 # ==========================================================
 
-# 기존 검색창 윗부분
 st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
 
 search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
 
-# ✨ 기존 CSS를 지우고 이 코드로 교체해 주세요!
 st.markdown("""
     <style>
-    /* 스트림릿 최신 버전에 맞춘 강력한 버튼 색상 변경 */
     button[kind="primary"] {
         background-color: #4A90E2 !important;
         border-color: #4A90E2 !important;
         color: white !important;
     }
-    /* 마우스 올렸을 때 더 진해지는 효과 */
     button[kind="primary"]:hover,
     button[kind="primary"]:active,
     button[kind="primary"]:focus {
@@ -353,10 +484,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 버튼 생성 (type="primary"가 위의 CSS를 만나 파란색으로 변신합니다!)
 search_button = st.button("🔍 검색", type="primary", use_container_width=True)
 
-# 검색창에 값을 넣고 엔터를 치거나, 값을 넣고 검색 버튼을 눌렀을 때 모두 작동합니다.
 if search_query and not df.empty:
     clean_query = search_query.strip()
 
@@ -375,8 +504,6 @@ if search_query and not df.empty:
             item_code_short = str(row.get('품목코드', ''))[-4:]
 
             with st.expander(f" [{item_code_short}] {row.get('품목명', '이름없음')}"):
-
-                # ✨ 4창고 옆에 '불용' 열이 자연스럽게 들어가도록 HTML 테이블 수정
                 st.markdown(
                     f"""
                     <table style="width:100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd;">
@@ -400,7 +527,6 @@ if search_query and not df.empty:
                 )
 
                 st.markdown("---")
-
                 st.markdown("#### 🏷️ SKU 정보")
                 st.markdown(
                     f"""
@@ -422,3 +548,4 @@ if search_query and not df.empty:
 
 elif search_query and df.empty:
     st.error("데이터가 비어있습니다. API 설정이나 시트 주소를 다시 확인해 주세요.")
+    
