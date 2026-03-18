@@ -11,9 +11,12 @@ from datetime import datetime, timedelta
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
-from st_keyup import st_keyup
+# (st_keyup은 지워도 됩니다!)
 
-/*  팁 버튼 작게 만들고 오른쪽으로 정렬하기 */
+# --- 상단 메뉴 및 워터마크 숨기기 ---
+hide_streamlit_style = """
+<style>
+/* ✨ [여기로 이사왔어요!] 팁 버튼 작게 만들고 오른쪽으로 정렬하기 */
 div[data-testid="stPopover"] {
     display: flex;
     justify-content: flex-end;
@@ -24,9 +27,6 @@ div[data-testid="stPopover"] button {
     padding: 0px 10px !important;
 }
 
-# --- 상단 메뉴 및 워터마크 숨기기 ---
-hide_streamlit_style = """
-<style>
 /* ✨ 1. 구글 웹 폰트 불러오기 (고운돋움) */
 @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
