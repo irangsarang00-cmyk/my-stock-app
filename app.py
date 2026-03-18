@@ -16,6 +16,13 @@ from st_keyup import st_keyup
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
 <style>
+/* ✨ [추가된 부분 1] 구글 웹 폰트 불러오기 (본고딕) */
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+
+/* ✨ [추가된 부분 2] 앱 전체 화면에 글꼴 강제 적용하기 */
+html, body, [class*="css"], * {
+    font-family: 'Gowun Dodum', sans-serif !important;
+}
 [data-testid="stToolbar"] {display: none !important;}
 [data-testid="collapsedControl"] {display: none !important;}
 header[data-testid="stHeader"] {display: none !important;}
