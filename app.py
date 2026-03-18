@@ -565,7 +565,6 @@ elif st.session_state.current_page == "ecount":
         # 🛒 품목 정보 입력 제목 삭제 완료!
         final_items = st.data_editor(
             st.session_state.selected_items,
-            num_rows="dynamic",
             use_container_width=True,
             hide_index=True, 
             column_config={
