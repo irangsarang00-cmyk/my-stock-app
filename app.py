@@ -11,6 +11,9 @@ from datetime import datetime
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 
+# --- 새롭게 추가된 Ag-Grid 라이브러리 ---
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
+
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
 <style>
@@ -36,7 +39,6 @@ WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com", "ddadu
 
 auth_secrets = st.secrets["google_oauth"]
 
-# 로그인 인증 정보를 담은 임시 파일 생성
 credentials_dict = {
     "web": {
         "client_id": auth_secrets["client_id"],
@@ -51,7 +53,6 @@ tmp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
 json.dump(credentials_dict, tmp_file)
 tmp_file.close()
 
-# 로그인 유지 기간 설정 (약 10년)
 authenticator = Authenticate(
     secret_credentials_path=tmp_file.name,
     cookie_name="stock_app_cookie",
@@ -205,7 +206,6 @@ def send_ecount_purchase(master_data, detail_data):
             if not row.get('품목코드'):
                 continue
             
-            # 달력에서 선택한 날짜 데이터를 이카운트 양식(YYYYMMDD)에 맞게 변환
             exp_raw = row.get('유통기한')
             add_date_02 = ""
             if exp_raw:
@@ -260,7 +260,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 불러온 항목을 저장할 공간 만들기
 if "selected_items" not in st.session_state:
     st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
 
@@ -338,38 +337,48 @@ with col3:
         st.write("### 📦 오늘 입고 불러오기")
         
         if not sched_data.empty:
-            sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량']].copy()
-            sched_for_selection.insert(0, "선택", False)
+            # ✨ 거래처 열을 스케줄에서 함께 추출합니다!
+            sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
             
-            # 왼쪽 숫자 지우기 (hide_index=True 적용)
-            edited_sched = st.data_editor(
+            # ✨ Ag-Grid 강력한 표 그리기 설정
+            gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
+            # 체크박스 다중 선택 기능 켜기
+            gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
+            # 날짜 열을 왼쪽에 단단히 고정 (틀 고정)
+            gb.configure_column('날짜', pinned='left')
+            gridOptions = gb.build()
+            
+            grid_response = AgGrid(
                 sched_for_selection,
-                hide_index=True, 
+                gridOptions=gridOptions,
+                update_mode=GridUpdateMode.SELECTION_CHANGED,
                 use_container_width=True,
-                disabled=["날짜", "바코드", "제품명", "수량"] 
+                theme="alpine" # 깔끔한 기본 테마
             )
             
             if st.button("체크한 항목 불러오기", use_container_width=True):
-                selected = edited_sched[edited_sched["선택"] == True]
+                selected_rows = grid_response['selected_rows']
                 
-                if not selected.empty:
+                if selected_rows is not None and len(selected_rows) > 0:
+                    selected_df = pd.DataFrame(selected_rows)
                     new_items = pd.DataFrame({
-                        "품목코드": selected["바코드"],
-                        "품목명": selected["제품명"],
-                        "수량": selected["수량"],
-                        "유통기한": None # 달력 형태를 위해 초기값을 비워둡니다
+                        "품목코드": selected_df["바코드"],
+                        "품목명": selected_df["제품명"],
+                        "수량": selected_df["수량"],
+                        "유통기한": None 
                     })
                     st.session_state.selected_items = new_items
                     st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
                 else:
-                    st.warning("선택된 항목이 없습니다.")
+                    st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")
         else:
             st.info("현재 예정된 입고 스케줄이 없습니다.")
             
         st.divider()
         
-        st.write("### 📋 기본 정보 입력")
-        with st.container():
+        # ✨ 튕김 현상을 막아주는 마법의 상자, st.form 시작!
+        with st.form("ecount_submit_form"):
+            st.write("### 📋 기본 정보 입력")
             c1, c2 = st.columns(2)
             input_date = c1.date_input("일자").strftime("%Y%m%d")
             vendor_name = c2.selectbox("거래처", list(vendor_list.keys()))
@@ -380,24 +389,26 @@ with col3:
             wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()))
             wh_code = warehouse_list[wh_name]
             
-        st.write("### 🛒 품목 정보 입력")
+            st.write("### 🛒 품목 정보 입력")
+            final_items = st.data_editor(
+                st.session_state.selected_items,
+                num_rows="dynamic",
+                use_container_width=True,
+                hide_index=True, 
+                column_config={
+                    "유통기한": st.column_config.DateColumn(
+                        "유통기한",
+                        help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
+                        format="YYYY/MM/DD"
+                    )
+                }
+            )
+            
+            # 폼 내부에서는 form_submit_button을 사용해야 클릭 시 새로고침 없이 정보를 한 번에 모아서 쏴줍니다.
+            submit_clicked = st.form_submit_button("🚀 이카운트로 전송하기", type="primary", use_container_width=True)
         
-        # 품목 정보 표 (달력 기능 추가 및 왼쪽 인덱스 숨기기)
-        final_items = st.data_editor(
-            st.session_state.selected_items,
-            num_rows="dynamic",
-            use_container_width=True,
-            hide_index=True, 
-            column_config={
-                "유통기한": st.column_config.DateColumn(
-                    "유통기한",
-                    help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
-                    format="YYYY/MM/DD"
-                )
-            }
-        )
-        
-        if st.button("🚀 이카운트로 전송하기", type="primary", use_container_width=True):
+        # 사용자가 전송 버튼을 눌렀을 때만 작동!
+        if submit_clicked:
             if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "" or str(final_items['품목코드'].iloc[0]) == "nan":
                 st.error("입력된 품목이 없습니다.")
             elif not actual_user:
