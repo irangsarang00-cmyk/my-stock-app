@@ -15,54 +15,36 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSiz
 
 st.markdown("""
 <style>
-    /* 1. 구글 웹 폰트 불러오기 (고운돋움) */
+    /* 1. 구글 웹 폰트 불러오기 */
     @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
-    /* 2. 앱 전체 텍스트 폰트 적용 */
-    html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th, ul, li, strong, b {
+    /* 2. 스트림릿 상단 헤더, 메뉴, 워터마크 통째로 날리기 */
+    /* 아래 요소들을 display: none으로 만들어서 물리적으로 지워버립니다. */
+    #MainMenu {visibility: hidden; display: none !important;}
+    header {visibility: hidden; display: none !important;}
+    footer {visibility: hidden; display: none !important;}
+    [data-testid="stHeader"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    
+    /* 3. 'ARROW_RIGHT'나 워터마크 배지 숨기기 */
+    div[data-testid="stStatusWidget"] {display: none !important;}
+    .viewerBadge_container__1tSll {display: none !important;}
+    [class^="viewerBadge"] {display: none !important;}
+
+    /* 4. 상단 여백 바짝 줄이기 (메뉴가 사라진 자리를 메꿉니다) */
+    .block-container {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1rem !important;
+    }
+
+    /* 5. 앱 전체 폰트 적용 */
+    html, body, [class*="css"], .stApp {
         font-family: 'Gowun Dodum', sans-serif !important;
     }
 
-    /* 3. 아이콘 폰트 절대 방어 (아이콘 깨짐 방지) */
-    .material-icons, .material-symbols-rounded, span[class*="material-icons"], span[class*="material-symbols"], i {
-        font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
-    }
-
-    /* 4. 팁(Popover) 버튼 작게 & 오른쪽 정렬 */
-    div[data-testid="stPopover"] {
-        display: flex;
-        justify-content: flex-end;
-    }
-    div[data-testid="stPopover"] button {
-        width: auto !important;
-        height: 35px !important;
-        padding: 0px 10px !important;
-    }
-
-    /* 5. AgGrid 및 표 내부 폰트 강제 적용 */
-    .ag-root-wrapper, .ag-theme-alpine, .ag-cell, .ag-header-cell-text {
-        font-family: 'Gowun Dodum', sans-serif !important;
-        --ag-font-family: 'Gowun Dodum', sans-serif !important;
-    }
-
-    /* 6. 스트림릿 기본 UI 숨기기 (툴바, 푸터, 워터마크 등) */
-    [data-testid="stToolbar"], [data-testid="collapsedControl"], 
-    header[data-testid="stHeader"], header, #MainMenu, footer, 
-    .block-container {padding-top: 1rem !important;}
-    [class^="viewerBadge"], [data-testid="stDecoration"] {display: none !important;}
-
-    /* 7. 버튼 스타일 (Primary 버튼 색상) */
-    button[kind="primary"] {
-        background-color: #4A90E2 !important;
-        border-color: #4A90E2 !important;
-        color: white !important;
-    }
-    button[kind="primary"]:hover {
-        background-color: #357ABD !important;
-        border-color: #357ABD !important;
-    }
-
-    /* 8. ✨ 표 제목(헤더) 드래그 막기 (열 순서 고정) */
+    /* 6. ✨ 표 제목 드래그 막기 (아까 요청하신 열 고정) */
     [data-testid="stTable"] th, 
     [data-testid="stDataFrameHeaderCellProxy"], 
     .st-ae {
