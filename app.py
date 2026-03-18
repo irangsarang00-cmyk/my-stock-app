@@ -13,6 +13,17 @@ from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
 from st_keyup import st_keyup
 
+/* 💡 팁 버튼 작게 만들고 오른쪽으로 정렬하기 */
+div[data-testid="stPopover"] {
+    display: flex;
+    justify-content: flex-end;
+}
+div[data-testid="stPopover"] button {
+    width: auto !important;
+    height: 35px !important;
+    padding: 0px 10px !important;
+}
+
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
 <style>
@@ -618,16 +629,13 @@ elif st.session_state.current_page == "ecount":
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
     with c2:
-        # ✨ 칸을 3개로 나누되, 가운데 빈 공간을 넓게(6) 줘서 팁 버튼을 오른쪽 끝으로 밀어냅니다!
-        c_lbl, c_space, c_btn = st.columns([2, 6, 2])
-        
+        c_lbl, c_btn = st.columns([7, 3])
         with c_lbl:
             st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 5px;'>거래처</div>", unsafe_allow_html=True)
-            
         with c_btn:
-            # ✨ 뚱뚱해지는 옵션을 빼고 원래의 앙증맞은 크기로 돌려놓습니다.
+            # 이제 위에서 덧씌운 디자인 규칙 덕분에 버튼이 쏙 작아집니다!
             with st.popover("💡 팁"):
-                st.markdown("✔️ **#만 있는 것** = 라온글로벌<br>✔️ **[YC]** = 우하모(야코브)", unsafe_allow_html=True)
+                st.markdown("✔️ <b>#만 있는 것</b> = 라온글로벌<br>✔️ <b>[YC]</b> = 우하모(야코브)", unsafe_allow_html=True)
                 
         vendor_name = st.selectbox(
             "거래처", 
