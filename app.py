@@ -13,46 +13,74 @@ from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
 # (st_keyup은 지워도 됩니다!)
 
-st.markdown("""
+# --- 상단 메뉴 및 워터마크 숨기기 ---
+hide_streamlit_style = """
 <style>
-    /* 1. 구글 웹 폰트 불러오기 */
-    @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+/* ✨ 1. 구글 웹 폰트 불러오기 (고운돋움) - 반드시 가장 맨 위에 있어야 합니다! */
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
-    /* 2. 스트림릿 상단 헤더, 메뉴, 워터마크 통째로 날리기 */
-    /* 아래 요소들을 display: none으로 만들어서 물리적으로 지워버립니다. */
-    #MainMenu {visibility: hidden; display: none !important;}
-    header {visibility: hidden; display: none !important;}
-    footer {visibility: hidden; display: none !important;}
-    [data-testid="stHeader"] {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
-    [data-testid="stDecoration"] {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
-    
-    /* 3. 'ARROW_RIGHT'나 워터마크 배지 숨기기 */
-    div[data-testid="stStatusWidget"] {display: none !important;}
-    .viewerBadge_container__1tSll {display: none !important;}
-    [class^="viewerBadge"] {display: none !important;}
+/* ✨ 2. 팁 버튼 작게 만들고 오른쪽으로 정렬하기 (순서를 폰트 아래로 내렸습니다) */
+div[data-testid="stPopover"] {
+    display: flex;
+    justify-content: flex-end;
+}
+div[data-testid="stPopover"] button {
+    width: auto !important;
+    height: 35px !important;
+    padding: 0px 10px !important;
+}
 
-    /* 4. 상단 여백 바짝 줄이기 (메뉴가 사라진 자리를 메꿉니다) */
-    .block-container {
-        padding-top: 1.5rem !important;
-        padding-bottom: 1rem !important;
-    }
+/* ✨ 3. 앱 전체 텍스트에 폰트를 덮어씌웁니다. */
+html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th, ul, li, strong, b {
+    font-family: 'Gowun Dodum', sans-serif;
+}
 
-    /* 5. 앱 전체 폰트 적용 */
-    html, body, [class*="css"], .stApp {
-        font-family: 'Gowun Dodum', sans-serif !important;
-    }
+/* ✨ 4. 아이콘 역할을 하는 녀석들은 무조건 아이콘 폰트를 쓰도록 절대 방어막을 칩니다! */
+.material-icons, 
+.material-symbols-rounded, 
+span[class*="material-icons"], 
+span[class*="material-symbols"], 
+i {
+    font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-transform: none !important;
+}
 
-    /* 6. ✨ 표 제목 드래그 막기 (아까 요청하신 열 고정) */
-    [data-testid="stTable"] th, 
-    [data-testid="stDataFrameHeaderCellProxy"], 
-    .st-ae {
-        pointer-events: none !important;
-        user-select: none !important;
-    }
+/* ✨ 5. AgGrid 표 내부 폰트 강제 적용 (아이프레임 한계로 완벽하진 않지만 시도는 해둡니다!) */
+.ag-root-wrapper, .ag-theme-alpine, .ag-cell, .ag-header-cell-text {
+    font-family: 'Gowun Dodum', sans-serif !important;
+    --ag-font-family: 'Gowun Dodum', sans-serif !important;
+}
+
+/* --- 여기서부터는 기존 숨김 및 버튼 색상 코드 --- */
+[data-testid="stToolbar"] {display: none !important;}
+[data-testid="collapsedControl"] {display: none !important;}
+header[data-testid="stHeader"] {display: none !important;}
+header {visibility: hidden !important;}
+#MainMenu {display: none !important;}
+footer {display: none !important;}
+.block-container {padding-top: 1rem !important;}
+[class^="viewerBadge"] {display: none !important;}
+.viewerBadge_container__1tSll {display: none !important;}
+.viewerBadge_link__qRIus {display: none !important;}
+[data-testid="stDecoration"] {display: none !important;}
+
+button[kind="primary"] {
+    background-color: #4A90E2 !important;
+    border-color: #4A90E2 !important;
+    color: white !important;
+}
+button[kind="primary"]:hover,
+button[kind="primary"]:active,
+button[kind="primary"]:focus {
+    background-color: #357ABD !important; 
+    border-color: #357ABD !important;
+    color: white !important;
+}
 </style>
-""", unsafe_allow_html=True)
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================================
 # 1. 구글 로그인 및 권한 설정
