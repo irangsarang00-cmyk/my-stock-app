@@ -492,7 +492,7 @@ elif st.session_state.current_page == "ecount":
         
         # ✨ 2. 각 열의 크기를 지정! (이제 잘리지 않고 지정한 너비만큼 뻗어 나갑니다)
         gb.configure_column('날짜', pinned='left', width=95) 
-        gb.configure_column('바코드', width=140)
+        gb.configure_column('바코드', width=145)
         gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
         gb.configure_column('수량', width=80)
         gb.configure_column('거래처', width=160)
