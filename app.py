@@ -263,6 +263,14 @@ st.markdown("""
 if "selected_items" not in st.session_state:
     st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
 
+# ✨ 창 열림/닫힘 상태를 기억하는 변수 설정
+if "show_ecount_window" not in st.session_state:
+    st.session_state.show_ecount_window = False
+
+# 버튼을 누르면 상태를 반대로 뒤집는 마법의 함수
+def toggle_ecount_window():
+    st.session_state.show_ecount_window = not st.session_state.show_ecount_window
+
 vendor_list = {
     "주식회사 가나다": "CUST001",
     "물류파트너스": "CUST002",
@@ -333,31 +341,37 @@ with col3:
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
-    with st.expander("📝 이카운트 구매입력 하러가기"):
+    # ✨ 문제의 익스팬더를 과감히 삭제하고, 버튼 형식으로 교체!
+    st.button("📝 이카운트 구매입력 (열기 / 닫기)", on_click=toggle_ecount_window, use_container_width=True, type="primary")
+
+    if st.session_state.show_ecount_window:
+        # 별도의 창처럼 보이도록 시각적 분리
+        st.markdown("""
+        <div style="padding: 15px; border: 2px solid #4A90E2; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; background-color: #f8fbff;">
+            <h3 style="margin-top:0; color:#2C3E50;">📝 구매입력 별도 창</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.write("### 📦 오늘 입고 불러오기")
         
         if not sched_data.empty:
             sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
             
-            # ✨ Ag-Grid 오류 수정 부분
             gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
             gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
-            gb.configure_column('날짜', pinned='left') # 날짜 열 틀 고정
-            
-            # ✨ 가로 스크롤 허용 및 글자 잘림 방지 설정
+            gb.configure_column('날짜', pinned='left') 
             gb.configure_default_column(min_column_width=120, resizable=True)
             gridOptions = gb.build()
             
-            # ✨ 튕김 현상 방지: key 부여 및 reload_data=False 설정
             grid_response = AgGrid(
                 sched_for_selection,
                 gridOptions=gridOptions,
                 update_mode=GridUpdateMode.SELECTION_CHANGED,
                 use_container_width=True, 
-                fit_columns_on_grid_load=False, # 화면 너비에 억지로 끼워맞추지 않음 -> 가로 스크롤 생성
+                fit_columns_on_grid_load=False,
                 theme="alpine",
-                reload_data=False, # ✨ 화면 하얘짐 방지 핵심!
-                key="ag_grid_schedule" # 고유 이름표 부여
+                reload_data=False,
+                key="ag_grid_schedule" 
             )
             
             if st.button("체크한 항목 불러오기", use_container_width=True):
