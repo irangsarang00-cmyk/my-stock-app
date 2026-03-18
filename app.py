@@ -474,7 +474,7 @@ elif st.session_state.current_page == "ecount":
     st.write("### 📦 오늘 입고 불러오기")
     
     sched_data = get_incoming_schedule()
-    
+
     if not sched_data.empty:
         sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
         
@@ -503,54 +503,56 @@ elif st.session_state.current_page == "ecount":
             gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
             gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
         
-        # ✨ 1. 정렬 잠금, 이동 잠금, 그리고 **크기 조절(고무줄) 완벽 잠금**!
-        gb.configure_default_column(
-            sortable=False,        # 제목 눌러도 정렬 안됨!
-            suppressMovable=True,  # 드래그해서 열 이동 안됨!
-            resizable=False,       # 고무줄처럼 늘어나는 기능 완전히 잠금!
-            suppressSizeToFit=True # 👈 [핵심1] 화면 뚫고 나가도록 허락하는 마법의 명령어!
-        )
-        gb.configure_grid_options(suppressMovableColumns=True)
-        
-        # ✨ 2. 각 열의 크기를 지정! (이제 잘리지 않고 지정한 너비만큼 뻗어 나갑니다)
-        gb.configure_column('날짜', pinned='left', width=95) 
-        gb.configure_column('바코드', width=145)
-        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
-        gb.configure_column('수량', width=80)
-        gb.configure_column('거래처', width=160)
-        
-        gridOptions = gb.build()
-        
-        grid_response = AgGrid(
-            sched_for_selection,
-            gridOptions=gridOptions,
-            update_mode=GridUpdateMode.SELECTION_CHANGED,
-            use_container_width=True, 
-            columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, # 👈 [핵심2] 최신 버전의 자동 맞춤 완전히 차단!
-            fit_columns_on_grid_load=False, 
-            theme="alpine",
-            reload_data=False,
-            key="ag_grid_schedule_page" 
-        )
-        
-        if st.button("체크한 항목 불러오기", use_container_width=True):
-            selected_rows = grid_response['selected_rows']
+            # ✨ 1. 정렬 잠금, 이동 잠금, 그리고 **크기 조절(고무줄) 완벽 잠금**!
+            gb.configure_default_column(
+                sortable=False,        # 제목 눌러도 정렬 안됨!
+                suppressMovable=True,  # 드래그해서 열 이동 안됨!
+                resizable=False,       # 고무줄처럼 늘어나는 기능 완전히 잠금!
+                suppressSizeToFit=True # 👈 [핵심1] 화면 뚫고 나가도록 허락하는 마법의 명령어!
+            )
+            gb.configure_grid_options(suppressMovableColumns=True)
             
-            if selected_rows is not None and len(selected_rows) > 0:
-                selected_df = pd.DataFrame(selected_rows)
-                new_items = pd.DataFrame({
-                    "품목코드": selected_df["바코드"],
-                    "품목명": selected_df["제품명"],
-                    "수량": selected_df["수량"],
-                    "유통기한": None 
-                })
-                st.session_state.selected_items = new_items
-                st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
-            else:
-                st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")        
-            else:
-                st.info("이번 주 월요일 이후로 등록된 입고 스케줄이 없습니다.")
+            # ✨ 2. 각 열의 크기를 지정! (이제 잘리지 않고 지정한 너비만큼 뻗어 나갑니다)
+            gb.configure_column('날짜', pinned='left', width=95) 
+            gb.configure_column('바코드', width=145)
+            gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
+            gb.configure_column('수량', width=80)
+            gb.configure_column('거래처', width=160)
+            
+            gridOptions = gb.build()
+            
+            grid_response = AgGrid(
+                sched_for_selection,
+                gridOptions=gridOptions,
+                update_mode=GridUpdateMode.SELECTION_CHANGED,
+                use_container_width=True, 
+                columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, # 👈 [핵심2] 최신 버전의 자동 맞춤 완전히 차단!
+                fit_columns_on_grid_load=False, 
+                theme="alpine",
+                reload_data=False,
+                key="ag_grid_schedule_page" 
+            )
+            
+            if st.button("체크한 항목 불러오기", use_container_width=True):
+                selected_rows = grid_response['selected_rows']
+                
+                if selected_rows is not None and len(selected_rows) > 0:
+                    selected_df = pd.DataFrame(selected_rows)
+                    new_items = pd.DataFrame({
+                        "품목코드": selected_df["바코드"],
+                        "품목명": selected_df["제품명"],
+                        "수량": selected_df["수량"],
+                        "유통기한": None 
+                    })
+                    st.session_state.selected_items = new_items
+                    st.success("성공적으로 불러왔습니다! 아래 표를 확인해 주세요.")
+                else:
+                    st.warning("선택된 항목이 없습니다. 체크박스를 선택해 주세요.")        
+        else:
+            # 월요일 이후 데이터가 아무것도 없을 때 뜨는 메시지
+            st.info("이번 주 월요일 이후로 등록된 입고 스케줄이 없습니다.")
     else:
+        # 아예 스케줄 시트 자체가 비어있을 때 뜨는 메시지
         st.info("현재 예정된 입고 스케줄이 없습니다.")
         
     st.divider()
