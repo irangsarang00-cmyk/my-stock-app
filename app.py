@@ -20,7 +20,7 @@ hide_streamlit_style = """
 @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
 /* ✨ 2. 너무 강했던 !important를 빼고 부드럽게 전체 텍스트에 폰트를 덮어씌웁니다. */
-html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th {
+html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th, ul, li, strong, b {
     font-family: 'Gowun Dodum', sans-serif;
 }
 
@@ -430,7 +430,7 @@ if st.session_state.current_page == "main":
     df = load_real_data()
 
     st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center;'>상품명 또는 PL번호로 검색</h3>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; font-size: 1.3em;'>상품명 또는 PL번호로 검색</h4>", unsafe_allow_html=True)
 
     search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
 
