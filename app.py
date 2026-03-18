@@ -571,12 +571,10 @@ elif st.session_state.current_page == "ecount":
                 
                 gridOptions = gb.build()
                 
-                # ✨ AgGrid의 가장 깊은 곳, '테마 기본 폰트' 자체를 고운돋움으로 덮어씌웁니다!
+                # ✨ 표(AgGrid) 안의 모든 구역(div)과 글자(span)에 강제로 고운돋움을 덮어씌우는 최종 병기입니다!
                 custom_grid_css = {
-                    ".ag-theme-alpine": {
-                        "--ag-font-family": "'Gowun Dodum', sans-serif !important",
-                        "--ag-font-size": "15px" # 폰트 크기도 보기 좋게 살짝 맞췄어요!
-                    }
+                    "div": {"font-family": "'Gowun Dodum', sans-serif !important;"},
+                    "span": {"font-family": "'Gowun Dodum', sans-serif !important;"}
                 }
                 
                 grid_response = AgGrid(
@@ -587,8 +585,8 @@ elif st.session_state.current_page == "ecount":
                     fit_columns_on_grid_load=False, 
                     theme="alpine",
                     reload_data=False,
-                    # ✨ 이전 폰트를 기억하지 못하도록 이름표(key) 끝에 _v2를 붙여 새로고침을 강제합니다!
-                    key="ag_grid_schedule_page_v2", 
+                    # ✨ 이전 폰트를 절대 기억하지 못하도록 이름표(key) 끝을 v3로 확실하게 갈아버립니다!
+                    key="ag_grid_schedule_page_v3", 
                     custom_css=custom_grid_css
                 )
                 
@@ -621,28 +619,25 @@ elif st.session_state.current_page == "ecount":
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
     with c2:
-        # ✨ 레이아웃 쪼개기: [라벨, 중간 빈칸, 버튼] 순서로 배치합니다.
-        # 비율을 [3, 4, 3]으로 주어서 라벨 30%, 가운데 빈칸 40%, 버튼 30%를 차지하게 합니다.
-        # 가운데 빈칸(c2_spacer)이 넓어져서 버튼을 오른쪽 끝으로 밀어내는 원리입니다.
-        c2_label, c2_spacer, c2_btn = st.columns([3, 4, 3])
+        # ✨ 라벨(7)과 팁 버튼(3)을 7:3 비율로 나누어 팁 버튼을 좁은 방에 가둡니다.
+        col_lbl, col_btn = st.columns([7, 3])
         
-        with c2_label:
-            st.markdown("<div style='font-size: 14px; margin-bottom: 5px;'>거래처</div>", unsafe_allow_html=True)
+        with col_lbl:
+            # 거래처 글자를 왼쪽, 일자 칸과 높이를 맞추기 위해 살짝 다듬었습니다.
+            st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 2px;'>거래처</div>", unsafe_allow_html=True)
             
-        # c2_spacer 구역은 건드리지 않고 그냥 비워둡니다.
-        
-        with c2_btn:
-            # ✨ 누르면 인앱 팝업이 열리는 '작성 팁' 버튼입니다!
-            # columns([..., 3])라는 좁은 칸 안에 갇혀 있어서 크기가 아담하게 줄어듭니다.
-            with st.popover("💡 작성 팁"):
+        with col_btn:
+            # ✨ use_container_width=True를 넣으면 할당된 좁은 칸(3)에 맞춰 버튼이 아담하게 쏙 들어갑니다!
+            # 글자도 "작성 팁" 대신 "💡 팁"으로 줄여서 훨씬 앙증맞게 만들었어요.
+            with st.popover("💡 팁", use_container_width=True):
                 st.markdown("✔️ **#만 있는 것** = 라온글로벌<br>✔️ **[YC]** = 우하모(야코브)", unsafe_allow_html=True)
                 
-        # 🚀 이제 거래처 선택 드롭박스는 c2 구역의 전체 너비를 다 차지하게 그립니다.
+        # 셀렉트박스는 라벨을 숨기고 아래에 시원하게 넓게 배치합니다.
         vendor_name = st.selectbox(
-            "거래처", # 제목은 collapsed로 숨겨지므로 아무거나 적어도 됩니다.
+            "거래처", 
             list(vendor_list.keys()), 
             key="ecount_vendor", 
-            label_visibility="collapsed" # 제목 숨기기
+            label_visibility="collapsed"
         )
         vendor_code = vendor_list[vendor_name]
     
