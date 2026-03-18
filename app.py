@@ -161,6 +161,10 @@ if user_email not in WHITELIST_EMAILS:
         authenticator.logout()
     st.stop()
 
+if "secret_log_printed" not in st.session_state:
+    print(f"👀 앗! {user_email} 님이 방금 가평창고 앱에 접속했습니다!")
+    st.session_state.secret_log_printed = True
+
 # ==========================================================
 # 스케줄 데이터 및 구글 시트 데이터 가져오기 함수
 # ==========================================================
