@@ -16,13 +16,19 @@ from st_keyup import st_keyup
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
 <style>
-/* ✨ [추가된 부분 1] 구글 웹 폰트 불러오기 (본고딕) */
+/* ✨ [추가된 부분 1] 구글 웹 폰트 불러오기 (고운돋움) */
 @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
-/* ✨ [추가된 부분 2] 앱 전체 화면에 글꼴 강제 적용하기 */
-html, body, [class*="css"], * {
+/* ✨ [추가된 부분 2] 앱 전체 화면에 글꼴 적용하되, 아이콘은 예외로 두기! */
+html, body, [class*="css"] {
     font-family: 'Gowun Dodum', sans-serif !important;
 }
+
+/* 🛡️ 스트림릿 기본 아이콘(화살표 등) 폰트 보호막 */
+.material-icons, .material-symbols-rounded, [class*="icon"] {
+    font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
+}
+
 [data-testid="stToolbar"] {display: none !important;}
 [data-testid="collapsedControl"] {display: none !important;}
 header[data-testid="stHeader"] {display: none !important;}
@@ -34,6 +40,7 @@ footer {display: none !important;}
 .viewerBadge_container__1tSll {display: none !important;}
 .viewerBadge_link__qRIus {display: none !important;}
 [data-testid="stDecoration"] {display: none !important;}
+
 button[kind="primary"] {
     background-color: #4A90E2 !important;
     border-color: #4A90E2 !important;
