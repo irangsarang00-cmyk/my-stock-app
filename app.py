@@ -645,22 +645,11 @@ elif st.session_state.current_page == "ecount":
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
     with c2:
-        # 팁 내용 표시 여부 session_state로 관리
-        if "show_tip" not in st.session_state:
-            st.session_state.show_tip = False
-
-        col_lbl, col_btn = st.columns([8, 2])
-        with col_lbl:
-            st.markdown("<div style='font-size: 14px; padding-top: 5px;'>거래처</div>", unsafe_allow_html=True)
-        with col_btn:
-            if st.button("팁", key="tip_btn"):
-                st.session_state.show_tip = not st.session_state.show_tip
-
-        if st.session_state.show_tip:
-            st.info("✔️ **#만 있는 것** = 라온글로벌\n\n✔️ **[YC]** = 우하모(야코브)")
-
+        st.markdown("<div style='font-size: 14px; margin-bottom: 5px;'>거래처</div>", unsafe_allow_html=True)
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
+        with st.expander("💡 팁 보기"):
+            st.markdown("✔️ <b>#만 있는 것</b> = 라온글로벌<br>✔️ <b>[YC]</b> = 우하모(야코브)", unsafe_allow_html=True)
     c3, c4 = st.columns(2)
     
     with c3:
