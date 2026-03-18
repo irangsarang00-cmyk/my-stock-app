@@ -85,8 +85,7 @@ st.markdown("""
         pointer-events: none; /* 클릭이나 드래그가 아예 안 먹히게 설정 */
     }
     </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ==========================================================
 # 1. 구글 로그인 및 권한 설정
