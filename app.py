@@ -646,7 +646,7 @@ elif st.session_state.current_page == "ecount":
     
     with c2:
   	  c_lbl, c_btn = st.columns([7, 3])
- 	   with c_lbl:
+ 	    with c_lbl:
  	       st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 5px;'>거래처</div>", unsafe_allow_html=True)
     	with c_btn:
     	    with st.popover("팁"):
