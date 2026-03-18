@@ -690,7 +690,7 @@ elif st.session_state.current_page == "ecount":
     # 2. 품목표 바로 밑에 요청하신 아주 깔끔한 검색창이 나옵니다.
     real_df = load_real_data()
     search_kw = st.text_input(
-        "", 
+        "검색어", 
         key="manual_search_kw", 
         placeholder="상품명 또는 PL번호로 검색", 
         label_visibility="collapsed" # 거슬리던 제목 글자를 완벽히 숨깁니다.
