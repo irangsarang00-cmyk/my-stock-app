@@ -634,7 +634,7 @@ elif st.session_state.current_page == "ecount":
             st.markdown("<div style='font-size: 14px; margin-bottom: 5px; padding-top: 5px;'>거래처</div>", unsafe_allow_html=True)
         with c_btn:
             # 이제 위에서 덧씌운 디자인 규칙 덕분에 버튼이 쏙 작아집니다!
-            with st.popover("💡 팁"):
+            with st.popover("팁"):
                 st.markdown("✔️ <b>#만 있는 것</b> = 라온글로벌<br>✔️ <b>[YC]</b> = 우하모(야코브)", unsafe_allow_html=True)
                 
         vendor_name = st.selectbox(
