@@ -10,7 +10,7 @@ import requests
 from datetime import datetime 
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
 
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
@@ -485,16 +485,17 @@ elif st.session_state.current_page == "ecount":
         gb.configure_default_column(
             sortable=False,        # 제목 눌러도 정렬 안됨!
             suppressMovable=True,  # 드래그해서 열 이동 안됨!
-            resizable=False        # 👈 고무줄처럼 늘어나는 기능 완전히 잠금!
+            resizable=False,       # 고무줄처럼 늘어나는 기능 완전히 잠금!
+            suppressSizeToFit=True # 👈 [핵심1] 화면 뚫고 나가도록 허락하는 마법의 명령어!
         )
         gb.configure_grid_options(suppressMovableColumns=True)
         
-        # ✨ 2. 각 열의 크기를 아주 시원하게 대폭 확대!
-        gb.configure_column('날짜', pinned='left', width=500) # 더 늘림!
-        gb.configure_column('바코드', width=900)
-        gb.configure_column('제품명', width=2400, wrapText=True, autoHeight=True) # 무려 800px 할당!
-        gb.configure_column('수량', width=450)
-        gb.configure_column('거래처', width=600)
+        # ✨ 2. 각 열의 크기를 지정! (이제 잘리지 않고 지정한 너비만큼 뻗어 나갑니다)
+        gb.configure_column('날짜', pinned='left', width=150) 
+        gb.configure_column('바코드', width=200)
+        gb.configure_column('제품명', width=600, wrapText=True, autoHeight=True) 
+        gb.configure_column('수량', width=120)
+        gb.configure_column('거래처', width=200)
         
         gridOptions = gb.build()
         
@@ -503,7 +504,8 @@ elif st.session_state.current_page == "ecount":
             gridOptions=gridOptions,
             update_mode=GridUpdateMode.SELECTION_CHANGED,
             use_container_width=True, 
-            fit_columns_on_grid_load=False, # 화면 폭에 억지로 맞추지 않음!
+            columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, # 👈 [핵심2] 최신 버전의 자동 맞춤 완전히 차단!
+            fit_columns_on_grid_load=False, 
             theme="alpine",
             reload_data=False,
             key="ag_grid_schedule_page" 
