@@ -424,7 +424,7 @@ if st.session_state.current_page == "main":
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
-        st.button("📝 이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="primary")
+        st.button("📝 (공사중) 이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="primary")
 
     # 기존 검색 화면
     df = load_real_data()
