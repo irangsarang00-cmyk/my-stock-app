@@ -668,9 +668,10 @@ elif st.session_state.current_page == "ecount":
         st.session_state.selected_items,
         use_container_width=True,
         hide_index=True, 
+        height=350,  # ✨ 👈 딱 이 한 줄만 쉼표(,)와 함께 추가하세요! (원하는 만큼 숫자 조절 가능)
         column_config={
-            "유통기한": st.column_config.DateColumn(
-                "유통기한",
+            "제조일자": st.column_config.DateColumn(
+                "제조일자",
                 help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
                 format="YYYY/MM/DD"
             )
