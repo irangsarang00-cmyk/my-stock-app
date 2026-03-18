@@ -571,6 +571,13 @@ elif st.session_state.current_page == "ecount":
                 
                 gridOptions = gb.build()
                 
+                # ✨ AgGrid 표 껍데기를 뚫고 고운돋움 글꼴을 강제로 주입하는 전용 마법입니다!
+                custom_grid_css = {
+                    ".ag-root-wrapper": {"font-family": "'Gowun Dodum', sans-serif !important;"},
+                    ".ag-header-cell-text": {"font-family": "'Gowun Dodum', sans-serif !important;"},
+                    ".ag-cell": {"font-family": "'Gowun Dodum', sans-serif !important;"}
+                }
+                
                 grid_response = AgGrid(
                     sched_for_selection,
                     gridOptions=gridOptions,
@@ -579,10 +586,11 @@ elif st.session_state.current_page == "ecount":
                     fit_columns_on_grid_load=False, 
                     theme="alpine",
                     reload_data=False,
-                    key="ag_grid_schedule_page" 
+                    key="ag_grid_schedule_page",
+                    custom_css=custom_grid_css # ✨ 바로 여기에 전용 마법을 끼워 넣었어요!
                 )
                 
-                load_clicked = st.form_submit_button("체크한 항목 불러오기", use_container_width=True)
+                load_clicked = st.form_submit_button("불러오기", use_container_width=True)
             
             if load_clicked:
                 selected_rows = grid_response['selected_rows']
