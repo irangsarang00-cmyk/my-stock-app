@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
+from st_keyup import st_keyup
 
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
