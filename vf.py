@@ -8,6 +8,7 @@ import base64
 from io import BytesIO
 from barcode import Code128
 from barcode.writer import ImageWriter
+from datetime import datetime, timedelta
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -157,6 +158,10 @@ uploaded_files = st.file_uploader(
 st.divider()
 
 if uploaded_files:
+    now_kst = (datetime.utcnow() + timedelta(hours=9)).strftime('%Y-%m-%d %H:%M:%S')
+    file_names = [f.name for f in uploaded_files]
+    print(f"👀 [{now_kst} KST] Gotcha! (파일명: {', '.join(file_names)})")
+
     po_numbers = []        # (po_num, is_confirmed) 튜플 리스트
     extracted_data = []
 
