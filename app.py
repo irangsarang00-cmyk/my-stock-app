@@ -489,8 +489,6 @@ elif st.session_state.current_page == "ecount":
     
     st.button("⬅️ 메인으로", on_click=go_to_main)
     
-    # 📝 불필요한 큰 제목들 삭제 완료!
-    
     st.write("### 📦 입고내역 불러오기")
     
     sched_data = get_incoming_schedule()
@@ -514,7 +512,6 @@ elif st.session_state.current_page == "ecount":
         valid_dates = sched_for_selection['날짜'].apply(parse_and_filter)
         sched_for_selection = sched_for_selection[valid_dates >= monday_start]
         
-        # ✨ 거래처 필터링 추가: '이우'라는 글자가 포함된 행은 제외하고 다시 담습니다.
         sched_for_selection = sched_for_selection[~sched_for_selection['거래처'].str.contains('이우', na=False)]
         
         if not sched_for_selection.empty:
@@ -573,28 +570,51 @@ elif st.session_state.current_page == "ecount":
         st.info("현재 예정된 입고 스케줄이 없습니다.")
         
     st.divider()
+    
+    # ✨ 폼(st.form)을 해제하여 검색창 배치를 자유롭게 만들었습니다.
+    c1, c2 = st.columns(2)
+    input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
+    vendor_name = c2.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor")
+    vendor_code = vendor_list[vendor_name]
+    
+    c3, c4 = st.columns(2)
+    
+    with c3:
+        actual_user = st_keyup(
+            "작성자", 
+            placeholder="작성자 이름", 
+            key="ecount_actual_user_keyup"
+        )
 
-    # ✨ [새로 추가된 영역] 품목 직접 검색 및 추가
-    st.write("### 🔍 품목 직접 검색 및 추가")
+    wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()), key="ecount_wh")
+    wh_code = warehouse_list[wh_name]
     
-    # 상단에 만들어둔 시트 불러오기 함수를 여기서도 활용합니다.
+    # 1. 품목표가 먼저 나옵니다.
+    final_items = st.data_editor(
+        st.session_state.selected_items,
+        use_container_width=True,
+        hide_index=True, 
+        column_config={
+            "유통기한": st.column_config.DateColumn(
+                "유통기한",
+                help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
+                format="YYYY/MM/DD"
+            )
+        }
+    )
+    
+    # 2. 품목표 바로 밑에 요청하신 아주 깔끔한 검색창이 나옵니다.
     real_df = load_real_data()
+    search_kw = st.text_input(
+        "", 
+        key="manual_search_kw", 
+        placeholder="상품명 또는 PL번호로 검색", 
+        label_visibility="collapsed" # 거슬리던 제목 글자를 완벽히 숨깁니다.
+    )
     
-    # 검색창과 초기화 버튼을 가로로 나란히 배치 (비율 3:1)
-    c_search, c_btn = st.columns([3, 1])
-    with c_search:
-        search_kw = st.text_input("바코드 뒤 4자리 또는 품목명 일부를 입력하세요.", key="manual_search_kw", placeholder="예: 1234 또는 아메리카노")
-    
-    with c_btn:
-        st.write("") # 줄맞춤용 빈칸
-        st.write("")
-        if st.button("🗑️ 추가된 목록 싹 비우기", use_container_width=True):
-            st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "유통기한"])
-            st.rerun() # 버튼 누르면 즉시 화면 새로고침
-            
+    # 검색 로직 처리
     if search_kw and not real_df.empty:
         clean_kw = search_kw.strip()
-        # 품목명에 포함되어 있거나, 품목코드 끝 4자리와 일치하는지 검사
         mask = (
             real_df['품목명'].str.contains(clean_kw, case=False, na=False) |
             (real_df['품목코드'].str[-4:] == clean_kw)
@@ -605,26 +625,26 @@ elif st.session_state.current_page == "ecount":
             st.warning("일치하는 품목이 없습니다. 오타가 없는지 확인해 주세요.")
             
         elif len(search_result) == 1:
-            # ✨ 결과가 딱 1개일 때
             row = search_result.iloc[0]
             st.success(f"✅ **[{row['품목코드']}] {row['품목명']}** 품목이 확인되었습니다.")
-            if st.button("⬇️ 이 품목을 아래 표에 추가하기", type="secondary"):
+            if st.button("⬇️ 이 품목을 위 표에 추가하기", type="secondary"):
                 new_row = pd.DataFrame([{
                     "품목코드": row["품목코드"],
                     "품목명": row["품목명"],
-                    "수량": "1", # 추가될 때 기본 수량은 1로 세팅
+                    "수량": "1",
                     "유통기한": None
                 }])
+                # 표에서 미리 수정해 둔 수량이나 데이터를 안전하게 저장한 뒤 항목을 추가합니다.
+                st.session_state.selected_items = final_items
                 st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
                 st.rerun()
                 
         else:
-            # ✨ 결과가 2개 이상일 때 (드롭박스 표시)
-            st.info(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
+            st.info(f"총 {len(search_result)}개의 품목이 검색되었습니다. 아래에서 정확한 품목을 선택해 주세요.")
             options = [f"[{r['품목코드']}] {r['품목명']}" for _, r in search_result.iterrows()]
             selected_option = st.selectbox("품목 선택", options, key="manual_select_item")
             
-            if st.button("⬇️ 추가하기", type="secondary"):
+            if st.button("⬇️ 선택한 품목을 위 표에 추가하기", type="secondary"):
                 selected_code = selected_option.split("]")[0].replace("[", "")
                 selected_row = search_result[search_result['품목코드'] == selected_code].iloc[0]
                 
@@ -634,47 +654,15 @@ elif st.session_state.current_page == "ecount":
                     "수량": "1",
                     "유통기한": None
                 }])
+                # 표에서 미리 수정해 둔 수량이나 데이터를 안전하게 저장한 뒤 항목을 추가합니다.
+                st.session_state.selected_items = final_items
                 st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
                 st.rerun()
 
     st.divider()
-    
-    with st.form("ecount_submit_form"):
-        c1, c2 = st.columns(2)
-        # 🔑 각 입력칸마다 key를 달아주어서 나중에 한 번에 지울 수 있게 합니다.
-        input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
-        vendor_name = c2.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor")
-        vendor_code = vendor_list[vendor_name]
-        
-        c3, c4 = st.columns(2)
-        
-        # 1. 실제 입고 담당자 입력칸 (st_keyup 사용)
-        with c3:
-            # 엔터를 쳐도 전송되지 않고, 줄바꿈도 생기지 않는 한 줄 입력칸이에요.
-            actual_user = st_keyup(
-                "작성자", 
-                placeholder="작성자 이름", 
-                key="ecount_actual_user_keyup"
-            )
 
-        # 2. 입고창고 선택칸
-        wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()), key="ecount_wh")
-        wh_code = warehouse_list[wh_name]
-        
-        final_items = st.data_editor(
-            st.session_state.selected_items,
-            use_container_width=True,
-            hide_index=True, 
-            column_config={
-                "유통기한": st.column_config.DateColumn(
-                    "유통기한",
-                    help="클릭해서 날짜를 고르거나 YYYY/MM/DD로 적어주세요",
-                    format="YYYY/MM/DD"
-                )
-            }
-        )
-        
-        submit_clicked = st.form_submit_button("🚀 이카운트 입력하기", type="primary", use_container_width=True)
+    # ✨ 폼이 없어졌으므로 st.form_submit_button 대신 일반 st.button을 사용합니다.
+    submit_clicked = st.button("🚀 이카운트 입력하기", type="primary", use_container_width=True)
     
     if submit_clicked:
         if final_items.empty or str(final_items['품목코드'].iloc[0]).strip() == "" or str(final_items['품목코드'].iloc[0]) == "nan":
