@@ -20,12 +20,15 @@ hide_streamlit_style = """
 @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
 /* ✨ [추가된 부분 2] 앱 전체 화면에 글꼴 적용하되, 아이콘은 예외로 두기! */
-html, body, [class*="css"] {
+.stApp, .stApp * {
     font-family: 'Gowun Dodum', sans-serif !important;
 }
 
-/* 🛡️ 스트림릿 기본 아이콘(화살표 등) 폰트 보호막 */
-.material-icons, .material-symbols-rounded, [class*="icon"] {
+.stApp .material-icons, 
+.stApp .material-symbols-rounded, 
+.stApp [class*="icon"], 
+.stApp svg, 
+.stApp i {
     font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
 }
 
