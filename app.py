@@ -361,7 +361,11 @@ with col3:
                 sched_for_selection,
                 hide_index=True,
                 use_container_width=True,
-                disabled=["날짜", "바코드", "제품명", "수량"] 
+                disabled=["날짜", "바코드", "제품명", "수량"],
+                column_config={
+                    "선택": st.column_config.CheckboxColumn(pinned=True),
+                    "날짜": st.column_config.TextColumn(pinned=True)
+                }
             )
             
             if st.button("체크한 항목 불러오기", use_container_width=True):
