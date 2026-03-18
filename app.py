@@ -491,8 +491,8 @@ elif st.session_state.current_page == "ecount":
         
         # ✨ 2. 각 열의 크기를 아주 시원하게 대폭 확대!
         gb.configure_column('날짜', pinned='left', width=500) # 더 늘림!
-        gb.configure_column('바코드', width=700)
-        gb.configure_column('제품명', width=1600, wrapText=True, autoHeight=True) # 무려 800px 할당!
+        gb.configure_column('바코드', width=900)
+        gb.configure_column('제품명', width=2400, wrapText=True, autoHeight=True) # 무려 800px 할당!
         gb.configure_column('수량', width=450)
         gb.configure_column('거래처', width=600)
         
