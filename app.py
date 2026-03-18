@@ -483,6 +483,24 @@ if st.session_state.current_page == "main":
 elif st.session_state.current_page == "ecount":
     
     st.button("⬅️ 메인으로", on_click=go_to_main)
+
+    # ✨ [새로 추가된 부분] 빨간색으로 크고 아름다운 공사중 문구!
+    st.markdown("""
+        <div style="
+            color: #e74c3c; 
+            font-size: 2.5em; 
+            font-weight: bold; 
+            text-align: center; 
+            margin-top: 15px; 
+            margin-bottom: 15px;
+            border: 3px solid #e74c3c;
+            border-radius: 10px;
+            padding: 10px;
+            background-color: #fdf2f2;
+        ">
+            &lt;공사중입니다&gt;
+        </div>
+        """, unsafe_allow_html=True)
     
     st.write("### 📦 입고내역 불러오기")
     
