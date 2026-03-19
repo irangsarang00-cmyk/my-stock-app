@@ -364,7 +364,7 @@ def show_milkrun_table(df, warehouse_name):
     display_df["시간"] = display_df["시간"].apply(extract_time)
 
     # 벤더 약칭 처리
-    vendor_abbr = {'빌리브': 'V', '글로브': 'G', 'viliv_cplb': 'V', 'globe_': 'G'}
+    vendor_abbr = {'viliv_cplb': '빌리브', 'globe_': '글로브'}
     display_df['벤더'] = display_df['벤더'].apply(lambda x: vendor_abbr.get(str(x).strip(), str(x).strip()))
 
     # 차량번호 기준 정렬
