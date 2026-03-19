@@ -101,16 +101,25 @@ button[kind="primary"]:focus {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 10px !important;
+    gap: 8px !important; /* 간격 살짝 조절 */
+    align-items: flex-end !important; /* 버튼 하단 기준 정렬로 변경 */
+    margin-bottom: 5px !important; /* 표와의 간격 확보 */
 }
 [data-testid="stForm"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
     width: 50% !important;
     flex: 1 1 50% !important;
     min-width: 0 !important;
 }
-/* ✨ 12. 복사 버튼(iframe) 겉면의 불필요한 기본 여백 완벽 제거 */
-iframe {
-        margin-bottom: 0px !important;
+
+/* ✨ 12. 복사 버튼(iframe) 튀어나감 완벽 방지 (마진 디테일 조정) */
+[data-testid="stForm"] [data-testid="stHtml"] {
+    margin-top: 0px !important; /* 상단 여백 제거 */
+    margin-bottom: 0px !important; /* 하단 여백 제거 */
+    display: block !important;
+}
+[data-testid="stForm"] [data-testid="stHtml"] iframe {
+    margin: 0 !important; /* iframe 자체 여백 초기화 */
+    display: block !important;
 }
 
 </style>
