@@ -79,8 +79,7 @@ button[kind="primary"]:focus {
     color: white !important;
 } /* 👈 빠져있던 닫는 괄호 수정 완료! */
 
-[data-testid="stTable"] th, 
-.st-ae {
+[data-testid="stTable"] th {
     pointer-events: none;
 }
 
@@ -662,15 +661,15 @@ elif st.session_state.current_page == "ecount":
     if not sched_data.empty:
         sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
         
-        today = datetime.now()
-        monday = today - timedelta(days=today.weekday()) 
+        today_kst = datetime.utcnow() + timedelta(hours=9)
+        monday = today_kst - timedelta(days=today_kst.weekday()) 
         monday_start = monday.replace(hour=0, minute=0, second=0, microsecond=0)
         
         def parse_and_filter(date_str):
             try:
-                dt = datetime.strptime(f"{today.year}/{date_str.strip()}", "%Y/%m/%d")
-                if (dt - today).days > 180: 
-                    dt = dt.replace(year=today.year - 1)
+                dt = datetime.strptime(f"{today_kst.year}/{date_str.strip()}", "%Y/%m/%d")
+                if (dt - today_kst).days > 180: 
+                    dt = dt.replace(year=today_kst.year - 1)
                 return dt
             except:
                 return datetime.min 
