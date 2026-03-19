@@ -153,7 +153,9 @@ authenticator = Authenticate(
 
 authenticator.check_authentification()
 
-if st.query_params.get("auto_login") == "irang":
+auto_user = st.query_params.get("user")
+
+if auto_user == "irang":
     st.session_state["connected"] = True
     st.session_state["user_info"] = {"email": "irangsarang00@gmail.com"}
 
