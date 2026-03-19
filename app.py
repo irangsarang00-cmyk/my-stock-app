@@ -539,7 +539,7 @@ if st.session_state.current_page == "main":
                                 <div style="margin: 0; padding: 0;">
                                     <button disabled 
                                             style="width: 100%; height: 45px; background-color: #e0e0e0; color: #a0a0a0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
-                                        📋 복사 (선택 먼저)
+                                        📋 복사
                                     </button>
                                 </div>
                                 """, height=50)
