@@ -687,7 +687,7 @@ if st.session_state.current_page == "main":
     df = load_real_data()
 
     st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; font-size: 1.3em;'>상품명 또는 PL번호로 검색</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; font-size: 1.3em;'>🔍상품명 또는 PL번호로 검색</h4>", unsafe_allow_html=True)
 
     search_query = st.text_input("검색어", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
     search_button = st.button("🔍 검색", type="primary", use_container_width=True)
