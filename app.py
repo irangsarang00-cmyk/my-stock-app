@@ -641,7 +641,7 @@ if st.session_state.current_page == "main":
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
-    # 이카운트 버튼 - expander와 완전히 동일한 HTML 스타일
+    # ✨ 불필요한 껍데기를 다 벗기고, 윗공간 여백과 구분선(hr)을 완벽하게 날려버립니다!
     st.markdown("""
         <style>
         /* 1. 화면에 보이는 모든 회색 구분선(hr) 싹 지우기 */
@@ -649,16 +649,15 @@ if st.session_state.current_page == "main":
             display: none !important;
         }
 
-        /* 2. 익스팬더(메뉴) 아래쪽 기본 여백을 0으로 만들어서 밑의 버튼이 바짝 붙게 만들기 */
+        /* 2. 익스팬더(메뉴) 아래쪽 기본 여백을 줄여서 밑의 버튼이 바짝 붙게 만들기 */
         div[data-testid="stExpander"] {
             margin-bottom: -15px !important; 
         }
         </style>
     """, unsafe_allow_html=True)
-    with st.container():
-        st.markdown('<div class="ecount-fake-expander">', unsafe_allow_html=True)
-        st.button("›  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
-        st.markdown('</div>', unsafe_allow_html=True)
+
+    # ✨ 가짜 껍데기(container, div) 싹 지우고 진짜 버튼 하나만 깔끔하게 둡니다.
+    st.button("›  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
 
     # 기존 검색 화면
     df = load_real_data()
