@@ -482,9 +482,10 @@ if st.session_state.current_page == "main":
                             reload_data=False 
                         )
                         
-                        generate_btn = st.form_submit_button("📝 텍스트 만들기", use_container_width=True)
+                        # 2. 버튼 이름을 요청하신 대로 '복사'로 깔끔하게 변경합니다!
+                        generate_btn = st.form_submit_button("복사", use_container_width=True)
                     
-                    # 3. '텍스트 만들기' 버튼을 눌렀을 때의 동작
+                    # 3. '복사' 버튼을 눌렀을 때의 동작
                     if generate_btn:
                         selected_rows = grid_response['selected_rows']
                         
@@ -492,10 +493,8 @@ if st.session_state.current_page == "main":
                             copy_text = ""
                             mfg_keywords = ['마스크', '닭가슴살']
                             
-                            # ✨ [수정 1] 뭉텅이 데이터를 확실하게 표(DataFrame)로 변환해 줍니다!
                             selected_df = pd.DataFrame(selected_rows)
                             
-                            # ✨ [수정 2] iterrows()를 붙여서 '글자'가 아니라 '진짜 데이터 한 줄'씩 꺼내오게 만듭니다!
                             for _, row in selected_df.iterrows():
                                 barcode_str = str(row.get('바코드', '')).strip()
                                 barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
@@ -511,18 +510,15 @@ if st.session_state.current_page == "main":
                                     
                                 copy_text += line_text + "\n"
                             
-                            # 큼직한 텍스트 복사 버튼
+                            # ✨ 4. 팝업창과 텍스트 창을 싹 지우고, 클릭하면 버튼 글자만 슥 바뀌는 심플한 최종 버튼만 남깁니다!
                             components.html(f"""
-                            <div style="background-color: #fdfdfd; padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                                <pre id="copy-target" style="font-family: 'Gowun Dodum', sans-serif; font-size: 16px; color: #333; white-space: pre-wrap; margin-bottom: 20px;">{copy_text}</pre>
-                                <button onclick="navigator.clipboard.writeText(document.getElementById('copy-target').innerText).then(() => alert('✅ 클립보드에 복사되었습니다! 카톡에 붙여넣기 하세요.'))" 
-                                        style="width: 100%; background-color: #4A90E2; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                    📋 카톡 복사하기
-                                </button>
-                            </div>
-                            """, height=250)
+                            <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료! (이제 카톡에 붙여넣으세요)';" 
+                                    style="width: 100%; background-color: #4A90E2; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                📋 여기를 터치해서 클립보드에 담기
+                            </button>
+                            """, height=60)
                         else:
-                            st.warning("선택된 항목이 없습니다. 표에서 체크박스를 먼저 선택해 주세요.")
+                            st.warning("선택된 항목이 없습니다.")
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
