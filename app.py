@@ -295,11 +295,56 @@ def load_real_data():
         return pd.DataFrame()
 
 # ==========================================================
+# 이카운트 로그인 - SESSION_ID 동적 발급
+# ==========================================================
+def get_ecount_session():
+    COM_CODE = "614508"
+    USER_ID = "VILIV0730"
+    API_CERT_KEY = "57f9bbb67e3a24eeebd5d254be1779e368"
+
+    try:
+        # 1단계: 존 조회
+        zone_res = requests.post(
+            "https://oapi.ecount.com/OAPI/V2/OAPILogin",
+            json={
+                "COM_CODE": COM_CODE,
+                "USER_ID": USER_ID,
+                "API_CERT_KEY": API_CERT_KEY,
+                "LAN_TYPE": "ko-KR"
+            }
+        ).json()
+
+        zone = zone_res.get("Data", {}).get("Zone", "CA")
+
+        # 2단계: 해당 존으로 실제 SESSION_ID 발급
+        login_res = requests.post(
+            f"https://oapi{zone}.ecount.com/OAPI/V2/OAPILogin",
+            json={
+                "COM_CODE": COM_CODE,
+                "USER_ID": USER_ID,
+                "API_CERT_KEY": API_CERT_KEY,
+                "LAN_TYPE": "ko-KR"
+            }
+        ).json()
+
+        session_id = login_res.get("Data", {}).get("SESSION_ID", "")
+
+        if not session_id:
+            err = login_res.get("Error", {}).get("Message", "알 수 없는 오류")
+            return None, None, f"로그인 실패: {err}"
+
+        return zone, session_id, None
+
+    except Exception as e:
+        return None, None, f"로그인 API 오류: {str(e)}"
+
+# ==========================================================
 # 이카운트 구매입력 API 전송 함수
 # ==========================================================
 def send_ecount_purchase(master_data, detail_data):
-    session_id = "3631343530387c56494c495630373330:CA-ETI3CETPl_Qqh"
-    zone = "CA"
+    zone, session_id, login_err = get_ecount_session()
+    if login_err:
+        return False, login_err
     save_url = f"https://oapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     try:
@@ -333,7 +378,7 @@ def send_ecount_purchase(master_data, detail_data):
                 "PROD_DES": str(row.get('품목명', '')).strip(),
                 "QTY": qty_val,
                 "ADD_DATE_02": add_date_02,
-                "U_MEMO1": "작성자: " + str(master_data['담당자'])
+                "U_MEMO1": "실제 담당자: " + str(master_data['담당자'])
             }
             purchase_list.append(purchase_item)
         
