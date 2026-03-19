@@ -299,11 +299,8 @@ def load_real_data():
 # 이카운트 구매입력 API 전송 함수 (테스트 URL 모드)
 # ==========================================================
 def send_ecount_purchase(master_data, detail_data):
-    # ✨ 1. 주임님이 직접 발급받으신 SESSION_ID를 아래 따옴표 안에 넣어주세요!
     session_id = "3631343530387c56494c495630373330:CA-ETI3CETPl_Qqh"
-    
-    # ✨ 2. 테스트용 URL을 여기에 넣어주세요! (아래는 예시입니다. 부여받은 테스트 URL로 덮어써주세요)
-    zone = "CA" # 존 번호가 다르면 변경해 주세요
+    zone = "CA"  # SESSION_ID의 콜론 뒤 앞 두 글자
     save_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     try:
