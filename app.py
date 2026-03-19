@@ -646,10 +646,38 @@ if st.session_state.current_page == "main":
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
-    # 이카운트 버튼 - 입고스케줄 아래
-    st.markdown('<div class="ecount-nav">', unsafe_allow_html=True)
-    st.button("＞  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary", key="ecount_menu_btn")
-    st.markdown('</div>', unsafe_allow_html=True)
+    # 이카운트 버튼 - expander와 완전히 동일한 HTML 스타일
+    st.markdown("""
+        <style>
+        div.ecount-fake-expander {
+            border: 1px solid rgba(49, 51, 63, 0.2);
+            border-radius: 0.5rem;
+            background-color: white;
+            padding: 0;
+            margin-bottom: 0.5rem;
+        }
+        div.ecount-fake-expander button {
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: #31333f !important;
+            font-size: 1rem !important;
+            font-weight: 400 !important;
+            justify-content: flex-start !important;
+            padding-left: 0.75rem !important;
+            height: 2.75rem !important;
+            width: 100% !important;
+            letter-spacing: 0 !important;
+        }
+        div.ecount-fake-expander button:hover {
+            background-color: rgba(49, 51, 63, 0.05) !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="ecount-fake-expander">', unsafe_allow_html=True)
+        st.button("›  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary", key="ecount_menu_btn")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # 기존 검색 화면
     df = load_real_data()
