@@ -83,6 +83,18 @@ button[kind="primary"]:focus {
 .st-ae {
     pointer-events: none;
 }
+
+/* ✨ 9. 폼(st.form) 테두리와 여백을 투명하게 날려서 표를 시원하게 넓힙니다! */
+[data-testid="stForm"] {
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* ✨ 10. 익스팬더(메뉴) 안쪽의 좌우 여백도 과감하게 없애서 양옆으로 쫙 늘려줍니다! */
+[data-testid="stExpanderDetails"] {
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
