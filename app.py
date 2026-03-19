@@ -649,18 +649,31 @@ if st.session_state.current_page == "main":
             display: none !important;
         }
 
-        /* ✨ 2. 이카운트 버튼만 정밀 타격하는 '투명 닻(Anchor)' 마법! */
-        /* 다른 버튼(검색 등)은 냅두고, 닻 바로 밑에 있는 버튼만 위로 25px 끌어올립니다. */
+        /* 2. 익스팬더(메뉴) 아래쪽 틈새 밀봉 */
+        div[data-testid="stExpander"] {
+            margin-bottom: 0px !important; 
+        }
+
+        /* ✨ 3. 이카운트 버튼 위로 끌어올리기 (검색 버튼은 냅두고 얘만!) */
         div[data-testid="element-container"]:has(.ecount-anchor) + div,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div {
             margin-top: -25px !important;
         }
 
-        /* ✨ 3. 이카운트 버튼 안의 글씨를 왼쪽으로 정렬하고 여백 띄우기! */
+        /* ✨ 4. 버튼 안의 모든 껍질과 알맹이 글씨를 완벽하게 왼쪽으로 밀어버리기! */
         div[data-testid="element-container"]:has(.ecount-anchor) + div button,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button {
+            padding-left: 20px !important;
+        }
+        div[data-testid="element-container"]:has(.ecount-anchor) + div button > div,
+        div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button > div {
+            width: 100% !important;
             justify-content: flex-start !important;
-            padding-left: 18px !important;
+        }
+        div[data-testid="element-container"]:has(.ecount-anchor) + div button p,
+        div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button p {
+            text-align: left !important;
+            width: 100% !important;
         }
         </style>
         <div class="ecount-anchor"></div>
