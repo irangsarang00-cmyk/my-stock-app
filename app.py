@@ -433,35 +433,55 @@ if st.session_state.current_page == "main":
                 if not sched_data.empty:
                     st.write("") 
                     
-                    html_code = """
-                    <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                        <table style="width: 100%; border-collapse: collapse; user-select: text !important; -webkit-user-select: text !important; min-width: 800px;">
-                    """
-                    html_code += '<tr style="background-color: #4A90E2; color: white; border-bottom: 2px solid #357ABD;">'
+                    # 1. 표 맨 앞에 '선택'이라는 이름의 체크박스 열을 슬쩍 추가합니다.
+                    sched_data.insert(0, "선택", False)
                     
-                    for i, col in enumerate(sched_data.columns):
-                        sticky_style = 'position: sticky; left: 0; background-color: #4A90E2; z-index: 2;' if i == 0 else ''
-                        html_code += f'<th style="border: 1px solid #ddd; padding: 10px; font-size: 12px; white-space: nowrap; {sticky_style}">{col}</th>'
-                    html_code += '</tr>'
+                    # 2. 예전 HTML 표 대신, 클릭이 가능한 깔끔한 표 기능으로 바꿉니다.
+                    # (다른 정보는 수정 못 하게 잠그고, '선택' 체크박스만 누를 수 있게 열어둡니다)
+                    edited_df = st.data_editor(
+                        sched_data,
+                        use_container_width=True,
+                        hide_index=True,
+                        disabled=["날짜", "바코드", "제품명", "수량", "입고시간", "창고", "컨테이너", "거래처"]
+                    )
                     
-                    current_bg = "#ffffff" 
-                    last_date = None        
+                    # 3. 사용자가 체크박스에 브이(V) 표시를 한 줄만 쏙쏙 뽑아옵니다.
+                    selected_rows = edited_df[edited_df["선택"] == True]
                     
-                    for _, row in sched_data.iterrows():
-                        current_row_date = str(row['날짜']).strip()
-                        if last_date is not None and current_row_date != last_date:
-                            current_bg = "#EDF7FE" if current_bg == "#ffffff" else "#ffffff"
+                    # 4. 체크된 항목이 하나라도 있다면, 텍스트를 만들고 복사 버튼을 뿅 띄웁니다!
+                    # 4. 체크된 항목이 하나라도 있다면, 텍스트를 만들고 복사 버튼을 뿅 띄웁니다!
+                    if not selected_rows.empty:
+                        copy_text = ""
                         
-                        last_date = current_row_date 
+                        # ✨ [( 제조)] 글자를 붙일 '핵심 단어'들입니다. 
+                        # 나중에 다른 상품이 필요해지면 '물티슈', '화장지' 처럼 따옴표와 쉼표로 계속 추가하시면 돼요!
+                        mfg_keywords = ['마스크', '닭가슴살']
                         
-                        html_code += f'<tr style="background-color: {current_bg};">'
-                        for i, val in enumerate(row):
-                            sticky_style = f'position: sticky; left: 0; background-color: {current_bg}; z-index: 1; border-right: 2px solid #ddd;' if i == 0 else ''
-                            html_code += f'<td style="border: 1px solid #ddd; padding: 10px; font-size: 13px; white-space: nowrap; {sticky_style}">{val}</td>'
-                        html_code += '</tr>'
-                    
-                    html_code += '</table></div>'
-                    st.markdown(html_code, unsafe_allow_html=True)
+                        for _, row in selected_rows.iterrows():
+                            # 바코드 글자를 가져와서 뒤에서부터 딱 4자리만 자릅니다.
+                            barcode_str = str(row['바코드']).strip()
+                            barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
+                            
+                            prod_name = str(row['제품명']).strip()
+                            qty = str(row['수량']).strip()
+                            
+                            # ✨ 1차 조립: [1958] 탐사 퓨어 마스크 / 200개
+                            line_text = f"[{barcode_short}] {prod_name} / {qty}개"
+                            
+                            # ✨ 제품명에 mfg_keywords 단어들 중 하나라도 들어있는지 검사합니다.
+                            has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
+                            
+                            if has_keyword:
+                                # 단어가 포함되어 있다면, 생명과도 같은 공백을 포함해 "( 제조)"를 뒤에 찰싹 붙여줍니다.
+                                line_text += " ( 제조)"
+                                
+                            # 완성된 한 줄을 전체 텍스트에 더해주고 줄바꿈(\n)을 해줍니다.
+                            copy_text += line_text + "\n"
+                            
+                        # 안내 문구와 함께 둥근 사각 버튼이 달린 복사 전용 박스를 화면에 띄웁니다.
+                        st.info("✅ 선택 완료! 아래 상자 오른쪽 위에 있는 📋 아이콘을 누르면 복사됩니다.")
+                        st.code(copy_text, language="text")
+                        
                     st.markdown("---")
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
