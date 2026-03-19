@@ -344,13 +344,20 @@ def show_milkrun_table(df, warehouse_name):
         return
     display_df = filtered[['차량', '시간', '벤더', '센터', '수량']].reset_index(drop=True)
 
-    # 차량 뒤 4자리만 표시
-    display_df['차량'] = display_df['차량'].apply(lambda x: str(x).strip()[-4:] if len(str(x).strip()) >= 4 else str(x).strip())
+    # 차량 뒤 4자리만 표시 (하이픈은 그대로)
+    def extract_vehicle(val):
+        s = str(val).strip()
+        if s == '-' or s == '' or s.lower() == 'nan':
+            return '-'
+        return s[-4:] if len(s) >= 4 else s
+    display_df['차량'] = display_df['차량'].apply(extract_vehicle)
 
 
-    # 시간 HH:MM만 표시 (날짜 제거)
+    # 시간 HH:MM만 표시 (날짜 제거, 하이픈은 그대로)
     def extract_time(val):
         s = str(val).strip()
+        if s == '-' or s == '' or s.lower() == 'nan':
+            return '-'
         parts = s.split(" ")
         if len(parts) >= 2:
             return parts[-1][:5]
