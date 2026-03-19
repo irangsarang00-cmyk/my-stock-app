@@ -125,7 +125,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # ==========================================================
 # 1. 구글 로그인 및 권한 설정
 # ==========================================================
-WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com", "ddadung77@gmail.com", "a01066531205@gmail.com", "seohanseung2@gmail.com", "afopis75@gmail.com", "gmsik00@gmail.com", "hamsungbin87@gmail.com", "policelee2@gmail.com", "leetic1224@gmail.com", "happyjinu@gmail.com"]
+WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com", "ddadung77@gmail.com", "a01066531205@gmail.com", "seohanseung2@gmail.com", "afopis75@gmail.com", "gmsik00@gmail.com", "hamsungbin87@gmail.com", "policelee2@gmail.com", "leetic1224@gmail.com"]
 
 auth_secrets = st.secrets["google_oauth"]
 
@@ -341,6 +341,31 @@ def send_ecount_purchase(master_data, detail_data):
     save_url = f"https://oapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     try:
+        # ✅ 품목 기준단가 한 번에 조회 (PRICE, SUPPLY_AMT, VAT_AMT 자동 입력용)
+        price_map = {}
+        try:
+            price_url = f"https://oapi{zone}.ecount.com/OAPI/V2/InventoryBasic/GetBasicProductsList?SESSION_ID={session_id}"
+            price_res = requests.post(
+                price_url,
+                json={"IsPaging": True, "OFFSET": 1, "LIMIT": 100000}
+            ).json()
+
+            if str(price_res.get("Status")) == "200":
+                items = price_res.get("Data", {}).get("Result") or price_res.get("Data", {}).get("Datas") or []
+                for item in items:
+                    pcd = str(item.get("PROD_CD", "")).strip()
+                    # 기준단가 (IN_PRICE = 구매기준단가)
+                    price_val = str(item.get("IN_PRICE", "0") or "0").replace(",", "").strip()
+                    try:
+                        price_int = int(float(price_val))
+                    except:
+                        price_int = 0
+                    vat_yn = str(item.get("VAT_YN", "Y")).strip()  # 과세여부
+                    if pcd:
+                        price_map[pcd] = {"price": price_int, "vat_yn": vat_yn}
+        except Exception as pe:
+            pass  # 단가 조회 실패해도 입력은 계속 진행
+
         purchase_list = []
         
         for line_no, (_, row) in enumerate(detail_data.iterrows(), start=1):
@@ -363,6 +388,19 @@ def send_ecount_purchase(master_data, detail_data):
             except Exception:
                 qty_val = "0"
 
+            # ✅ 단가/공급가액/부가세 자동 계산
+            prod_price_info = price_map.get(prod_cd, {})
+            unit_price = prod_price_info.get("price", 0)
+            vat_yn = prod_price_info.get("vat_yn", "Y")
+
+            try:
+                qty_int = int(qty_val)
+            except:
+                qty_int = 0
+
+            supply_amt = unit_price * qty_int
+            vat_amt = supply_amt // 10 if vat_yn == "Y" else 0
+
             purchase_item = {
                 "IO_DATE": str(master_data['일자']),
                 "CUST": str(master_data['거래처코드']),
@@ -370,8 +408,11 @@ def send_ecount_purchase(master_data, detail_data):
                 "PROD_CD": prod_cd,
                 "PROD_DES": str(row.get('품목명', '')).strip(),
                 "QTY": qty_val,
+                "PRICE": str(unit_price),
+                "SUPPLY_AMT": str(supply_amt),
+                "VAT_AMT": str(vat_amt),
                 "ADD_DATE_02": add_date_02,
-                "U_MEMO1": "작성자: " + str(master_data['담당자'])
+                "U_MEMO1": "실제 담당자: " + str(master_data['담당자'])
             }
             purchase_list.append(purchase_item)
         
@@ -506,17 +547,17 @@ if st.session_state.current_page == "main":
                             sortable=False,        
                             suppressMovable=True,  
                             resizable=False,       
-                            suppressSizeToFit=True 
+                            suppressSizeToFit=False
                         )
                         gb.configure_grid_options(suppressMovableColumns=True)
-                        gb.configure_column('날짜', pinned='left', width=95) 
-                        gb.configure_column('바코드', width=145)
-                        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
-                        gb.configure_column('수량', width=80)
-                        gb.configure_column('입고시간', width=90)
-                        gb.configure_column('창고', width=80)
-                        gb.configure_column('컨테이너', width=130)
-                        gb.configure_column('거래처', width=160)
+                        gb.configure_column('날짜', pinned='left', width=70) 
+                        gb.configure_column('바코드', width=130)
+                        gb.configure_column('제품명', flex=1, wrapText=True, autoHeight=True) 
+                        gb.configure_column('수량', width=65)
+                        gb.configure_column('입고시간', width=75)
+                        gb.configure_column('창고', width=65)
+                        gb.configure_column('컨테이너', width=100)
+                        gb.configure_column('거래처', width=120)
                         
                         gridOptions = gb.build()
                         
@@ -525,7 +566,7 @@ if st.session_state.current_page == "main":
                             gridOptions=gridOptions,
                             use_container_width=True,
                             columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
-                            fit_columns_on_grid_load=False,
+                            fit_columns_on_grid_load=True,
                             theme="alpine",
                             height=350,
                             reload_data=False 
