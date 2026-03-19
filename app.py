@@ -965,3 +965,53 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
+
+# ==========================================
+# 🚚 창고별 밀크런 실시간 현황 (추가 부분)
+# ==========================================
+
+# 1. 시트3 데이터 가져오기 (이미 정의된 get_google_sheet 함수 활용)
+try:
+    # 기존 코드의 시트 연결 함수를 사용하여 '시트3'을 불러옵니다.
+    # 만약 기존 코드에 get_google_sheet가 없다면 상단 설정을 확인해야 합니다.
+    milkrun_sheet = gc.open_by_url(SHEET_URL).worksheet("시트3")
+    milk_data = milkrun_sheet.get_all_records() # 데이터를 딕셔너리 형태로 가져오기
+    df_milk = pd.DataFrame(milk_data)
+except Exception as e:
+    st.error(f"밀크런 데이터를 불러오는 중 오류가 발생했습니다: {e}")
+    df_milk = pd.DataFrame()
+
+# 메뉴를 그리는 부분 시작
+st.markdown("### 📦 창고별 밀크런 현황")
+
+# 창고 순서 정의 (요청하신 순서: 2창고 -> 3창고 -> 1창고)
+target_warehouses = [
+    {"name": "2창고 밀크런", "filter": "2창고"},
+    {"name": "3창고 밀크런", "filter": "3창고"},
+    {"name": "1창고 밀크런", "filter": "1창고"}
+]
+
+for wh in target_warehouses:
+    # 해당 창고 데이터만 필터링 (F열이 '창고' 헤더라고 가정)
+    filtered_df = df_milk[df_milk['창고'] == wh['filter']]
+    
+    # 첫 번째 접기 버튼 (창고명)
+    with st.expander(wh['name'], expanded=False):
+        if filtered_df.empty:
+            st.write("오늘은 밀크런이 없습니다.")
+        else:
+            # 데이터가 있다면 행별로 두 번째 접기 버튼(차량번호) 생성
+            for _, row in filtered_df.iterrows():
+                # 버튼 제목: [시간] 차량번호 (예: [14:00] 12가3456)
+                expander_title = f"🚚 [{row['도착예상시간']}] {row['차량No']}"
+                
+                with st.expander(expander_title):
+                    # 5개 열로 나누어 정보 표시
+                    col1, col2, col3, col4, col5 = st.columns(5)
+                    col1.metric("차량", row['차량No'])
+                    col2.metric("시간", row['도착예상시간'])
+                    col3.metric("벤더", row['계정'])
+                    col4.metric("센터", row['물류센터'])
+                    col5.metric("수량", f"{row['총 팔레트 수량']} PL")
+
+st.divider() # 메뉴 구분선
