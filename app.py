@@ -371,7 +371,7 @@ def send_ecount_purchase(master_data, detail_data):
                 "PROD_DES": str(row.get('품목명', '')).strip(),
                 "QTY": qty_val,
                 "ADD_DATE_02": add_date_02,
-                "U_MEMO1": "실제 담당자: " + str(master_data['담당자'])
+                "U_MEMO1": "작성자: " + str(master_data['담당자'])
             }
             purchase_list.append(purchase_item)
         
