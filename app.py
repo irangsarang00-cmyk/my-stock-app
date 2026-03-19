@@ -358,8 +358,8 @@ def show_milkrun_table(df, warehouse_name):
     st.markdown("""
         <style>
         .milkrun-table-wrap {
-            margin-left: -1rem;
-            margin-right: -1rem;
+            margin-left: -0.3rem;
+            margin-right: -0.3rem;
             overflow-x: auto;
         }
         .milkrun-table-wrap table {
@@ -1079,3 +1079,4 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
+                    
