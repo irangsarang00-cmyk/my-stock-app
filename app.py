@@ -662,6 +662,27 @@ if st.session_state.current_page == "main":
     sched_data = pd.DataFrame()
 
     with st.expander("🚛 입고스케줄", expanded=False):
+        # 폼 제출 후 스크롤 위치 유지
+        components.html("""
+        <script>
+        (function() {
+            const key = 'schedule_scroll_pos';
+            // 저장된 위치로 복원
+            const saved = sessionStorage.getItem(key);
+            if (saved) {
+                window.parent.document.documentElement.scrollTop = parseInt(saved);
+                sessionStorage.removeItem(key);
+            }
+            // 폼 제출 버튼 클릭 시 현재 위치 저장
+            window.parent.document.addEventListener('click', function(e) {
+                const btn = e.target.closest('button');
+                if (btn && btn.innerText.includes('선택')) {
+                    sessionStorage.setItem(key, window.parent.document.documentElement.scrollTop);
+                }
+            }, true);
+        })();
+        </script>
+        """, height=0)
         with st.spinner('분석 중...'):
             sched_data = get_incoming_schedule()
             if not sched_data.empty:
