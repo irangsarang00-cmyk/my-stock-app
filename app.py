@@ -483,7 +483,7 @@ if st.session_state.current_page == "main":
                         )
                         
                         # 2. 버튼 이름을 요청하신 대로 '복사'로 깔끔하게 변경합니다!
-                        generate_btn = st.form_submit_button("복사", use_container_width=True)
+                        generate_btn = st.form_submit_button("선택", use_container_width=True)
                     
                     # 3. '복사' 버튼을 눌렀을 때의 동작
                     if generate_btn:
@@ -514,7 +514,7 @@ if st.session_state.current_page == "main":
                             components.html(f"""
                             <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료! (이제 카톡에 붙여넣으세요)';" 
                                     style="width: 100%; background-color: #4A90E2; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                📋 여기를 터치해서 클립보드에 담기
+                                📋 클립보드에 복사
                             </button>
                             """, height=60)
                         else:
