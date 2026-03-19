@@ -307,6 +307,10 @@ def send_ecount_purchase(master_data, detail_data):
         purchase_list = []
         
         for line_no, (_, row) in enumerate(detail_data.iterrows(), start=1):
+            
+            # ✅ 디버깅용 - 수량 원본값 확인
+            st.write(f"수량 원본값: '{row.get('수량', 'KEY없음')}' / 타입: {type(row.get('수량', '0'))}")
+            
             prod_cd = str(row.get('품목코드', '')).strip()
             if not prod_cd or prod_cd == 'nan':
                 continue
