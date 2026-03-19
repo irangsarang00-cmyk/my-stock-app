@@ -440,11 +440,24 @@ if st.session_state.current_page == "main":
                         # 체크박스를 켭니다
                         gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
                         
-                        # ✨ 여기서 열 고정! '날짜' 열과 체크박스를 왼쪽에 딱 붙여버립니다.
-                        gb.configure_column('날짜', pinned='left', width=100)
-                        gb.configure_column('바코드', width=140)
-                        gb.configure_column('제품명', width=400)
+                        # ✨ 기본 열 설정: 억지로 화면에 맞추지 말고 원래 너비를 유지하게 막습니다!
+                        gb.configure_default_column(
+                            sortable=False,        
+                            suppressMovable=True,  
+                            resizable=False,       
+                            suppressSizeToFit=True # 👈 찌부러짐 방지 핵심 1
+                        )
+                        gb.configure_grid_options(suppressMovableColumns=True)
+                        
+                        # ✨ 여기서 열 고정 및 너비를 시원시원하게 넓혀줍니다!
+                        gb.configure_column('날짜', pinned='left', width=95)
+                        gb.configure_column('바코드', width=145)
+                        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) # 👈 널찍하게 500!
                         gb.configure_column('수량', width=80)
+                        
+                        # 혹시 표에 입고시간이나 창고 등 다른 열도 띄우고 싶으시다면 아래처럼 추가하시면 됩니다.
+                        # gb.configure_column('창고', width=80)
+                        # gb.configure_column('거래처', width=160)
                         
                         gridOptions = gb.build()
                         
@@ -453,6 +466,7 @@ if st.session_state.current_page == "main":
                             sched_data,
                             gridOptions=gridOptions,
                             use_container_width=True,
+                            columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, # 👈 찌부러짐 방지 핵심 2
                             fit_columns_on_grid_load=False,
                             theme="alpine",
                             height=350,
