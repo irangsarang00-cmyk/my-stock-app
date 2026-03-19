@@ -320,15 +320,15 @@ def send_ecount_purchase(master_data, detail_data):
             purchase_item = {
                 "BulkFlag": "M", 
                 "LineReqNo": str(idx + 1),
-                "IO_DATE": master_data['일자'],
-                "CUST": master_data['거래처코드'],
+                "IO_DATE": str(master_data['일자']),
+                "CUST": str(master_data['거래처코드']),
                 "EMP_CD": "00008", 
-                "WH_CD": master_data['창고코드'],
+                "WH_CD": str(master_data['창고코드']),
                 "PROD_CD": str(row['품목코드']).strip(),
                 "PROD_DES": str(row['품목명']).strip(),
                 "QTY": str(row['수량']).strip(),
-                "ADD_DATE_02": add_date_02,
-                "U_MEMO1": f"실제 담당자: {master_data['담당자']}"
+                "ADD_DATE_02": str(add_date_02),
+                "U_MEMO1": f"실제 담당자: {str(master_data['담당자'])}"
             }
             purchase_list.append(purchase_item)
             
