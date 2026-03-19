@@ -850,8 +850,9 @@ elif st.session_state.current_page == "ecount":
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
         with st.expander("💡 작성 팁"):
+            # ✨ style 부분에 'padding-bottom: 10px;' 를 추가해서 아래쪽 여백을 푹신하게 만들었습니다!
             st.markdown("""
-            <div style='padding-left: 15px; line-height: 1.6;'>
+            <div style='padding-left: 15px; padding-bottom: 10px; line-height: 1.6;'>
                 ✔️ <b>#만 있는 것</b> = 라온글로벌<br>
                 ✔️ <b>[YC]</b> = 우하모(야코브)<br>
                 ✔️ <b>[ECT]</b> = 이씨티<br>
