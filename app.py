@@ -515,143 +515,135 @@ warehouse_list = {
 # [페이지 1] 메인 화면
 # ==========================================================
 if st.session_state.current_page == "main":
-    col1, col2, col3 = st.columns([1, 1, 1])
 
-    with col1:
-        with st.expander("📱 앱 설치 방법 안내"):
-            st.markdown("""
-            <div style='padding-left: 12px; line-height: 1.8;'>
-                <b>💡 접속 및 설치 방법</b><br>
-                1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.<br>
-                2. 승인 완료되면 구글 아이디로 로그인하세요.<br>
-                3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
-            </div>
-            """, unsafe_allow_html=True)
-
-    with col2:
-        with st.expander("👥 접근 허용 명단"):
-            st.markdown("<div style='padding-left: 12px;'>", unsafe_allow_html=True)
-            for email in WHITELIST_EMAILS:
-                st.caption(f"✔️ {email}")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    with col3:
-        sched_data = pd.DataFrame() 
-        
-        with st.expander("🚛 입고스케줄", expanded=False): 
-            with st.spinner('분석 중...'):
-                sched_data = get_incoming_schedule()
-                if not sched_data.empty:
-                    st.write("") 
-                    
-                    with st.form("schedule_copy_form"):
-                        gb = GridOptionsBuilder.from_dataframe(sched_data)
-                        gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
-                        gb.configure_default_column(
-                            sortable=False,        
-                            suppressMovable=True,  
-                            resizable=False,       
-                            suppressSizeToFit=True
-                        )
-                        gb.configure_grid_options(
-                            suppressMovableColumns=True,
-                            suppressHorizontalScroll=False  # 가로스크롤 활성화
-                        )
-                        gb.configure_column('날짜', pinned='left', width=95) 
-                        gb.configure_column('바코드', width=145)
-                        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
-                        gb.configure_column('수량', width=80)
-                        gb.configure_column('입고시간', width=90)
-                        gb.configure_column('창고', width=80)
-                        gb.configure_column('컨테이너', width=130)
-                        gb.configure_column('거래처', width=160)
-                        
-                        gridOptions = gb.build()
-                        
-                        grid_response = AgGrid(
-                            sched_data,
-                            gridOptions=gridOptions,
-                            use_container_width=True,
-                            columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
-                            fit_columns_on_grid_load=False,
-                            theme="alpine",
-                            height=350,
-                            reload_data=False 
-                        )
-                        
-                        col_left, col_right = st.columns(2)
-                        
-                        with col_left:
-                            generate_btn = st.form_submit_button("선택", use_container_width=True)
-                    
-                        with col_right:
-                            is_active = False
-                            copy_text = ""
-                            
-                            if generate_btn:
-                                selected_rows = grid_response['selected_rows']
-                                
-                                if selected_rows is not None and len(selected_rows) > 0:
-                                    is_active = True
-                                    mfg_keywords = ['마스크', '닭가슴살']
-                                    selected_df = pd.DataFrame(selected_rows)
-                                    
-                                    for _, row in selected_df.iterrows():
-                                        barcode_str = str(row.get('바코드', '')).strip()
-                                        barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
-                                        prod_name = str(row.get('제품명', '')).strip()
-                                        qty = str(row.get('수량', '')).strip()
-                                        line_text = f"[{barcode_short}] {prod_name} / {qty}개"
-                                        has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
-                                        if has_keyword:
-                                            line_text += " ( 제조)"
-                                        copy_text += line_text + "\n"
-                                else:
-                                    st.warning("선택된 항목이 없습니다.")
-
-                            if is_active:
-                                components.html(f"""
-                                <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
-                                <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
-                                        style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
-                                    📋 복사
-                                </button>
-                                """, height=45)
-                            else:
-                                components.html(f"""
-                                <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
-                                <button disabled 
-                                        style="width: 100%; height: 45px; background-color: #e0e0e0; color: #a0a0a0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
-                                    📋 복사
-                                </button>
-                                """, height=45)
-                else:
-                    st.warning("예정된 가평 스케줄이 없습니다.")
-
-
-    # ✅ 이카운트 버튼 - col1/col2/col3과 동일한 1/3 너비, 위쪽 배치
-    with col1:
+    with st.expander("📱 앱 설치 방법 안내"):
         st.markdown("""
-            <style>
-            .ecount-btn button {
-                background-color: white !important;
-                border: 1px solid #e0e0e0 !important;
-                border-radius: 8px !important;
-                color: #333 !important;
-                font-size: 0.95em !important;
-                font-weight: 500 !important;
-                text-align: left !important;
-                justify-content: flex-start !important;
-                padding-left: 14px !important;
-                height: 48px !important;
-                width: 100% !important;
-            }
-            </style>
+        <div style='padding-left: 16px; line-height: 1.9;'>
+            <b>💡 접속 및 설치 방법</b><br>
+            1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.<br>
+            2. 승인 완료되면 구글 아이디로 로그인하세요.<br>
+            3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
+        </div>
         """, unsafe_allow_html=True)
-        with st.container():
-            st.markdown('<div class="ecount-btn">', unsafe_allow_html=True)
-            st.button("＞  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary", key="ecount_menu_btn")
-            st.markdown('</div>', unsafe_allow_html=True)
+
+    with st.expander("👥 접근 허용 명단"):
+        st.markdown("<div style='padding-left: 16px; line-height: 1.8;'>", unsafe_allow_html=True)
+        for email in WHITELIST_EMAILS:
+            st.caption(f"　✔️ {email}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # 이카운트 버튼 - expander와 완전 동일한 스타일
+    st.markdown("""
+        <style>
+        button[data-testid="baseButton-secondary"][kind="secondary"] {
+            background-color: white !important;
+            border: 1px solid rgba(49, 51, 63, 0.2) !important;
+            border-radius: 0.5rem !important;
+            color: #31333f !important;
+            font-size: 1rem !important;
+            font-weight: 400 !important;
+            justify-content: flex-start !important;
+            padding-left: 1rem !important;
+            height: 2.75rem !important;
+            width: 100% !important;
+            box-shadow: none !important;
+        }
+        button[data-testid="baseButton-secondary"][kind="secondary"]:hover {
+            border-color: rgba(49, 51, 63, 0.4) !important;
+            background-color: #f8f9fa !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    st.button("＞  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary", key="ecount_menu_btn")
+
+    sched_data = pd.DataFrame()
+
+    with st.expander("🚛 입고스케줄", expanded=False):
+        with st.spinner('분석 중...'):
+            sched_data = get_incoming_schedule()
+            if not sched_data.empty:
+                st.write("")
+                with st.form("schedule_copy_form"):
+                    gb = GridOptionsBuilder.from_dataframe(sched_data)
+                    gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
+                    gb.configure_default_column(
+                        sortable=False,
+                        suppressMovable=True,
+                        resizable=False,
+                        suppressSizeToFit=True
+                    )
+                    gb.configure_grid_options(
+                        suppressMovableColumns=True,
+                        suppressHorizontalScroll=False
+                    )
+                    gb.configure_column('날짜', pinned='left', width=95)
+                    gb.configure_column('바코드', width=145)
+                    gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True)
+                    gb.configure_column('수량', width=80)
+                    gb.configure_column('입고시간', width=90)
+                    gb.configure_column('창고', width=80)
+                    gb.configure_column('컨테이너', width=130)
+                    gb.configure_column('거래처', width=160)
+
+                    gridOptions = gb.build()
+
+                    grid_response = AgGrid(
+                        sched_data,
+                        gridOptions=gridOptions,
+                        use_container_width=True,
+                        columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
+                        fit_columns_on_grid_load=False,
+                        theme="alpine",
+                        height=350,
+                        reload_data=False
+                    )
+
+                    col_left, col_right = st.columns(2)
+
+                    with col_left:
+                        generate_btn = st.form_submit_button("선택", use_container_width=True)
+
+                    with col_right:
+                        is_active = False
+                        copy_text = ""
+
+                        if generate_btn:
+                            selected_rows = grid_response['selected_rows']
+                            if selected_rows is not None and len(selected_rows) > 0:
+                                is_active = True
+                                mfg_keywords = ['마스크', '닭가슴살']
+                                selected_df = pd.DataFrame(selected_rows)
+                                for _, row in selected_df.iterrows():
+                                    barcode_str = str(row.get('바코드', '')).strip()
+                                    barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
+                                    prod_name = str(row.get('제품명', '')).strip()
+                                    qty = str(row.get('수량', '')).strip()
+                                    line_text = f"[{barcode_short}] {prod_name} / {qty}개"
+                                    has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
+                                    if has_keyword:
+                                        line_text += " ( 제조)"
+                                    copy_text += line_text + "\n"
+                            else:
+                                st.warning("선택된 항목이 없습니다.")
+
+                        if is_active:
+                            components.html(f"""
+                            <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
+                            <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';"
+                                    style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
+                                📋 복사
+                            </button>
+                            """, height=45)
+                        else:
+                            components.html(f"""
+                            <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
+                            <button disabled
+                                    style="width: 100%; height: 45px; background-color: #e0e0e0; color: #a0a0a0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
+                                📋 복사
+                            </button>
+                            """, height=45)
+            else:
+                st.warning("예정된 가평 스케줄이 없습니다.")
 
     # 기존 검색 화면
     df = load_real_data()
