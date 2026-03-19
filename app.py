@@ -582,6 +582,9 @@ st.markdown("""
 if "current_page" not in st.session_state:
     st.session_state.current_page = "main"
 
+if "sched_expander_open" not in st.session_state:
+    st.session_state.sched_expander_open = False
+
 if "selected_items" not in st.session_state:
     st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "제조일자"])
 
@@ -661,7 +664,11 @@ if st.session_state.current_page == "main":
 
     sched_data = pd.DataFrame()
 
-    with st.expander("🚛 입고스케줄", expanded=False):
+    if st.session_state.get("sched_form_submitted"):
+        st.session_state.sched_expander_open = True
+        st.session_state.sched_form_submitted = False
+
+    with st.expander("🚛 입고스케줄", expanded=st.session_state.sched_expander_open):
         # 폼 제출 후 스크롤 위치 유지
         components.html("""
         <script>
@@ -732,6 +739,7 @@ if st.session_state.current_page == "main":
                         copy_text = ""
 
                         if generate_btn:
+                            st.session_state.sched_form_submitted = True
                             selected_rows = grid_response['selected_rows']
                             if selected_rows is not None and len(selected_rows) > 0:
                                 is_active = True
