@@ -675,18 +675,22 @@ if st.session_state.current_page == "main":
         for email in WHITELIST_EMAILS:
             st.caption(f"✔️ {email}")
 
-    sched_data = pd.DataFrame()
-
     # session_state 초기화
     if "sched_copy_text" not in st.session_state:
         st.session_state.sched_copy_text = ""
     if "sched_copy_active" not in st.session_state:
         st.session_state.sched_copy_active = False
 
+    # ✅ 데이터를 expander 밖에서 미리 로딩 (expander 안에서 로딩하면 체크박스 클릭 시 튕김)
+    if "sched_data_cache" not in st.session_state:
+        st.session_state.sched_data_cache = pd.DataFrame()
+    if st.session_state.sched_data_cache.empty:
+        with st.spinner('입고스케줄 불러오는 중...'):
+            st.session_state.sched_data_cache = get_incoming_schedule()
+    sched_data = st.session_state.sched_data_cache
+
     with st.expander("🚛 입고스케줄", expanded=False):
-        with st.spinner('분석 중...'):
-            sched_data = get_incoming_schedule()
-            if not sched_data.empty:
+        if not sched_data.empty:
                 st.write("")
                 gb = GridOptionsBuilder.from_dataframe(sched_data)
                 gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
@@ -1120,4 +1124,3 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
-                    
