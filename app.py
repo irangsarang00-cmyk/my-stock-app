@@ -11,15 +11,15 @@ from datetime import datetime, timedelta
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
-# (st_keyup은 지워도 됩니다!)
+import streamlit.components.v1 as components
 
 # --- 상단 메뉴 및 워터마크 숨기기 ---
 hide_streamlit_style = """
 <style>
-/* ✨ 1. 구글 웹 폰트 불러오기 (고운돋움) - 반드시 가장 맨 위에 있어야 합니다! */
+/* ✨ 1. 구글 웹 폰트 불러오기 (고운돋움) */
 @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
-/* ✨ 2. 팁 버튼 작게 만들고 오른쪽으로 정렬하기 (순서를 폰트 아래로 내렸습니다) */
+/* ✨ 2. 팁 버튼 작게 만들고 오른쪽으로 정렬하기 */
 div[data-testid="stPopover"] {
     display: flex;
     justify-content: flex-end;
@@ -30,12 +30,12 @@ div[data-testid="stPopover"] button {
     padding: 0px 10px !important;
 }
 
-/* ✨ 3. 앱 전체 텍스트에 폰트를 덮어씌웁니다. */
+/* ✨ 3. 앱 전체 텍스트에 폰트 덮어씌우기 */
 html, body, [class*="css"], .stApp, p, h1, h2, h3, h4, h5, h6, span, div, button, input, select, textarea, table, td, th, ul, li, strong, b {
     font-family: 'Gowun Dodum', sans-serif;
 }
 
-/* ✨ 4. 아이콘 역할을 하는 녀석들은 무조건 아이콘 폰트를 쓰도록 절대 방어막을 칩니다! */
+/* ✨ 4. 아이콘 절대 방어막 */
 .material-icons, 
 .material-symbols-rounded, 
 span[class*="material-icons"], 
@@ -47,13 +47,13 @@ i {
     text-transform: none !important;
 }
 
-/* ✨ 5. AgGrid 표 내부 폰트 강제 적용 (아이프레임 한계로 완벽하진 않지만 시도는 해둡니다!) */
+/* ✨ 5. AgGrid 표 내부 폰트 강제 적용 */
 .ag-root-wrapper, .ag-theme-alpine, .ag-cell, .ag-header-cell-text {
     font-family: 'Gowun Dodum', sans-serif !important;
     --ag-font-family: 'Gowun Dodum', sans-serif !important;
 }
 
-/* --- 여기서부터는 기존 숨김 및 버튼 색상 코드 --- */
+/* --- 기존 숨김 및 버튼 색상 코드 --- */
 [data-testid="stToolbar"] {display: none !important;}
 [data-testid="collapsedControl"] {display: none !important;}
 header[data-testid="stHeader"] {display: none !important;}
@@ -77,9 +77,11 @@ button[kind="primary"]:focus {
     background-color: #357ABD !important; 
     border-color: #357ABD !important;
     color: white !important;
+} /* 👈 빠져있던 닫는 괄호 수정 완료! */
+
 [data-testid="stTable"] th, 
-    .st-ae {
-        pointer-events: none;
+.st-ae {
+    pointer-events: none;
 }
 </style>
 """
@@ -303,13 +305,13 @@ def send_ecount_purchase(master_data, detail_data):
                 "LineReqNo": str(idx + 1),
                 "IO_DATE": master_data['일자'],
                 "CUST": master_data['거래처코드'],
-                "EMP_CD": "00008", # 전산 입력자는 00008로 고정
+                "EMP_CD": "00008", 
                 "WH_CD": master_data['창고코드'],
                 "PROD_CD": str(row['품목코드']).strip(),
                 "PROD_DES": str(row['품목명']).strip(),
                 "QTY": str(row['수량']).strip(),
                 "ADD_DATE_02": add_date_02,
-                "U_MEMO1": f"실제 담당자: {master_data['담당자']}" # ✨ 여기에 비고란 추가!
+                "U_MEMO1": f"실제 담당자: {master_data['담당자']}"
             }
             purchase_list.append(purchase_item)
             
@@ -335,14 +337,12 @@ st.markdown("""
         height: auto !important;
     }
     
-    /* 일반 회색 버튼은 기존처럼 100% 꽉 차게 둡니다 */
     button[data-testid="baseButton-secondary"] {
         height: 45px !important;
         width: 100% !important;
         margin-top: 0px !important;
     }
     
-    /* ✨ [진짜 범인 검거!] 하지만 '팁(Popover)' 안에 있는 버튼만큼은 무조건 작게, 우측으로! (우선순위 최고) */
     div[data-testid="stPopover"] {
         display: flex;
         justify-content: flex-end;
@@ -373,10 +373,8 @@ def go_to_ecount():
 def go_to_main():
     st.session_state.current_page = "main"
     
-    # ✨ 1. 체크해서 불러왔던 품목 표 비우기
     st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "제조일자"])
     
-    # ✨ 2. 입력했던 기본 정보(날짜, 거래처, 담당자, 창고) 기억 지우기
     keys_to_clear = ["ecount_date", "ecount_vendor", "ecount_actual_user", "ecount_wh"]
     for k in keys_to_clear:
         if k in st.session_state:
@@ -427,56 +425,53 @@ if st.session_state.current_page == "main":
     with col3:
         sched_data = pd.DataFrame() 
         
-        with st.expander("🚛 입고스케줄", expanded=True): # 열어두는 게 기본값이 되게 설정했습니다
+        # ✨ 스케줄 표 확장 및 AgGrid + 폼 적용
+        with st.expander("🚛 입고스케줄", expanded=True): 
             with st.spinner('분석 중...'):
                 sched_data = get_incoming_schedule()
                 if not sched_data.empty:
                     st.write("") 
                     
-                    # 1. 폼(Form)으로 표를 감싸서 체크할 때마다 튕기는 현상을 완벽하게 차단합니다!
+                    # 폼으로 감싸서 체크 시 튕김 현상 방지
                     with st.form("schedule_copy_form"):
                         gb = GridOptionsBuilder.from_dataframe(sched_data)
                         
-                        # 체크박스를 켭니다
                         gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
                         
-                        # ✨ 기본 열 설정: 억지로 화면에 맞추지 말고 원래 너비를 유지하게 막습니다!
+                        # 화면 찌그러짐 방지
                         gb.configure_default_column(
                             sortable=False,        
                             suppressMovable=True,  
                             resizable=False,       
-                            suppressSizeToFit=True # 👈 찌부러짐 방지 핵심 1
+                            suppressSizeToFit=True 
                         )
                         gb.configure_grid_options(suppressMovableColumns=True)
                         
-                        # ✨ 여기서 열 고정 및 너비를 시원시원하게 넓혀줍니다!
-                        gb.configure_column('날짜', pinned='left', width=95)
-                        gb.configure_column('바코드', width=145)
-                        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) # 👈 널찍하게 500!
+                        # ✨ 여기서 열 너비 조절! 원하시는 대로 숫자를 바꿔주세요.
+                        gb.configure_column('날짜', pinned='left', width=90) 
+                        gb.configure_column('바코드', width=130)
+                        gb.configure_column('제품명', width=450, wrapText=True, autoHeight=True) 
                         gb.configure_column('수량', width=80)
-                        
-                        # 혹시 표에 입고시간이나 창고 등 다른 열도 띄우고 싶으시다면 아래처럼 추가하시면 됩니다.
-                        # gb.configure_column('창고', width=80)
-                        # gb.configure_column('거래처', width=160)
+                        gb.configure_column('입고시간', width=90)
+                        gb.configure_column('창고', width=80)
+                        gb.configure_column('컨테이너', width=120)
+                        gb.configure_column('거래처', width=150)
                         
                         gridOptions = gb.build()
                         
-                        # AgGrid 표 출력
                         grid_response = AgGrid(
                             sched_data,
                             gridOptions=gridOptions,
                             use_container_width=True,
-                            columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, # 👈 찌부러짐 방지 핵심 2
+                            columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
                             fit_columns_on_grid_load=False,
                             theme="alpine",
                             height=350,
                             reload_data=False 
                         )
                         
-                        # 2. 체크를 다 하고 이 버튼을 눌러야만 텍스트가 만들어집니다.
                         generate_btn = st.form_submit_button("📝 텍스트 만들기", use_container_width=True)
                     
-                    # 3. '텍스트 만들기' 버튼을 눌렀을 때의 동작
                     if generate_btn:
                         selected_rows = grid_response['selected_rows']
                         
@@ -499,7 +494,7 @@ if st.session_state.current_page == "main":
                                     
                                 copy_text += line_text + "\n"
                             
-                            # ✨ 4. 진짜 못 찾을 수가 없는 크고 둥근 전용 복사 버튼을 띄웁니다!
+                            # 큼직한 텍스트 복사 버튼
                             components.html(f"""
                             <div style="background-color: #fdfdfd; padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                                 <pre id="copy-target" style="font-family: 'Gowun Dodum', sans-serif; font-size: 16px; color: #333; white-space: pre-wrap; margin-bottom: 20px;">{copy_text}</pre>
@@ -522,7 +517,8 @@ if st.session_state.current_page == "main":
     st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
     st.markdown("<h4 style='text-align: center; font-size: 1.3em;'>상품명 또는 PL번호로 검색</h4>", unsafe_allow_html=True)
 
-    search_query = st.text_input("", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
+    # 👈 빈칸(label) 경고 해결을 위해 이름표를 채웠습니다!
+    search_query = st.text_input("검색어", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
 
     search_button = st.button("🔍 검색", type="primary", use_container_width=True)
 
@@ -596,7 +592,6 @@ elif st.session_state.current_page == "ecount":
     
     st.button("⬅️ 메인으로", on_click=go_to_main)
 
-    # ✨ [새로 추가된 부분] 빨간색으로 크고 아름다운 공사중 문구!
     st.markdown("""
         <div style="
             color: #e74c3c; 
@@ -661,9 +656,8 @@ elif st.session_state.current_page == "ecount":
                 
                 gridOptions = gb.build()
                 
-                # ✨ 잡다한 옵션은 싹 지우고 가장 깔끔한 기본 형태로 둡니다! (폰트는 1번 CSS가 알아서 바꿔줍니다)
                 grid_response = AgGrid(
-                    sched_for_selection,
+                    sched_data,
                     gridOptions=gridOptions,
                     use_container_width=True, 
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
@@ -697,7 +691,6 @@ elif st.session_state.current_page == "ecount":
         
     st.divider()
     
-    # ✨ 폼(st.form)을 해제하여 검색창 배치를 자유롭게 만들었습니다.
     c1, c2 = st.columns(2)
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
@@ -710,7 +703,6 @@ elif st.session_state.current_page == "ecount":
     c3, c4 = st.columns(2)
     
     with c3:
-        # ✨ 기본 텍스트 입력칸으로 복귀! 폰트도 완벽하게 적용되고 사라지는 버그도 없습니다.
         actual_user = st.text_input(
             "작성자", 
             placeholder="작성자 이름", 
@@ -720,12 +712,10 @@ elif st.session_state.current_page == "ecount":
     wh_name = c4.selectbox("입고창고", list(warehouse_list.keys()), key="ecount_wh")
     wh_code = warehouse_list[wh_name]
     
-    # 1. 품목표가 먼저 나옵니다.
     final_items = st.data_editor(
         st.session_state.selected_items,
         use_container_width=True,
         hide_index=True, 
-        # ✨ 여기에 있던 height=350, 을 싹 지웠습니다!
         column_config={
             "제조일자": st.column_config.DateColumn(
                 "제조일자",
@@ -735,19 +725,17 @@ elif st.session_state.current_page == "ecount":
         }
     )
     
-    # 2. 품목표 바로 밑에 요청하신 아주 깔끔한 검색창이 나옵니다.
     real_df = load_real_data()
+    # 👈 여기서도 빈칸(label) 경고 해결을 위해 이름표를 채웠습니다!
     search_kw = st.text_input(
         "검색어", 
         key="manual_search_kw", 
         placeholder="상품명 또는 PL번호로 검색", 
-        label_visibility="collapsed" # 거슬리던 제목 글자를 완벽히 숨깁니다.
+        label_visibility="collapsed" 
     )
     
-    # ✨ 요청하신 파란색 검색 버튼을 검색창 바로 밑에 큼직하게 추가했습니다!
     search_clicked = st.button("🔍 검색", type="primary", use_container_width=True, key="manual_search_btn")
     
-    # 검색 로직 처리 (엔터를 치거나 파란 버튼을 누르면 아래 로직이 실행됩니다)
     if search_kw and not real_df.empty:
         clean_kw = search_kw.strip()
         mask = (
@@ -761,13 +749,12 @@ elif st.session_state.current_page == "ecount":
             
         elif len(search_result) == 1:
             row = search_result.iloc[0]
-            # ✨ 바코드 전체 대신 뒤 4자리만 잘라서 보여줍니다.
             item_code_short = str(row['품목코드'])[-4:]
             st.success(f"✅ **[{item_code_short}] {row['품목명']}**")
             
             if st.button("✅ 추가", type="secondary"):
                 new_row = pd.DataFrame([{
-                    "품목코드": row["품목코드"], # 👈 표와 서버로 보낼 때는 원래대로 전체 바코드를 보냅니다.
+                    "품목코드": row["품목코드"], 
                     "품목명": row["품목명"],
                     "수량": "1",
                     "제조일자": None
@@ -779,19 +766,16 @@ elif st.session_state.current_page == "ecount":
         else:
             st.info(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
             
-            # ✨ 드롭박스 옵션에서도 바코드 뒤 4자리만 잘라서 보여줍니다. (하지만 나중에 전체 바코드를 찾기 위해 전체 바코드도 옵션 값에 몰래 숨겨둡니다.)
             options = [f"[{str(r['품목코드'])[-4:]}] {r['품목명']} (코드:{r['품목코드']})" for _, r in search_result.iterrows()]
             
-            # 사용자에게는 앞부분([4자리] 품목명)만 보여주고 선택하게 합니다.
             selected_option_full = st.selectbox("품목 선택", options, key="manual_select_item", format_func=lambda x: x.split(" (코드:")[0])
             
             if st.button("✅ 추가", type="secondary"):
-                # 숨겨뒀던 진짜 전체 바코드를 꺼내서 검색합니다.
                 selected_full_code = selected_option_full.split("(코드:")[1].replace(")", "").strip()
                 selected_row = search_result[search_result['품목코드'] == selected_full_code].iloc[0]
                 
                 new_row = pd.DataFrame([{
-                    "품목코드": selected_row["품목코드"], # 👈 표에는 전체 바코드가 들어갑니다.
+                    "품목코드": selected_row["품목코드"], 
                     "품목명": selected_row["품목명"],
                     "수량": "1",
                     "제조일자": None
@@ -802,7 +786,6 @@ elif st.session_state.current_page == "ecount":
 
     st.divider()
 
-    # ✨ 폼이 없어졌으므로 st.form_submit_button 대신 일반 st.button을 사용합니다.
     submit_clicked = st.button("🚀 이카운트 입력하기", type="primary", use_container_width=True)
     
     if submit_clicked:
@@ -824,4 +807,3 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
-                    
