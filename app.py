@@ -493,7 +493,7 @@ if st.session_state.current_page == "main":
     with col3:
         sched_data = pd.DataFrame() 
         
-        with st.expander("🚛 입고스케줄", expanded=True): 
+        with st.expander("🚛 입고스케줄", expanded=False): 
             with st.spinner('분석 중...'):
                 sched_data = get_incoming_schedule()
                 if not sched_data.empty:
