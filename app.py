@@ -294,6 +294,57 @@ def load_real_data():
         st.error(f"시트를 불러오는 중 오류가 발생했습니다: {e}")
         return pd.DataFrame()
 
+@st.cache_data(ttl=300)
+def load_milkrun_data():
+    try:
+        scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        creds_dict = st.secrets["gcp_service_account"]
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        gc = gspread.authorize(credentials)
+
+        sheet_url = "https://docs.google.com/spreadsheets/d/1J5RwYs3IVCm9f0IsCjwtrSerOGdx_J3f3r0o72BgrTA/edit"
+        doc = gc.open_by_url(sheet_url)
+        worksheet = doc.worksheet("시트3")
+
+        raw_data = worksheet.get_all_values()
+        if not raw_data:
+            return pd.DataFrame()
+
+        df = pd.DataFrame(raw_data)
+
+        # A=0(벤더), B=1(센터), C=2(차량), D=3(시간), E=4(수량), F=5(창고)
+        if df.shape[1] < 6:
+            return pd.DataFrame()
+
+        df.columns = range(df.shape[1])
+        result = pd.DataFrame({
+            '차량': df.iloc[:, 2],
+            '시간': df.iloc[:, 3],
+            '벤더': df.iloc[:, 0],
+            '센터': df.iloc[:, 1],
+            '수량': df.iloc[:, 4],
+            '창고': df.iloc[:, 5],
+        })
+
+        # 빈 행 제거
+        result = result[result['차량'].str.strip().astype(bool) | result['벤더'].str.strip().astype(bool)]
+        result = result.reset_index(drop=True)
+
+        return result
+
+    except Exception as e:
+        st.error(f"밀크런 데이터를 불러오는 중 오류가 발생했습니다: {e}")
+        return pd.DataFrame()
+
+def show_milkrun_table(df, warehouse_name):
+    """창고별 밀크런 테이블 표시"""
+    filtered = df[df['창고'].str.strip() == warehouse_name].copy()
+    if filtered.empty:
+        st.info("오늘은 밀크런이 없습니다")
+        return
+    display_df = filtered[['차량', '시간', '벤더', '센터', '수량']].reset_index(drop=True)
+    st.table(display_df)
+
 # ==========================================================
 # 이카운트 로그인 - SESSION_ID 동적 발급
 # ==========================================================
@@ -683,6 +734,31 @@ if st.session_state.current_page == "main":
     # 알맹이 버튼 딱 하나!
     st.button("✔️  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
 
+    # 밀크런 메뉴
+    milkrun_df = pd.DataFrame()
+    milkrun_loaded = False
+
+    with st.expander("🚚  2창고 밀크런", expanded=False):
+        if not milkrun_loaded:
+            with st.spinner("밀크런 데이터 불러오는 중..."):
+                milkrun_df = load_milkrun_data()
+                milkrun_loaded = True
+        show_milkrun_table(milkrun_df, "2창고")
+
+    with st.expander("🚚  3창고 밀크런", expanded=False):
+        if not milkrun_loaded:
+            with st.spinner("밀크런 데이터 불러오는 중..."):
+                milkrun_df = load_milkrun_data()
+                milkrun_loaded = True
+        show_milkrun_table(milkrun_df, "3창고")
+
+    with st.expander("🚚  1창고 밀크런", expanded=False):
+        if not milkrun_loaded:
+            with st.spinner("밀크런 데이터 불러오는 중..."):
+                milkrun_df = load_milkrun_data()
+                milkrun_loaded = True
+        show_milkrun_table(milkrun_df, "1창고")
+
     # 기존 검색 화면
     df = load_real_data()
 
@@ -965,3 +1041,4 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
+                    
