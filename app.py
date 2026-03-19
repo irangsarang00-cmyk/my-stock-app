@@ -231,7 +231,7 @@ def get_incoming_schedule():
 
         exclude_keywords = ['상품전환', '주차 입고', '기준:날짜']
         mask_exclude = df_filled.astype(str).apply(
-            lambda x: x.str.contains('|'.join(exclude_keywords))
+            lambda x: x.str.contains('|'.join(exclude_keywords), regex=True)
         ).any(axis=1)
         df_filtered = df_filled[~mask_exclude]
 
