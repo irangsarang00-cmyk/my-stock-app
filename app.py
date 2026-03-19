@@ -77,7 +77,7 @@ button[kind="primary"]:focus {
     background-color: #357ABD !important; 
     border-color: #357ABD !important;
     color: white !important;
-} /* 👈 빠져있던 닫는 괄호 수정 완료! */
+}
 
 [data-testid="stTable"] th {
     pointer-events: none;
@@ -201,7 +201,6 @@ if user_email not in WHITELIST_EMAILS:
 if "secret_log_printed" not in st.session_state:
     now_kst = (datetime.utcnow() + timedelta(hours=9)).strftime('%H:%M:%S')
     print(f"👀 [{now_kst} KST] {user_email} 왔다 감.")
-    
     st.session_state.secret_log_printed = True
 
 # ==========================================================
@@ -296,21 +295,17 @@ def load_real_data():
         return pd.DataFrame()
 
 # ==========================================================
-# 이카운트 구매입력 API 전송 함수 (테스트 URL 모드)
+# 이카운트 구매입력 API 전송 함수
 # ==========================================================
 def send_ecount_purchase(master_data, detail_data):
     session_id = "3631343530387c56494c495630373330:CA-ETI3CETPl_Qqh"
     zone = "CA"
-    save_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
+    save_url = f"https://oapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     try:
         purchase_list = []
         
         for line_no, (_, row) in enumerate(detail_data.iterrows(), start=1):
-            
-            # ✅ 디버깅용 - 수량 원본값 확인
-            st.write(f"수량 원본값: '{row.get('수량', 'KEY없음')}' / 타입: {type(row.get('수량', '0'))}")
-            
             prod_cd = str(row.get('품목코드', '')).strip()
             if not prod_cd or prod_cd == 'nan':
                 continue
@@ -323,29 +318,22 @@ def send_ecount_purchase(master_data, detail_data):
                 except Exception:
                     add_date_02 = str(exp_raw).replace("-", "").replace("/", "").replace(" ", "")
             
-            # ✅ 수량 변환 - 쉼표 제거 후 변환
+            # 수량 변환 - 쉼표 제거 후 정수 변환
             qty_raw = str(row.get('수량', '0')).strip().replace(',', '').replace(' ', '')
             try:
                 qty_val = str(int(float(qty_raw)))
             except Exception:
                 qty_val = "0"
-            
-            st.write(f"수량 변환 결과: '{qty_raw}' → '{qty_val}'")  # 확인 후 제거
 
             purchase_item = {
-                "BulkFlag": "M",
-                "LineReqNo": str(line_no),
                 "IO_DATE": str(master_data['일자']),
                 "CUST": str(master_data['거래처코드']),
-                "EMP_CD": "00008",
                 "WH_CD": str(master_data['창고코드']),
                 "PROD_CD": prod_cd,
                 "PROD_DES": str(row.get('품목명', '')).strip(),
-                "QTY": qty_val,   # 👈 qty_val 사용하고 있는지 확인!
-                "PRICE": "0",
-                "SUPPLY_AMT": "0",
+                "QTY": qty_val,
                 "ADD_DATE_02": add_date_02,
-                "U_MEMO1": "실제 담당자: " + str(master_data['담당자'])
+                "U_MEMO1": "작성자: " + str(master_data['담당자'])
             }
             purchase_list.append(purchase_item)
         
@@ -354,27 +342,12 @@ def send_ecount_purchase(master_data, detail_data):
         
         save_payload = {
             "PurchasesList": [
-                {
-                    "BulkDatas": {
-                        "IO_DATE": item["IO_DATE"],
-                        "CUST": item["CUST"],
-                        "WH_CD": item["WH_CD"],
-                        "PROD_CD": item["PROD_CD"],
-                        "PROD_DES": item["PROD_DES"],
-                        "QTY": item["QTY"],
-                        "ADD_DATE_02": item["ADD_DATE_02"],
-                        "REMARKS": item["U_MEMO1"]
-                    }
-                }
+                {"BulkDatas": item}
                 for item in purchase_list
             ]
         }
         
-        st.write("📡 전송 데이터:", save_payload)
-        
         save_res = requests.post(save_url, json=save_payload).json()
-        
-        st.write("📡 이카운트 응답:", save_res)
         
         if str(save_res.get("Status")) == "200":
             return True, "✅ 이카운트 구매입력이 완료되었습니다!"
@@ -431,9 +404,7 @@ def go_to_ecount():
 
 def go_to_main():
     st.session_state.current_page = "main"
-    
     st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "제조일자"])
-    
     keys_to_clear = ["ecount_date", "ecount_vendor", "ecount_actual_user", "ecount_wh"]
     for k in keys_to_clear:
         if k in st.session_state:
@@ -484,20 +455,15 @@ if st.session_state.current_page == "main":
     with col3:
         sched_data = pd.DataFrame() 
         
-        # ✨ 스케줄 표 확장 및 AgGrid + 폼 적용
         with st.expander("🚛 입고스케줄", expanded=True): 
             with st.spinner('분석 중...'):
                 sched_data = get_incoming_schedule()
                 if not sched_data.empty:
                     st.write("") 
                     
-                    # 폼으로 감싸서 체크 시 튕김 현상 방지
                     with st.form("schedule_copy_form"):
                         gb = GridOptionsBuilder.from_dataframe(sched_data)
-                        
                         gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
-                        
-                        # 화면 찌그러짐 방지
                         gb.configure_default_column(
                             sortable=False,        
                             suppressMovable=True,  
@@ -505,8 +471,6 @@ if st.session_state.current_page == "main":
                             suppressSizeToFit=True 
                         )
                         gb.configure_grid_options(suppressMovableColumns=True)
-                        
-                        # ✨ 여기서 열 너비 조절!
                         gb.configure_column('날짜', pinned='left', width=95) 
                         gb.configure_column('바코드', width=145)
                         gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
@@ -529,48 +493,37 @@ if st.session_state.current_page == "main":
                             reload_data=False 
                         )
                         
-                        # ✨ 여기서 표 아래 공간을 반으로 쪼갭니다!
                         col_left, col_right = st.columns(2)
                         
                         with col_left:
-                            # 1. 왼쪽 칸: 항목을 확정 짓는 '선택' 버튼 (항상 활성화)
                             generate_btn = st.form_submit_button("선택", use_container_width=True)
                     
                         with col_right:
-                            # 2. 오른쪽 칸: 상태에 따라 '비활성화 버튼' 또는 '활성화 버튼'을 띄웁니다.
-                            is_active = False # 기본 상태는 비활성화(False)
+                            is_active = False
                             copy_text = ""
                             
-                            # [선택] 버튼을 눌렀을 때의 로직
                             if generate_btn:
                                 selected_rows = grid_response['selected_rows']
                                 
                                 if selected_rows is not None and len(selected_rows) > 0:
-                                    is_active = True # ✨ 선택된 게 있으니 활성화 상태(True)로 바꿉니다!
+                                    is_active = True
                                     mfg_keywords = ['마스크', '닭가슴살']
                                     selected_df = pd.DataFrame(selected_rows)
                                     
                                     for _, row in selected_df.iterrows():
                                         barcode_str = str(row.get('바코드', '')).strip()
                                         barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
-                                        
                                         prod_name = str(row.get('제품명', '')).strip()
                                         qty = str(row.get('수량', '')).strip()
-                                        
                                         line_text = f"[{barcode_short}] {prod_name} / {qty}개"
-                                        
                                         has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
                                         if has_keyword:
                                             line_text += " ( 제조)"
-                                            
                                         copy_text += line_text + "\n"
                                 else:
-                                    # 아무것도 안 고르고 선택을 눌렀을 때의 경고창
                                     st.warning("선택된 항목이 없습니다.")
 
-                            # ✨ 오른쪽 버튼들: iframe의 기본 여백(margin/padding)을 0으로 싹 없애고, 높이를 45로 딱 맞춥니다!
                             if is_active:
-                                # [선택]을 누르고 데이터가 있을 때 -> 파란색 진짜 복사 버튼!
                                 components.html(f"""
                                 <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
                                 <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
@@ -579,7 +532,6 @@ if st.session_state.current_page == "main":
                                 </button>
                                 """, height=45)
                             else:
-                                # 기본 상태이거나 선택된 게 없을 때 -> 누를 수 없는 회색 깡통 버튼!
                                 components.html(f"""
                                 <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
                                 <button disabled 
@@ -590,7 +542,7 @@ if st.session_state.current_page == "main":
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
-        st.button("📝 (공사중) 이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="primary")
+        st.button("📝 이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="primary")
 
     # 기존 검색 화면
     df = load_real_data()
@@ -598,9 +550,7 @@ if st.session_state.current_page == "main":
     st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
     st.markdown("<h4 style='text-align: center; font-size: 1.3em;'>상품명 또는 PL번호로 검색</h4>", unsafe_allow_html=True)
 
-    # 👈 빈칸(label) 경고 해결을 위해 이름표를 채웠습니다!
     search_query = st.text_input("검색어", label_visibility="collapsed", placeholder="검색어를 입력하세요...")
-
     search_button = st.button("🔍 검색", type="primary", use_container_width=True)
 
     if search_query and not df.empty:
@@ -672,24 +622,6 @@ if st.session_state.current_page == "main":
 elif st.session_state.current_page == "ecount":
     
     st.button("⬅️ 메인으로", on_click=go_to_main)
-
-    st.markdown("""
-        <div style="
-            color: #e74c3c; 
-            font-size: 2.5em; 
-            font-weight: bold; 
-            text-align: center; 
-            margin-top: 15px; 
-            margin-bottom: 15px;
-            border: 3px solid #e74c3c;
-            border-radius: 10px;
-            padding: 10px;
-            background-color: #fdf2f2;
-        ">
-            &lt;공사중입니다&gt;
-        </div>
-        """, unsafe_allow_html=True)
-    
     st.write("### 📦 입고내역 불러오기")
     
     sched_data = get_incoming_schedule()
@@ -697,28 +629,23 @@ elif st.session_state.current_page == "ecount":
     if not sched_data.empty:
         sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
         
-        # ✨ 1. 한국 시간(KST) 기준으로 이번 주 월요일 00시 00분을 정확하게 잡습니다.
         today_kst = datetime.utcnow() + timedelta(hours=9)
         monday_start = (today_kst - timedelta(days=today_kst.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         
-        # ✨ 2. 초강력 날짜 파서 (모양 상관없이 무조건 월, 일 숫자만 뽑아냅니다!)
         def parse_date_super(val):
             try:
                 val_str = str(val).replace(' ', '')
-                # 슬래시, 마침표, 하이픈 등 기호 기준으로 다 쪼개고 숫자만 남깁니다.
                 parts = [p for p in re.split(r'[/.\-]', val_str) if p.isdigit()]
-                
                 if len(parts) >= 2:
-                    m = int(parts[-2]) # 뒤에서 두 번째는 무조건 월
-                    d = int(parts[-1]) # 제일 마지막은 무조건 일
+                    m = int(parts[-2])
+                    d = int(parts[-1])
                     return datetime(today_kst.year, m, d)
             except:
                 pass
-            return datetime(1900, 1, 1) # 알 수 없는 글자는 1900년으로 처리해서 알아서 걸러지게 합니다.
+            return datetime(1900, 1, 1)
             
         valid_dates = sched_for_selection['날짜'].apply(parse_date_super)
         sched_for_selection = sched_for_selection[valid_dates >= monday_start]
-        
         sched_for_selection = sched_for_selection[~sched_for_selection['거래처'].str.contains('이우', na=False)]
         
         if not sched_for_selection.empty:
@@ -726,7 +653,6 @@ elif st.session_state.current_page == "ecount":
             with st.form("ag_grid_form"):
                 gb = GridOptionsBuilder.from_dataframe(sched_for_selection)
                 gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
-                
                 gb.configure_default_column(
                     sortable=False,        
                     suppressMovable=True,  
@@ -734,7 +660,6 @@ elif st.session_state.current_page == "ecount":
                     suppressSizeToFit=True 
                 )
                 gb.configure_grid_options(suppressMovableColumns=True)
-                
                 gb.configure_column('날짜', pinned='left', width=95) 
                 gb.configure_column('바코드', width=145)
                 gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
@@ -744,7 +669,7 @@ elif st.session_state.current_page == "ecount":
                 gridOptions = gb.build()
                 
                 grid_response = AgGrid(
-                    sched_data,
+                    sched_for_selection,
                     gridOptions=gridOptions,
                     use_container_width=True, 
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
@@ -786,7 +711,6 @@ elif st.session_state.current_page == "ecount":
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
         with st.expander("💡 작성 팁"):
-            # ✨ div 태그로 감싸서 왼쪽에 15px 정도 여유 공간을 푹신하게 주고, 줄 간격도 1.6배로 넓혔습니다!
             st.markdown("""
             <div style='padding-left: 15px; line-height: 1.6;'>
                 ✔️ <b>#만 있는 것</b> = 라온글로벌<br>
@@ -796,7 +720,6 @@ elif st.session_state.current_page == "ecount":
             </div>
             """, unsafe_allow_html=True)
             
-    # ✨ 지워졌던 바로 그 핵심 코드! 다시 살려두었습니다.
     c3, c4 = st.columns(2)
     
     with c3:
@@ -823,7 +746,6 @@ elif st.session_state.current_page == "ecount":
     )
     
     real_df = load_real_data()
-    # 👈 여기서도 빈칸(label) 경고 해결을 위해 이름표를 채웠습니다!
     search_kw = st.text_input(
         "검색어", 
         key="manual_search_kw", 
@@ -864,7 +786,6 @@ elif st.session_state.current_page == "ecount":
             st.info(f"총 {len(search_result)}개의 품목이 검색되었습니다.")
             
             options = [f"[{str(r['품목코드'])[-4:]}] {r['품목명']} (코드:{r['품목코드']})" for _, r in search_result.iterrows()]
-            
             selected_option_full = st.selectbox("품목 선택", options, key="manual_select_item", format_func=lambda x: x.split(" (코드:")[0])
             
             if st.button("✅ 추가", type="secondary"):
