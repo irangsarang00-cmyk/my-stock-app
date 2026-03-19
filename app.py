@@ -681,16 +681,17 @@ if st.session_state.current_page == "main":
     if "sched_copy_active" not in st.session_state:
         st.session_state.sched_copy_active = False
 
-    # ✅ 데이터를 expander 밖에서 미리 로딩 (expander 안에서 로딩하면 체크박스 클릭 시 튕김)
-    if "sched_data_cache" not in st.session_state:
-        st.session_state.sched_data_cache = pd.DataFrame()
-    if st.session_state.sched_data_cache.empty:
-        with st.spinner('입고스케줄 불러오는 중...'):
-            st.session_state.sched_data_cache = get_incoming_schedule()
-    sched_data = st.session_state.sched_data_cache
+    @st.fragment
+    def render_sched_expander():
+        if "sched_data_cache" not in st.session_state:
+            st.session_state.sched_data_cache = pd.DataFrame()
+        if st.session_state.sched_data_cache.empty:
+            with st.spinner('입고스케줄 불러오는 중...'):
+                st.session_state.sched_data_cache = get_incoming_schedule()
+        sched_data = st.session_state.sched_data_cache
 
-    with st.expander("🚛 입고스케줄", expanded=False):
-        if not sched_data.empty:
+        with st.expander("🚛 입고스케줄", expanded=False):
+            if not sched_data.empty:
                 st.write("")
                 gb = GridOptionsBuilder.from_dataframe(sched_data)
                 gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
@@ -774,8 +775,10 @@ if st.session_state.current_page == "main":
                             📋 복사
                         </button>
                         """, height=45)
-        else:
-            st.warning("예정된 가평 스케줄이 없습니다.")
+            else:
+                st.warning("예정된 가평 스케줄이 없습니다.")
+
+    render_sched_expander()
 
     # ✨ 띄어쓰기 한 칸의 미학과 메뉴 사이의 쫀득함을 살린 최종 CSS!
     st.markdown("""
