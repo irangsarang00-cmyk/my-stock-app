@@ -323,24 +323,27 @@ def send_ecount_purchase(master_data, detail_data):
                 except Exception:
                     add_date_02 = str(exp_raw).replace("-", "").replace("/", "").replace(" ", "")
             
-            # ✅ 수량을 소수점 없는 정수 문자열로 강제 변환
+            # ✅ 수량 변환 - 쉼표 제거 후 변환
+            qty_raw = str(row.get('수량', '0')).strip().replace(',', '').replace(' ', '')
             try:
-                qty_val = str(int(float(str(row.get('수량', '0')).strip())))
+                qty_val = str(int(float(qty_raw)))
             except Exception:
                 qty_val = "0"
+            
+            st.write(f"수량 변환 결과: '{qty_raw}' → '{qty_val}'")  # 확인 후 제거
 
             purchase_item = {
                 "BulkFlag": "M",
                 "LineReqNo": str(line_no),
-                "IO_DATE": str(master_data['일자']),        # 형식: "20260319"
-                "CUST": str(master_data['거래처코드']),      # 형식: "171-86-02191"
+                "IO_DATE": str(master_data['일자']),
+                "CUST": str(master_data['거래처코드']),
                 "EMP_CD": "00008",
-                "WH_CD": str(master_data['창고코드']),       # 형식: "007"
+                "WH_CD": str(master_data['창고코드']),
                 "PROD_CD": prod_cd,
                 "PROD_DES": str(row.get('품목명', '')).strip(),
-                "QTY": qty_val,
-                "PRICE": "0",                               # ✅ 단가 0으로 명시
-                "SUPPLY_AMT": "0",                          # ✅ 공급가액 명시
+                "QTY": qty_val,   # 👈 qty_val 사용하고 있는지 확인!
+                "PRICE": "0",
+                "SUPPLY_AMT": "0",
                 "ADD_DATE_02": add_date_02,
                 "U_MEMO1": "실제 담당자: " + str(master_data['담당자'])
             }
