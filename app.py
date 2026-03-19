@@ -352,7 +352,23 @@ def send_ecount_purchase(master_data, detail_data):
         if not purchase_list:
             return False, "전송할 품목이 없습니다."
         
-        save_payload = {"PurchaseList": purchase_list}
+        save_payload = {
+            "PurchasesList": [
+                {
+                    "BulkDatas": {
+                        "IO_DATE": item["IO_DATE"],
+                        "CUST": item["CUST"],
+                        "WH_CD": item["WH_CD"],
+                        "PROD_CD": item["PROD_CD"],
+                        "PROD_DES": item["PROD_DES"],
+                        "QTY": item["QTY"],
+                        "ADD_DATE_02": item["ADD_DATE_02"],
+                        "REMARKS": item["U_MEMO1"]
+                    }
+                }
+                for item in purchase_list
+            ]
+        }
         
         st.write("📡 전송 데이터:", save_payload)
         
