@@ -759,6 +759,9 @@ elif st.session_state.current_page == "ecount":
                 ✔️ <b>[이우]</b> = 여기서 입고 불가. 창고이동에서 하세요.
             </div>
             """, unsafe_allow_html=True)
+            
+    # ✨ 지워졌던 바로 그 핵심 코드! 다시 살려두었습니다.
+    c3, c4 = st.columns(2)
     
     with c3:
         actual_user = st.text_input(
