@@ -641,7 +641,7 @@ if st.session_state.current_page == "main":
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
-    # ✨ 불필요한 껍데기를 다 벗기고, 윗공간 여백과 구분선(hr)을 완벽하게 날려버립니다!
+    # ✨ 스트림릿의 똥고집을 꺾는 최종 진화형 CSS입니다!
     st.markdown("""
         <style>
         /* 1. 화면에 보이는 모든 회색 구분선(hr) 싹 지우기 */
@@ -649,17 +649,21 @@ if st.session_state.current_page == "main":
             display: none !important;
         }
 
-        /* 2. 익스팬더(메뉴) 자체의 아래쪽 틈새 완전 밀봉 */
-        div[data-testid="stExpander"] {
-            margin-bottom: 0px !important; 
+        /* ✨ 2. 이카운트 버튼만 정밀 타격하는 '투명 닻(Anchor)' 마법! */
+        /* 다른 버튼(검색 등)은 냅두고, 닻 바로 밑에 있는 버튼만 위로 25px 끌어올립니다. */
+        div[data-testid="element-container"]:has(.ecount-anchor) + div,
+        div[data-testid="stElementContainer"]:has(.ecount-anchor) + div {
+            margin-top: -25px !important;
         }
 
-        /* 3. 이카운트 버튼(stButton) 구역 전체를 멱살 잡고 강제로 끌어올리기! */
-        /* (혹시 너무 겹치면 -20px 숫자를 -10px 정도로 줄여주시면 됩니다) */
-        div.stButton {
-            margin-top: -20px !important;
+        /* ✨ 3. 이카운트 버튼 안의 글씨를 왼쪽으로 정렬하고 여백 띄우기! */
+        div[data-testid="element-container"]:has(.ecount-anchor) + div button,
+        div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button {
+            justify-content: flex-start !important;
+            padding-left: 18px !important;
         }
         </style>
+        <div class="ecount-anchor"></div>
     """, unsafe_allow_html=True)
 
     # 알맹이 버튼 딱 하나!
