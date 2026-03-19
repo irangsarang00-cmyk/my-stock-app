@@ -544,6 +544,12 @@ def send_ecount_purchase(master_data, detail_data):
     except Exception as e:
         return False, "API 통신 오류: " + str(e)
 
+def normalize_selected_items(df):
+    """selected_items의 제조일자 컬럼 타입을 object로 통일해서 data_editor 오류 방지"""
+    df = df.copy()
+    df["제조일자"] = df["제조일자"].astype(object).where(df["제조일자"].notna(), None)
+    return df
+
 # ==========================================================
 # 2. 메인 화면 및 페이지 이동 제어
 # ==========================================================
@@ -1062,8 +1068,7 @@ elif st.session_state.current_page == "ecount":
                     "수량": "1",
                     "제조일자": None
                 }])
-                st.session_state.selected_items = final_items
-                st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
+                st.session_state.selected_items = normalize_selected_items(pd.concat([final_items, new_row], ignore_index=True))
                 st.rerun()
                 
         else:
@@ -1082,8 +1087,7 @@ elif st.session_state.current_page == "ecount":
                     "수량": "1",
                     "제조일자": None
                 }])
-                st.session_state.selected_items = final_items
-                st.session_state.selected_items = pd.concat([st.session_state.selected_items, new_row], ignore_index=True)
+                st.session_state.selected_items = normalize_selected_items(pd.concat([final_items, new_row], ignore_index=True))
                 st.rerun()
 
     st.divider()
@@ -1109,4 +1113,3 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
-                    
