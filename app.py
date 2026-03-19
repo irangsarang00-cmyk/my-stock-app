@@ -484,6 +484,7 @@ if st.session_state.current_page == "main":
                         
                         generate_btn = st.form_submit_button("📝 텍스트 만들기", use_container_width=True)
                     
+                    # 3. '텍스트 만들기' 버튼을 눌렀을 때의 동작
                     if generate_btn:
                         selected_rows = grid_response['selected_rows']
                         
@@ -491,7 +492,11 @@ if st.session_state.current_page == "main":
                             copy_text = ""
                             mfg_keywords = ['마스크', '닭가슴살']
                             
-                            for row in selected_rows:
+                            # ✨ [수정 1] 뭉텅이 데이터를 확실하게 표(DataFrame)로 변환해 줍니다!
+                            selected_df = pd.DataFrame(selected_rows)
+                            
+                            # ✨ [수정 2] iterrows()를 붙여서 '글자'가 아니라 '진짜 데이터 한 줄'씩 꺼내오게 만듭니다!
+                            for _, row in selected_df.iterrows():
                                 barcode_str = str(row.get('바코드', '')).strip()
                                 barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
                                 
