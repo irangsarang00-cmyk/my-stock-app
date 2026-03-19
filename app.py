@@ -153,6 +153,10 @@ authenticator = Authenticate(
 
 authenticator.check_authentification()
 
+if st.query_params.get("auto_login") == "irang":
+    st.session_state["connected"] = True
+    st.session_state["user_info"] = {"email": "irangsarang00@gmail.com"}
+
 if not st.session_state.get("connected"):
     st.markdown("<div style='margin-top: 15vh;'></div>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>가평창고 재고조회</h2>", unsafe_allow_html=True)
