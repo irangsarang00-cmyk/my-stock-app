@@ -774,8 +774,8 @@ if st.session_state.current_page == "main":
                             📋 복사
                         </button>
                         """, height=45)
-            else:
-                st.warning("예정된 가평 스케줄이 없습니다.")
+        else:
+            st.warning("예정된 가평 스케줄이 없습니다.")
 
     # ✨ 띄어쓰기 한 칸의 미학과 메뉴 사이의 쫀득함을 살린 최종 CSS!
     st.markdown("""
