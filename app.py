@@ -531,6 +531,7 @@ if st.session_state.current_page == "main":
                                     </button>
                                 </div>
                                 """, height=50)
+                                
                             else:
                                 # 기본 상태이거나 선택된 게 없을 때 -> 누를 수 없는 회색 깡통 버튼!
                                 components.html(f"""
