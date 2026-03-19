@@ -641,7 +641,7 @@ if st.session_state.current_page == "main":
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
-    # ✨ 스트림릿의 똥고집을 꺾는 최종 진화형 CSS입니다!
+    # ✨ 띄어쓰기 한 칸의 미학과 메뉴 사이의 쫀득함을 살린 최종 CSS!
     st.markdown("""
         <style>
         /* 1. 화면에 보이는 모든 회색 구분선(hr) 싹 지우기 */
@@ -649,21 +649,22 @@ if st.session_state.current_page == "main":
             display: none !important;
         }
 
-        /* 2. 익스팬더(메뉴) 아래쪽 틈새 밀봉 */
+        /* ✨ 2. 메뉴(익스팬더) 사이의 간격을 아~주 조금만 더 좁히기 (-5px 끌어올림) */
         div[data-testid="stExpander"] {
             margin-bottom: 0px !important; 
+            margin-top: -5px !important; 
         }
 
-        /* ✨ 3. 이카운트 버튼 위로 끌어올리기 (검색 버튼은 냅두고 얘만!) */
+        /* 3. 이카운트 버튼 위로 끌어올리기 */
         div[data-testid="element-container"]:has(.ecount-anchor) + div,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div {
-            margin-top: -25px !important;
+            margin-top: -25px !important; 
         }
 
-        /* ✨ 4. 버튼 안의 모든 껍질과 알맹이 글씨를 완벽하게 왼쪽으로 밀어버리기! */
+        /* ✨ 4. 버튼 안의 글씨를 왼쪽으로 밀고, 띄어쓰기 한 칸(8px)만큼의 여백 주기! */
         div[data-testid="element-container"]:has(.ecount-anchor) + div button,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button {
-            padding-left: 20px !important;
+            padding-left: 28px !important; /* 👈 원래 20px에서 8px(한 칸) 더 밀었습니다! */
         }
         div[data-testid="element-container"]:has(.ecount-anchor) + div button > div,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button > div {
@@ -680,7 +681,7 @@ if st.session_state.current_page == "main":
     """, unsafe_allow_html=True)
 
     # 알맹이 버튼 딱 하나!
-    st.button("›    📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
+    st.button("›  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
 
     # 기존 검색 화면
     df = load_real_data()
