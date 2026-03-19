@@ -664,117 +664,99 @@ if st.session_state.current_page == "main":
 
     sched_data = pd.DataFrame()
 
-    if st.session_state.get("sched_form_submitted"):
-        st.session_state.sched_expander_open = True
-        st.session_state.sched_form_submitted = False
+    # session_state 초기화
+    if "sched_copy_text" not in st.session_state:
+        st.session_state.sched_copy_text = ""
+    if "sched_copy_active" not in st.session_state:
+        st.session_state.sched_copy_active = False
 
-    with st.expander("🚛 입고스케줄", expanded=st.session_state.sched_expander_open):
-        # 폼 제출 후 스크롤 위치 유지
-        components.html("""
-        <script>
-        (function() {
-            const key = 'schedule_scroll_pos';
-            // 저장된 위치로 복원
-            const saved = sessionStorage.getItem(key);
-            if (saved) {
-                window.parent.document.documentElement.scrollTop = parseInt(saved);
-                sessionStorage.removeItem(key);
-            }
-            // 폼 제출 버튼 클릭 시 현재 위치 저장
-            window.parent.document.addEventListener('click', function(e) {
-                const btn = e.target.closest('button');
-                if (btn && btn.innerText.includes('선택')) {
-                    sessionStorage.setItem(key, window.parent.document.documentElement.scrollTop);
-                }
-            }, true);
-        })();
-        </script>
-        """, height=0)
+    with st.expander("🚛 입고스케줄", expanded=False):
         with st.spinner('분석 중...'):
             sched_data = get_incoming_schedule()
             if not sched_data.empty:
                 st.write("")
-                with st.form("schedule_copy_form"):
-                    gb = GridOptionsBuilder.from_dataframe(sched_data)
-                    gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
-                    gb.configure_default_column(
-                        sortable=False,
-                        suppressMovable=True,
-                        resizable=False,
-                        suppressSizeToFit=True
-                    )
-                    gb.configure_grid_options(
-                        suppressMovableColumns=True,
-                        suppressHorizontalScroll=False
-                    )
-                    gb.configure_column('날짜', pinned='left', width=95)
-                    gb.configure_column('바코드', width=145)
-                    gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True)
-                    gb.configure_column('수량', width=80)
-                    gb.configure_column('입고시간', width=90)
-                    gb.configure_column('창고', width=80)
-                    gb.configure_column('컨테이너', width=130)
-                    gb.configure_column('거래처', width=160)
+                gb = GridOptionsBuilder.from_dataframe(sched_data)
+                gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
+                gb.configure_default_column(
+                    sortable=False,
+                    suppressMovable=True,
+                    resizable=False,
+                    suppressSizeToFit=True
+                )
+                gb.configure_grid_options(
+                    suppressMovableColumns=True,
+                    suppressHorizontalScroll=False
+                )
+                gb.configure_column('날짜', pinned='left', width=95)
+                gb.configure_column('바코드', width=145)
+                gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True)
+                gb.configure_column('수량', width=80)
+                gb.configure_column('입고시간', width=90)
+                gb.configure_column('창고', width=80)
+                gb.configure_column('컨테이너', width=130)
+                gb.configure_column('거래처', width=160)
 
-                    gridOptions = gb.build()
+                gridOptions = gb.build()
 
-                    grid_response = AgGrid(
-                        sched_data,
-                        gridOptions=gridOptions,
-                        use_container_width=True,
-                        columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
-                        fit_columns_on_grid_load=False,
-                        theme="alpine",
-                        height=350,
-                        reload_data=False
-                    )
+                grid_response = AgGrid(
+                    sched_data,
+                    gridOptions=gridOptions,
+                    update_mode=GridUpdateMode.SELECTION_CHANGED,
+                    use_container_width=True,
+                    columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
+                    fit_columns_on_grid_load=False,
+                    theme="alpine",
+                    height=350,
+                    reload_data=False,
+                    key="sched_aggrid"
+                )
 
-                    col_left, col_right = st.columns(2)
+                col_left, col_right = st.columns(2)
 
-                    with col_left:
-                        generate_btn = st.form_submit_button("선택", use_container_width=True)
+                with col_left:
+                    generate_btn = st.button("선택", use_container_width=True, key="sched_select_btn")
 
-                    with col_right:
-                        is_active = False
+                if generate_btn:
+                    selected_rows = grid_response['selected_rows']
+                    if selected_rows is not None and len(selected_rows) > 0:
                         copy_text = ""
+                        mfg_keywords = ['마스크', '닭가슴살']
+                        selected_df = pd.DataFrame(selected_rows)
+                        for _, row in selected_df.iterrows():
+                            barcode_str = str(row.get('바코드', '')).strip()
+                            barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
+                            prod_name = str(row.get('제품명', '')).strip()
+                            qty = str(row.get('수량', '')).strip()
+                            line_text = f"[{barcode_short}] {prod_name} / {qty}개"
+                            has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
+                            if has_keyword:
+                                line_text += " ( 제조)"
+                            copy_text += line_text + "\n"
+                        copy_text += "\n 창고로 입고되었습니다."
+                        st.session_state.sched_copy_text = copy_text
+                        st.session_state.sched_copy_active = True
+                    else:
+                        st.warning("선택된 항목이 없습니다.")
+                        st.session_state.sched_copy_active = False
 
-                        if generate_btn:
-                            st.session_state.sched_form_submitted = True
-                            selected_rows = grid_response['selected_rows']
-                            if selected_rows is not None and len(selected_rows) > 0:
-                                is_active = True
-                                mfg_keywords = ['마스크', '닭가슴살']
-                                selected_df = pd.DataFrame(selected_rows)
-                                for _, row in selected_df.iterrows():
-                                    barcode_str = str(row.get('바코드', '')).strip()
-                                    barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
-                                    prod_name = str(row.get('제품명', '')).strip()
-                                    qty = str(row.get('수량', '')).strip()
-                                    line_text = f"[{barcode_short}] {prod_name} / {qty}개"
-                                    has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
-                                    if has_keyword:
-                                        line_text += " ( 제조)"
-                                    copy_text += line_text + "\n"
-                                copy_text += "\n 창고로 입고되었습니다."
-                            else:
-                                st.warning("선택된 항목이 없습니다.")
-
-                        if is_active:
-                            components.html(f"""
-                            <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
-                            <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';"
-                                    style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
-                                📋 복사
-                            </button>
-                            """, height=45)
-                        else:
-                            components.html(f"""
-                            <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
-                            <button disabled
-                                    style="width: 100%; height: 45px; background-color: #e0e0e0; color: #a0a0a0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
-                                📋 복사
-                            </button>
-                            """, height=45)
+                with col_right:
+                    if st.session_state.sched_copy_active:
+                        copy_text = st.session_state.sched_copy_text
+                        components.html(f"""
+                        <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
+                        <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';"
+                                style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
+                            📋 복사
+                        </button>
+                        """, height=45)
+                    else:
+                        components.html("""
+                        <style>body {margin: 0; padding: 0; overflow: hidden;}</style>
+                        <button disabled
+                                style="width: 100%; height: 45px; background-color: #e0e0e0; color: #a0a0a0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
+                            📋 복사
+                        </button>
+                        """, height=45)
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
 
