@@ -515,14 +515,16 @@ if st.session_state.current_page == "main":
                                             
                                         copy_text += line_text + "\n"
                                     
-                                    # ✨ 조립이 다 끝나면 바로 이 오른쪽 칸에 최종 복사 버튼을 띄웁니다!
-                                    # (버튼 높이를 왼쪽의 기본 스트림릿 버튼과 비슷하게 맞췄어요)
+                                    # ✨ 두 버튼의 크기와 높이를 완벽하게 일치시키기 위한 디테일 조정!
+                                    # (margin을 0으로 없애고, 버튼 높이를 45px로 왼쪽 버튼과 똑같이 맞췄습니다.)
                                     components.html(f"""
-                                    <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
-                                            style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                        📋 복사
-                                    </button>
-                                    """, height=55)
+                                    <div style="margin: 0; padding: 0;">
+                                        <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
+                                                style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; margin-top: 2px;">
+                                            📋 복사
+                                        </button>
+                                    </div>
+                                    """, height=50) # iframe 자체의 높이도 버튼 높이에 딱 맞게 줄였습니다.
                                 else:
                                     # 아무것도 안 고르고 선택을 눌렀을 때의 경고창
                                     st.warning("선택된 항목이 없습니다.")
