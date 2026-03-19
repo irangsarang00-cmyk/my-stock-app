@@ -545,9 +545,16 @@ def send_ecount_purchase(master_data, detail_data):
         return False, "API 통신 오류: " + str(e)
 
 def normalize_selected_items(df):
-    """selected_items의 제조일자 컬럼 타입을 object로 통일해서 data_editor 오류 방지"""
+    """selected_items의 제조일자 컬럼을 datetime 타입으로 통일해서 data_editor 오류 방지"""
     df = df.copy()
-    df["제조일자"] = df["제조일자"].astype(object).where(df["제조일자"].notna(), None)
+    def to_dt(v):
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return pd.NaT
+        try:
+            return pd.to_datetime(v)
+        except:
+            return pd.NaT
+    df["제조일자"] = df["제조일자"].apply(to_dt)
     return df
 
 # ==========================================================
@@ -707,7 +714,7 @@ if st.session_state.current_page == "main":
                 grid_response = AgGrid(
                     sched_data,
                     gridOptions=gridOptions,
-                    update_mode=GridUpdateMode.SELECTION_CHANGED,
+                    update_mode=GridUpdateMode.NO_UPDATE,
                     use_container_width=True,
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
                     fit_columns_on_grid_load=False,
@@ -979,9 +986,9 @@ elif st.session_state.current_page == "ecount":
                         "품목코드": selected_df["바코드"],
                         "품목명": selected_df["제품명"],
                         "수량": selected_df["수량"],
-                        "제조일자": None 
+                        "제조일자": pd.NaT
                     })
-                    st.session_state.selected_items = new_items
+                    st.session_state.selected_items = normalize_selected_items(new_items)
                     st.success("입고내역을 불러왔어요.")
                 else:
                     st.warning("선택된 항목이 없습니다.")
@@ -1113,3 +1120,4 @@ elif st.session_state.current_page == "ecount":
                     st.success(msg)
                 else:
                     st.error(msg)
+                    
