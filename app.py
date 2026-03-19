@@ -486,18 +486,21 @@ if st.session_state.current_page == "main":
                         col_left, col_right = st.columns(2)
                         
                         with col_left:
-                            # 1. 왼쪽 칸에는 항목을 확정 짓는 '선택' 버튼을 둡니다.
+                            # 1. 왼쪽 칸: 항목을 확정 짓는 '선택' 버튼 (항상 활성화)
                             generate_btn = st.form_submit_button("선택", use_container_width=True)
                     
                         with col_right:
-                            # 2. 오른쪽 칸은 처음엔 비워두고, '선택' 버튼이 눌렸을 때만 로직이 돌아가게 합니다.
+                            # 2. 오른쪽 칸: 상태에 따라 '비활성화 버튼' 또는 '활성화 버튼'을 띄웁니다.
+                            is_active = False # 기본 상태는 비활성화(False)
+                            copy_text = ""
+                            
+                            # [선택] 버튼을 눌렀을 때의 로직
                             if generate_btn:
                                 selected_rows = grid_response['selected_rows']
                                 
                                 if selected_rows is not None and len(selected_rows) > 0:
-                                    copy_text = ""
+                                    is_active = True # ✨ 선택된 게 있으니 활성화 상태(True)로 바꿉니다!
                                     mfg_keywords = ['마스크', '닭가슴살']
-                                    
                                     selected_df = pd.DataFrame(selected_rows)
                                     
                                     for _, row in selected_df.iterrows():
@@ -514,17 +517,30 @@ if st.session_state.current_page == "main":
                                             line_text += " ( 제조)"
                                             
                                         copy_text += line_text + "\n"
-                                    
-                                    # ✨ 두 버튼의 크기와 높이를 완벽하게 일치시키기 위한 디테일 조정!
-                                    # (margin을 0으로 없애고, 버튼 높이를 45px로 왼쪽 버튼과 똑같이 맞췄습니다.)
-                                    components.html(f"""
-                                    <div style="margin: 0; padding: 0;">
-                                        <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
-                                                style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; margin-top: 2px;">
-                                            📋 복사
-                                        </button>
-                                    </div>
-                                    """, height=50) # iframe 자체의 높이도 버튼 높이에 딱 맞게 줄였습니다.
+                                else:
+                                    st.warning("선택된 항목이 없습니다.")
+
+                            # ✨ 최종 버튼 그리기 (활성화 여부에 따라 색상과 작동이 달라집니다)
+                            if is_active:
+                                # [선택]을 누르고 데이터가 있을 때 -> 파란색 진짜 복사 버튼!
+                                components.html(f"""
+                                <div style="margin: 0; padding: 0;">
+                                    <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
+                                            style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; margin-top: 2px;">
+                                        📋 복사
+                                    </button>
+                                </div>
+                                """, height=50)
+                            else:
+                                # 기본 상태이거나 선택된 게 없을 때 -> 누를 수 없는 회색 깡통 버튼!
+                                components.html(f"""
+                                <div style="margin: 0; padding: 0;">
+                                    <button disabled 
+                                            style="width: 100%; height: 45px; background-color: #e0e0e0; color: #a0a0a0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
+                                        📋 복사 (선택 먼저)
+                                    </button>
+                                </div>
+                                """, height=50)
                                 else:
                                     # 아무것도 안 고르고 선택을 눌렀을 때의 경고창
                                     st.warning("선택된 항목이 없습니다.")
