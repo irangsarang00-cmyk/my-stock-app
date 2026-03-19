@@ -146,7 +146,7 @@ tmp_file.close()
 authenticator = Authenticate(
     secret_credentials_path=tmp_file.name,
     cookie_name="stock_app_cookie",
-    cookie_key="stock_app_secret_key_1234",
+    cookie_key="stock_app_secret_key_1234_abcdefgh",
     redirect_uri="https://my-stock-app-2dctlxmsqxehndw9vh79pp.streamlit.app",
     cookie_expiry_days=3650
 )
