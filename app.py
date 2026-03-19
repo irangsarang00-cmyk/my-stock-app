@@ -547,17 +547,20 @@ if st.session_state.current_page == "main":
                             sortable=False,        
                             suppressMovable=True,  
                             resizable=False,       
-                            suppressSizeToFit=False
+                            suppressSizeToFit=True
                         )
-                        gb.configure_grid_options(suppressMovableColumns=True)
-                        gb.configure_column('날짜', pinned='left', width=70) 
-                        gb.configure_column('바코드', width=130)
-                        gb.configure_column('제품명', flex=1, wrapText=True, autoHeight=True) 
-                        gb.configure_column('수량', width=65)
-                        gb.configure_column('입고시간', width=75)
-                        gb.configure_column('창고', width=65)
-                        gb.configure_column('컨테이너', width=100)
-                        gb.configure_column('거래처', width=120)
+                        gb.configure_grid_options(
+                            suppressMovableColumns=True,
+                            suppressHorizontalScroll=False  # 가로스크롤 활성화
+                        )
+                        gb.configure_column('날짜', pinned='left', width=95) 
+                        gb.configure_column('바코드', width=145)
+                        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
+                        gb.configure_column('수량', width=80)
+                        gb.configure_column('입고시간', width=90)
+                        gb.configure_column('창고', width=80)
+                        gb.configure_column('컨테이너', width=130)
+                        gb.configure_column('거래처', width=160)
                         
                         gridOptions = gb.build()
                         
@@ -566,7 +569,7 @@ if st.session_state.current_page == "main":
                             gridOptions=gridOptions,
                             use_container_width=True,
                             columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
-                            fit_columns_on_grid_load=True,
+                            fit_columns_on_grid_load=False,
                             theme="alpine",
                             height=350,
                             reload_data=False 
@@ -621,7 +624,24 @@ if st.session_state.current_page == "main":
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
-        st.button("📝 이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="primary")
+        # ✅ expander와 동일한 스타일의 이카운트 메뉴 버튼
+        st.markdown("""
+            <style>
+            div[data-testid="column"]:last-child button[data-testid="baseButton-secondary"] {
+                background-color: white !important;
+                border: 1px solid #e0e0e0 !important;
+                border-radius: 8px !important;
+                color: #333 !important;
+                font-size: 1em !important;
+                font-weight: 500 !important;
+                text-align: left !important;
+                justify-content: flex-start !important;
+                padding-left: 16px !important;
+                height: 48px !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        st.button("＞  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
 
     # 기존 검색 화면
     df = load_real_data()
@@ -832,7 +852,7 @@ elif st.session_state.current_page == "ecount":
         label_visibility="collapsed" 
     )
     
-    search_clicked = st.button("🔍 검색", type="primary", use_container_width=True, key="manual_search_btn")
+    search_clicked = st.button("🔍 검색", type="secondary", use_container_width=True, key="manual_search_btn")
     
     if search_kw and not real_df.empty:
         clean_kw = search_kw.strip()
