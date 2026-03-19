@@ -664,7 +664,7 @@ if st.session_state.current_page == "main":
         /* ✨ 4. 버튼 안의 글씨를 왼쪽으로 밀고, 띄어쓰기 한 칸(8px)만큼의 여백 주기! */
         div[data-testid="element-container"]:has(.ecount-anchor) + div button,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button {
-            padding-left: 19px !important; /* 👈 원래 20px에서 8px(한 칸) 더 밀었습니다! */
+            padding-left: 18px !important; /* 👈 원래 20px에서 8px(한 칸) 더 밀었습니다! */
         }
         div[data-testid="element-container"]:has(.ecount-anchor) + div button > div,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button > div {
