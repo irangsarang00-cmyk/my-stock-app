@@ -347,6 +347,16 @@ def show_milkrun_table(df, warehouse_name):
     # 차량 뒤 4자리만 표시
     display_df['차량'] = display_df['차량'].apply(lambda x: str(x).strip()[-4:] if len(str(x).strip()) >= 4 else str(x).strip())
 
+
+    # 시간 HH:MM만 표시 (날짜 제거)
+    def extract_time(val):
+        s = str(val).strip()
+        parts = s.split(" ")
+        if len(parts) >= 2:
+            return parts[-1][:5]
+        return s[:5]
+    display_df["시간"] = display_df["시간"].apply(extract_time)
+
     # 벤더 약칭 처리
     vendor_abbr = {'빌리브': 'V', '글로브': 'G'}
     display_df['벤더'] = display_df['벤더'].apply(lambda x: vendor_abbr.get(str(x).strip(), str(x).strip()))
@@ -371,6 +381,7 @@ def show_milkrun_table(df, warehouse_name):
             padding: 5px 6px;
             text-align: center;
             border-bottom: 1px solid #e0e0e0;
+            white-space: nowrap;
         }
         .milkrun-table-wrap th {
             background-color: #f2f2f2;
