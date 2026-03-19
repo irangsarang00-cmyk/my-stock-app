@@ -300,51 +300,58 @@ def load_real_data():
 # ==========================================================
 def send_ecount_purchase(master_data, detail_data):
     session_id = "3631343530387c56494c495630373330:CA-ETI3CETPl_Qqh"
-    zone = "CA"  # SESSION_ID의 콜론 뒤 앞 두 글자
+    zone = "CA"
     save_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     try:
         purchase_list = []
-        for idx, row in detail_data.iterrows():
-            if not row.get('품목코드'):
+        
+        # ✨ enumerate로 idx를 처음부터 정수가 아닌 1부터 시작하는 문자열로 관리
+        for line_no, (_, row) in enumerate(detail_data.iterrows(), start=1):
+            
+            prod_cd = str(row.get('품목코드', '')).strip()
+            if not prod_cd or prod_cd == 'nan':
                 continue
             
+            # 제조일자 처리
             exp_raw = row.get('제조일자')
             add_date_02 = ""
-            if exp_raw:
+            if exp_raw and str(exp_raw) != 'None' and str(exp_raw) != 'nan':
                 try:
                     add_date_02 = pd.to_datetime(exp_raw).strftime("%Y%m%d")
                 except:
-                    add_date_02 = str(exp_raw).replace("-", "").replace("/", "")
+                    add_date_02 = str(exp_raw).replace("-", "").replace("/", "").replace(" ", "")
                 
             purchase_item = {
                 "BulkFlag": "M", 
-                "LineReqNo": str(idx + 1),
+                "LineReqNo": str(line_no),                        # ✅ int→str 확실히
                 "IO_DATE": str(master_data['일자']),
                 "CUST": str(master_data['거래처코드']),
                 "EMP_CD": "00008", 
                 "WH_CD": str(master_data['창고코드']),
-                "PROD_CD": str(row['품목코드']).strip(),
-                "PROD_DES": str(row['품목명']).strip(),
-                "QTY": str(row['수량']).strip(),
+                "PROD_CD": prod_cd,
+                "PROD_DES": str(row.get('품목명', '')).strip(),
+                "QTY": str(row.get('수량', '0')).strip(),
                 "ADD_DATE_02": str(add_date_02),
-                "U_MEMO1": f"실제 담당자: {str(master_data['담당자'])}"
+                "U_MEMO1": "실제 담당자: " + str(master_data['담당자'])  # ✅ f-string 대신 + 연산으로 타입 명확히
             }
             purchase_list.append(purchase_item)
+        
+        if not purchase_list:
+            return False, "전송할 품목이 없습니다."
             
         save_payload = {"PurchaseList": purchase_list}
         
-        # 테스트 URL로 데이터를 쏩니다!
+        # 디버깅용 (성공 확인 후 제거하세요)
+        st.write("📡 전송 데이터:", save_payload)
+        
         save_res = requests.post(save_url, json=save_payload).json()
         
-        # 이카운트는 성공 시 Status "200"을 줍니다.
-        if save_res.get("Status") == "200":
-            return True, "✅ 이카운트 테스트 구매입력이 완료되었습니다!"
-        else:
-            return False, f"전송 실패: {save_res.get('Error', {}).get('Message', '알 수 없는 오류')}"
-            
-    except Exception as e:
-        return False, f"API 통신 오류: {e}"
+        # 디버깅용 (성공 확인 후 제거하세요)
+        st.write("📡 이카운트 응답:", save_res)
+        
+        if str(save_res.get("Status")) == "200":
+            return Tru
 
 # ==========================================================
 # 2. 메인 화면 및 페이지 이동 제어
