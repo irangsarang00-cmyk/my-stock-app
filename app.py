@@ -314,6 +314,9 @@ def get_ecount_session():
             }
         ).json()
 
+        # ✅ 디버깅 - 1단계 응답 확인
+        st.write("📡 1단계 존 조회 응답:", zone_res)
+
         zone = zone_res.get("Data", {}).get("Zone", "CA")
 
         # 2단계: 해당 존으로 실제 SESSION_ID 발급
@@ -326,6 +329,9 @@ def get_ecount_session():
                 "LAN_TYPE": "ko-KR"
             }
         ).json()
+
+        # ✅ 디버깅 - 2단계 응답 확인
+        st.write("📡 2단계 로그인 응답:", login_res)
 
         session_id = login_res.get("Data", {}).get("SESSION_ID", "")
 
