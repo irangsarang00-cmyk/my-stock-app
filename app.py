@@ -516,26 +516,16 @@ warehouse_list = {
 # ==========================================================
 if st.session_state.current_page == "main":
 
-    with st.expander("📱 앱 설치 방법 안내"):
-        st.markdown("""
-        <div style='padding-left: 16px; line-height: 1.9;'>
-            <b>💡 접속 및 설치 방법</b><br>
-            1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.<br>
-            2. 승인 완료되면 구글 아이디로 로그인하세요.<br>
-            3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
-        </div>
-        """, unsafe_allow_html=True)
-
-    with st.expander("👥 접근 허용 명단"):
-        st.markdown("<div style='padding-left: 16px; line-height: 1.8;'>", unsafe_allow_html=True)
-        for email in WHITELIST_EMAILS:
-            st.caption(f"　✔️ {email}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # 이카운트 버튼 - expander와 완전 동일한 스타일
+    # CSS: expander 내부 padding, 이카운트 버튼 스타일
     st.markdown("""
         <style>
-        button[data-testid="baseButton-secondary"][kind="secondary"] {
+        /* expander 내부 padding */
+        [data-testid="stExpanderDetails"] {
+            padding-left: 16px !important;
+            padding-right: 8px !important;
+        }
+        /* 이카운트 버튼 expander 스타일 */
+        .ecount-nav button {
             background-color: white !important;
             border: 1px solid rgba(49, 51, 63, 0.2) !important;
             border-radius: 0.5rem !important;
@@ -543,18 +533,29 @@ if st.session_state.current_page == "main":
             font-size: 1rem !important;
             font-weight: 400 !important;
             justify-content: flex-start !important;
-            padding-left: 1rem !important;
+            padding-left: 1.2rem !important;
             height: 2.75rem !important;
             width: 100% !important;
             box-shadow: none !important;
         }
-        button[data-testid="baseButton-secondary"][kind="secondary"]:hover {
+        .ecount-nav button:hover {
             border-color: rgba(49, 51, 63, 0.4) !important;
             background-color: #f8f9fa !important;
         }
         </style>
     """, unsafe_allow_html=True)
-    st.button("＞  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary", key="ecount_menu_btn")
+
+    with st.expander("📱 앱 설치 방법 안내"):
+        st.markdown("""
+        **💡 접속 및 설치 방법**
+        1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.
+        2. 승인 완료되면 구글 아이디로 로그인하세요.
+        3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
+        """)
+
+    with st.expander("👥 접근 허용 명단"):
+        for email in WHITELIST_EMAILS:
+            st.caption(f"✔️ {email}")
 
     sched_data = pd.DataFrame()
 
@@ -644,6 +645,11 @@ if st.session_state.current_page == "main":
                             """, height=45)
             else:
                 st.warning("예정된 가평 스케줄이 없습니다.")
+
+    # 이카운트 버튼 - 입고스케줄 아래
+    st.markdown('<div class="ecount-nav">', unsafe_allow_html=True)
+    st.button("＞  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary", key="ecount_menu_btn")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # 기존 검색 화면
     df = load_real_data()
