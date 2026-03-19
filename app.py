@@ -89,10 +89,10 @@ button[kind="primary"]:focus {
     padding: 0 !important;
 }
 
-/* ✨ 10. 익스팬더(메뉴) 안쪽의 좌우 여백도 과감하게 없애서 양옆으로 쫙 늘려줍니다! */
+/* ✨ 10. 익스팬더(메뉴) 기본 padding (각 페이지에서 별도 설정) */
 [data-testid="stExpanderDetails"] {
-    padding-left: 0px !important;
-    padding-right: 0px !important;
+    padding-left: 16px !important;
+    padding-right: 8px !important;
 }
 
 /* ✨ 11. 모바일에서 좌우 나란히 강제 (버튼 가출 완벽 방지) */
@@ -519,11 +519,6 @@ if st.session_state.current_page == "main":
     # CSS: expander 내부 padding, 이카운트 버튼 스타일
     st.markdown("""
         <style>
-        /* expander 내부 padding */
-        [data-testid="stExpanderDetails"] {
-            padding-left: 16px !important;
-            padding-right: 8px !important;
-        }
         /* 이카운트 버튼 expander 스타일 */
         .ecount-nav button {
             background-color: white !important;
@@ -654,7 +649,11 @@ if st.session_state.current_page == "main":
             border-radius: 0.5rem;
             background-color: white;
             padding: 0;
-            margin-bottom: 0.5rem;
+            margin-top: 0 !important;
+        }
+        /* 구분선 제거 */
+        div.ecount-fake-expander > div[data-testid="stVerticalBlock"] {
+            gap: 0 !important;
         }
         div.ecount-fake-expander button {
             background-color: transparent !important;
@@ -669,8 +668,17 @@ if st.session_state.current_page == "main":
             width: 100% !important;
             letter-spacing: 0 !important;
         }
+        div.ecount-fake-expander button p {
+            text-align: left !important;
+            width: 100% !important;
+        }
         div.ecount-fake-expander button:hover {
             background-color: rgba(49, 51, 63, 0.05) !important;
+        }
+        /* 이카운트 버튼 위 구분선(hr) 제거 */
+        div.ecount-fake-expander + div hr,
+        div.block-container hr {
+            display: none !important;
         }
         </style>
     """, unsafe_allow_html=True)
