@@ -726,6 +726,7 @@ if st.session_state.current_page == "main":
                                     if has_keyword:
                                         line_text += " ( 제조)"
                                     copy_text += line_text + "\n"
+                                copy_text += "\n 창고로 입고되었습니다."
                             else:
                                 st.warning("선택된 항목이 없습니다.")
 
