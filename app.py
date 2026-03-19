@@ -512,7 +512,7 @@ if st.session_state.current_page == "main":
                             
                             # ✨ 4. 팝업창과 텍스트 창을 싹 지우고, 클릭하면 버튼 글자만 슥 바뀌는 심플한 최종 버튼만 남깁니다!
                             components.html(f"""
-                            <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료! (이제 카톡에 붙여넣으세요)';" 
+                            <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사했습니다.';" 
                                     style="width: 100%; background-color: #4A90E2; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 📋 클립보드에 복사
                             </button>
