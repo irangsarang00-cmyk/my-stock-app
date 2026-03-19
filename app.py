@@ -95,6 +95,24 @@ button[kind="primary"]:focus {
     padding-left: 0px !important;
     padding-right: 0px !important;
 }
+
+/* ✨ 11. 모바일 화면에서 컬럼이 위아래로 쪼개지는 현상 강제 방지 (폼 내부 한정) */
+[data-testid="stForm"] [data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+}
+[data-testid="stForm"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    width: 50% !important;
+    flex: 1 1 50% !important;
+    min-width: 0 !important;
+}
+/* ✨ 12. 복사 버튼(iframe) 겉면의 불필요한 기본 여백 완벽 제거 */
+iframe {
+        margin-bottom: 0px !important;
+}
+
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -483,7 +501,6 @@ if st.session_state.current_page == "main":
                         )
                         
                         # ✨ 여기서 표 아래 공간을 반으로 쪼갭니다!
-                        # ✨ 여기서 표 아래 공간을 반으로 쪼갭니다!
                         col_left, col_right = st.columns(2)
                         
                         with col_left:
@@ -522,27 +539,25 @@ if st.session_state.current_page == "main":
                                     # 아무것도 안 고르고 선택을 눌렀을 때의 경고창
                                     st.warning("선택된 항목이 없습니다.")
 
-                            # ✨ 최종 버튼 그리기 (활성화 여부에 따라 색상과 작동이 달라집니다)
+                            # ✨ 오른쪽 버튼들: iframe의 기본 여백(margin/padding)을 0으로 싹 없애고, 높이를 45로 딱 맞춥니다!
                             if is_active:
                                 # [선택]을 누르고 데이터가 있을 때 -> 파란색 진짜 복사 버튼!
                                 components.html(f"""
-                                <div style="margin: 0; padding: 0;">
-                                    <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
-                                            style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; margin-top: 2px;">
-                                        📋 복사
-                                    </button>
-                                </div>
-                                """, height=50)
+                                <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
+                                <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
+                                        style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
+                                    📋 복사
+                                </button>
+                                """, height=45)
                             else:
                                 # 기본 상태이거나 선택된 게 없을 때 -> 누를 수 없는 회색 깡통 버튼!
                                 components.html(f"""
-                                <div style="margin: 0; padding: 0;">
-                                    <button disabled 
-                                            style="width: 100%; height: 45px; background-color: #e0e0e0; color: #a0a0a0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
-                                        📋 복사
-                                    </button>
-                                </div>
-                                """, height=50)
+                                <style>body {{margin: 0; padding: 0; overflow: hidden;}}</style>
+                                <button disabled 
+                                        style="width: 100%; height: 45px; background-color: #e0e0e0; color: #a0a0a0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: center; align-items: center; font-family: 'Gowun Dodum', sans-serif;">
+                                    📋 복사
+                                </button>
+                                """, height=45)
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
