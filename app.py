@@ -351,11 +351,35 @@ def show_milkrun_table(df, warehouse_name):
     vendor_abbr = {'빌리브': 'V', '글로브': 'G'}
     display_df['벤더'] = display_df['벤더'].apply(lambda x: vendor_abbr.get(str(x).strip(), str(x).strip()))
 
-    # 인덱스 숨기고 HTML 테이블로 출력
-    st.markdown(
-        display_df.to_html(index=False, border=0),
-        unsafe_allow_html=True
-    )
+    # 차량번호 기준 정렬
+    display_df = display_df.sort_values('차량').reset_index(drop=True)
+
+    # 인덱스 숨기고 HTML 테이블로 출력 (여백 제거 + 글자 크기 축소)
+    html = display_df.to_html(index=False, border=0)
+    st.markdown(f"""
+        <style>
+        .milkrun-table-wrap {{
+            margin-left: -1rem;
+            margin-right: -1rem;
+            overflow-x: auto;
+        }}
+        .milkrun-table-wrap table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }}
+        .milkrun-table-wrap th, .milkrun-table-wrap td {{
+            padding: 5px 6px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }}
+        .milkrun-table-wrap th {{
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }}
+        </style>
+        <div class="milkrun-table-wrap">{html}</div>
+    """, unsafe_allow_html=True)
 
 # ==========================================================
 # 이카운트 로그인 - SESSION_ID 동적 발급
