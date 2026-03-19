@@ -520,16 +520,20 @@ if st.session_state.current_page == "main":
     with col1:
         with st.expander("📱 앱 설치 방법 안내"):
             st.markdown("""
-            **💡 접속 및 설치 방법**
-            1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.
-            2. 승인 완료되면 구글 아이디로 로그인하세요.
-            3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
-            """)
+            <div style='padding-left: 12px; line-height: 1.8;'>
+                <b>💡 접속 및 설치 방법</b><br>
+                1. 정이랑 주임에게 구글 이메일 아이디 전달해 주세요.<br>
+                2. 승인 완료되면 구글 아이디로 로그인하세요.<br>
+                3. 로그인 한 뒤, 크롬(갤럭시) or 사파리(아이폰)에서 '홈 화면에 추가'를 통해 바탕화면에 설치할 수 있습니다.
+            </div>
+            """, unsafe_allow_html=True)
 
     with col2:
         with st.expander("👥 접근 허용 명단"):
+            st.markdown("<div style='padding-left: 12px;'>", unsafe_allow_html=True)
             for email in WHITELIST_EMAILS:
                 st.caption(f"✔️ {email}")
+            st.markdown("</div>", unsafe_allow_html=True)
 
     with col3:
         sched_data = pd.DataFrame() 
@@ -624,24 +628,30 @@ if st.session_state.current_page == "main":
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
-        # ✅ expander와 동일한 스타일의 이카운트 메뉴 버튼
+
+    # ✅ 이카운트 버튼 - col1/col2/col3과 동일한 1/3 너비, 위쪽 배치
+    with col1:
         st.markdown("""
             <style>
-            div[data-testid="column"]:last-child button[data-testid="baseButton-secondary"] {
+            .ecount-btn button {
                 background-color: white !important;
                 border: 1px solid #e0e0e0 !important;
                 border-radius: 8px !important;
                 color: #333 !important;
-                font-size: 1em !important;
+                font-size: 0.95em !important;
                 font-weight: 500 !important;
                 text-align: left !important;
                 justify-content: flex-start !important;
-                padding-left: 16px !important;
+                padding-left: 14px !important;
                 height: 48px !important;
+                width: 100% !important;
             }
             </style>
         """, unsafe_allow_html=True)
-        st.button("＞  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
+        with st.container():
+            st.markdown('<div class="ecount-btn">', unsafe_allow_html=True)
+            st.button("＞  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary", key="ecount_menu_btn")
+            st.markdown('</div>', unsafe_allow_html=True)
 
     # 기존 검색 화면
     df = load_real_data()
