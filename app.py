@@ -725,7 +725,7 @@ if st.session_state.current_page == "main":
                     sched_data,
                     gridOptions=gridOptions,
                     update_mode=GridUpdateMode.NO_UPDATE,
-                    width='stretch',
+                    use_container_width=True,
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
                     fit_columns_on_grid_load=False,
                     theme="alpine",
@@ -979,7 +979,7 @@ elif st.session_state.current_page == "ecount":
                 grid_response = AgGrid(
                     sched_for_selection,
                     gridOptions=gridOptions,
-                    width='stretch',
+                    use_container_width=True,
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
                     fit_columns_on_grid_load=False, 
                     theme="alpine",
