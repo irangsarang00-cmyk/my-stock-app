@@ -96,30 +96,27 @@ button[kind="primary"]:focus {
     padding-right: 0px !important;
 }
 
-/* ✨ 11. 모바일 화면에서 컬럼이 위아래로 쪼개지는 현상 강제 방지 (폼 내부 한정) */
-[data-testid="stForm"] [data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 8px !important; /* 간격 살짝 조절 */
-    align-items: flex-end !important; /* 버튼 하단 기준 정렬로 변경 */
-    margin-bottom: 5px !important; /* 표와의 간격 확보 */
-}
-[data-testid="stForm"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-    width: 50% !important;
-    flex: 1 1 50% !important;
-    min-width: 0 !important;
+/* ✨ 11. 모바일에서 좌우 나란히 강제 (버튼 가출 완벽 방지) */
+@media (max-width: 640px) {
+    div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        gap: 10px !important;
+    }
+    div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: calc(50% - 5px) !important;
+        flex: 1 1 calc(50% - 5px) !important;
+    }
 }
 
-/* ✨ 12. 복사 버튼(iframe) 튀어나감 완벽 방지 (마진 디테일 조정) */
-[data-testid="stForm"] [data-testid="stHtml"] {
-    margin-top: 0px !important; /* 상단 여백 제거 */
-    margin-bottom: 0px !important; /* 하단 여백 제거 */
-    display: block !important;
+/* ✨ 12. iframe (복사 버튼) 여백 완벽 초기화 */
+[data-testid="stHtml"] {
+    margin: 0 !important;
+    padding: 0 !important;
 }
-[data-testid="stForm"] [data-testid="stHtml"] iframe {
-    margin: 0 !important; /* iframe 자체 여백 초기화 */
+iframe {
     display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 </style>
