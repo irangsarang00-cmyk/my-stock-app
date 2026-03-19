@@ -306,52 +306,53 @@ def send_ecount_purchase(master_data, detail_data):
     try:
         purchase_list = []
         
-        # ✨ enumerate로 idx를 처음부터 정수가 아닌 1부터 시작하는 문자열로 관리
         for line_no, (_, row) in enumerate(detail_data.iterrows(), start=1):
-            
             prod_cd = str(row.get('품목코드', '')).strip()
             if not prod_cd or prod_cd == 'nan':
                 continue
             
-            # 제조일자 처리
             exp_raw = row.get('제조일자')
             add_date_02 = ""
             if exp_raw and str(exp_raw) != 'None' and str(exp_raw) != 'nan':
                 try:
                     add_date_02 = pd.to_datetime(exp_raw).strftime("%Y%m%d")
-                except:
+                except Exception:
                     add_date_02 = str(exp_raw).replace("-", "").replace("/", "").replace(" ", "")
-                
+            
             purchase_item = {
-                "BulkFlag": "M", 
-                "LineReqNo": str(line_no),                        # ✅ int→str 확실히
+                "BulkFlag": "M",
+                "LineReqNo": str(line_no),
                 "IO_DATE": str(master_data['일자']),
                 "CUST": str(master_data['거래처코드']),
-                "EMP_CD": "00008", 
+                "EMP_CD": "00008",
                 "WH_CD": str(master_data['창고코드']),
                 "PROD_CD": prod_cd,
                 "PROD_DES": str(row.get('품목명', '')).strip(),
                 "QTY": str(row.get('수량', '0')).strip(),
                 "ADD_DATE_02": str(add_date_02),
-                "U_MEMO1": "실제 담당자: " + str(master_data['담당자'])  # ✅ f-string 대신 + 연산으로 타입 명확히
+                "U_MEMO1": "실제 담당자: " + str(master_data['담당자'])
             }
             purchase_list.append(purchase_item)
         
         if not purchase_list:
             return False, "전송할 품목이 없습니다."
-            
+        
         save_payload = {"PurchaseList": purchase_list}
         
-        # 디버깅용 (성공 확인 후 제거하세요)
         st.write("📡 전송 데이터:", save_payload)
         
         save_res = requests.post(save_url, json=save_payload).json()
         
-        # 디버깅용 (성공 확인 후 제거하세요)
         st.write("📡 이카운트 응답:", save_res)
         
         if str(save_res.get("Status")) == "200":
-            return Tru
+            return True, "✅ 이카운트 구매입력이 완료되었습니다!"
+        else:
+            err_msg = save_res.get("Error", {}).get("Message", str(save_res))
+            return False, "전송 실패: " + str(err_msg)
+    
+    except Exception as e:
+        return False, "API 통신 오류: " + str(e)
 
 # ==========================================================
 # 2. 메인 화면 및 페이지 이동 제어
