@@ -7,7 +7,7 @@ import tempfile
 import os
 import re
 import requests 
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta, timezone
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
@@ -199,7 +199,7 @@ if user_email not in WHITELIST_EMAILS:
     st.stop()
 
 if "secret_log_printed" not in st.session_state:
-    now_kst = (datetime.utcnow() + timedelta(hours=9)).strftime('%H:%M:%S')
+    now_kst = datetime.now(timezone(timedelta(hours=9))).strftime('%H:%M:%S')
     print(f"👀 [{now_kst} KST] {user_email} 왔다 감.")
     st.session_state.secret_log_printed = True
 
@@ -237,7 +237,7 @@ def get_incoming_schedule():
 
         mask_gapyeong = df_filtered.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
         date_pattern = r'(\d{2,4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2})|(\d{1,2}\s*[.\-/]\s*\d{1,2})'
-        mask_date = df_filtered.astype(str).apply(lambda x: x.str.contains(date_pattern)).any(axis=1)
+        mask_date = df_filtered.astype(str).apply(lambda x: x.str.contains(date_pattern, regex=True)).any(axis=1)
 
         schedule_df = df_filtered[mask_gapyeong & mask_date].copy()
 
@@ -351,7 +351,6 @@ def show_milkrun_table(df, warehouse_name):
             return '-'
         return s[-4:] if len(s) >= 4 else s
     display_df['차량'] = display_df['차량'].apply(extract_vehicle)
-
 
     # 시간 HH:MM만 표시 (날짜 제거, 하이픈은 그대로)
     def extract_time(val):
@@ -720,7 +719,7 @@ if st.session_state.current_page == "main":
                     sched_data,
                     gridOptions=gridOptions,
                     update_mode=GridUpdateMode.NO_UPDATE,
-                    use_container_width=True,
+                    width='stretch',
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
                     fit_columns_on_grid_load=False,
                     theme="alpine",
@@ -932,7 +931,7 @@ elif st.session_state.current_page == "ecount":
     if not sched_data.empty:
         sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
         
-        today_kst = datetime.utcnow() + timedelta(hours=9)
+        today_kst = datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None)
         monday_start = (today_kst - timedelta(days=today_kst.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         
         def parse_date_super(val):
@@ -974,7 +973,7 @@ elif st.session_state.current_page == "ecount":
                 grid_response = AgGrid(
                     sched_for_selection,
                     gridOptions=gridOptions,
-                    use_container_width=True, 
+                    width='stretch',
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
                     fit_columns_on_grid_load=False, 
                     theme="alpine",
