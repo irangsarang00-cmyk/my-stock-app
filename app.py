@@ -681,7 +681,7 @@ if st.session_state.current_page == "main":
     """, unsafe_allow_html=True)
 
     # 알맹이 버튼 딱 하나!
-    st.button("     📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
+    st.button("   📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
 
     # 기존 검색 화면
     df = load_real_data()
