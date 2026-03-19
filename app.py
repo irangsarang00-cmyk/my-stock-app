@@ -427,62 +427,76 @@ if st.session_state.current_page == "main":
     with col3:
         sched_data = pd.DataFrame() 
         
-        with st.expander("🚛 입고스케줄"):
+        with st.expander("🚛 입고스케줄", expanded=True): # 열어두는 게 기본값이 되게 설정했습니다
             with st.spinner('분석 중...'):
                 sched_data = get_incoming_schedule()
                 if not sched_data.empty:
                     st.write("") 
                     
-                    # 1. 표 맨 앞에 '선택'이라는 이름의 체크박스 열을 슬쩍 추가합니다.
-                    sched_data.insert(0, "선택", False)
-                    
-                    # 2. 예전 HTML 표 대신, 클릭이 가능한 깔끔한 표 기능으로 바꿉니다.
-                    # (다른 정보는 수정 못 하게 잠그고, '선택' 체크박스만 누를 수 있게 열어둡니다)
-                    edited_df = st.data_editor(
-                        sched_data,
-                        use_container_width=True,
-                        hide_index=True,
-                        disabled=["날짜", "바코드", "제품명", "수량", "입고시간", "창고", "컨테이너", "거래처"]
-                    )
-                    
-                    # 3. 사용자가 체크박스에 브이(V) 표시를 한 줄만 쏙쏙 뽑아옵니다.
-                    selected_rows = edited_df[edited_df["선택"] == True]
-                    
-                    # 4. 체크된 항목이 하나라도 있다면, 텍스트를 만들고 복사 버튼을 뿅 띄웁니다!
-                    # 4. 체크된 항목이 하나라도 있다면, 텍스트를 만들고 복사 버튼을 뿅 띄웁니다!
-                    if not selected_rows.empty:
-                        copy_text = ""
+                    # 1. 폼(Form)으로 표를 감싸서 체크할 때마다 튕기는 현상을 완벽하게 차단합니다!
+                    with st.form("schedule_copy_form"):
+                        gb = GridOptionsBuilder.from_dataframe(sched_data)
                         
-                        # ✨ [( 제조)] 글자를 붙일 '핵심 단어'들입니다. 
-                        # 나중에 다른 상품이 필요해지면 '물티슈', '화장지' 처럼 따옴표와 쉼표로 계속 추가하시면 돼요!
-                        mfg_keywords = ['마스크', '닭가슴살']
+                        # 체크박스를 켭니다
+                        gb.configure_selection('multiple', use_checkbox=True, header_checkbox=True)
                         
-                        for _, row in selected_rows.iterrows():
-                            # 바코드 글자를 가져와서 뒤에서부터 딱 4자리만 자릅니다.
-                            barcode_str = str(row['바코드']).strip()
-                            barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
+                        # ✨ 여기서 열 고정! '날짜' 열과 체크박스를 왼쪽에 딱 붙여버립니다.
+                        gb.configure_column('날짜', pinned='left', width=100)
+                        gb.configure_column('바코드', width=140)
+                        gb.configure_column('제품명', width=400)
+                        gb.configure_column('수량', width=80)
+                        
+                        gridOptions = gb.build()
+                        
+                        # AgGrid 표 출력
+                        grid_response = AgGrid(
+                            sched_data,
+                            gridOptions=gridOptions,
+                            use_container_width=True,
+                            fit_columns_on_grid_load=False,
+                            theme="alpine",
+                            height=350,
+                            reload_data=False 
+                        )
+                        
+                        # 2. 체크를 다 하고 이 버튼을 눌러야만 텍스트가 만들어집니다.
+                        generate_btn = st.form_submit_button("📝 텍스트 만들기", use_container_width=True)
+                    
+                    # 3. '텍스트 만들기' 버튼을 눌렀을 때의 동작
+                    if generate_btn:
+                        selected_rows = grid_response['selected_rows']
+                        
+                        if selected_rows is not None and len(selected_rows) > 0:
+                            copy_text = ""
+                            mfg_keywords = ['마스크', '닭가슴살']
                             
-                            prod_name = str(row['제품명']).strip()
-                            qty = str(row['수량']).strip()
-                            
-                            # ✨ 1차 조립: [1958] 탐사 퓨어 마스크 / 200개
-                            line_text = f"[{barcode_short}] {prod_name} / {qty}개"
-                            
-                            # ✨ 제품명에 mfg_keywords 단어들 중 하나라도 들어있는지 검사합니다.
-                            has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
-                            
-                            if has_keyword:
-                                # 단어가 포함되어 있다면, 생명과도 같은 공백을 포함해 "( 제조)"를 뒤에 찰싹 붙여줍니다.
-                                line_text += " ( 제조)"
+                            for row in selected_rows:
+                                barcode_str = str(row.get('바코드', '')).strip()
+                                barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
                                 
-                            # 완성된 한 줄을 전체 텍스트에 더해주고 줄바꿈(\n)을 해줍니다.
-                            copy_text += line_text + "\n"
+                                prod_name = str(row.get('제품명', '')).strip()
+                                qty = str(row.get('수량', '')).strip()
+                                
+                                line_text = f"[{barcode_short}] {prod_name} / {qty}개"
+                                
+                                has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
+                                if has_keyword:
+                                    line_text += " ( 제조)"
+                                    
+                                copy_text += line_text + "\n"
                             
-                        # 안내 문구와 함께 둥근 사각 버튼이 달린 복사 전용 박스를 화면에 띄웁니다.
-                        st.info("✅ 선택 완료! 아래 상자 오른쪽 위에 있는 📋 아이콘을 누르면 복사됩니다.")
-                        st.code(copy_text, language="text")
-                        
-                    st.markdown("---")
+                            # ✨ 4. 진짜 못 찾을 수가 없는 크고 둥근 전용 복사 버튼을 띄웁니다!
+                            components.html(f"""
+                            <div style="background-color: #fdfdfd; padding: 20px; border-radius: 12px; border: 2px solid #e0e0e0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                                <pre id="copy-target" style="font-family: 'Gowun Dodum', sans-serif; font-size: 16px; color: #333; white-space: pre-wrap; margin-bottom: 20px;">{copy_text}</pre>
+                                <button onclick="navigator.clipboard.writeText(document.getElementById('copy-target').innerText).then(() => alert('✅ 클립보드에 복사되었습니다! 카톡에 붙여넣기 하세요.'))" 
+                                        style="width: 100%; background-color: #4A90E2; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                    📋 카톡 복사하기
+                                </button>
+                            </div>
+                            """, height=250)
+                        else:
+                            st.warning("선택된 항목이 없습니다. 표에서 체크박스를 먼저 선택해 주세요.")
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
