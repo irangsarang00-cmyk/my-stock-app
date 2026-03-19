@@ -649,14 +649,18 @@ if st.session_state.current_page == "main":
             display: none !important;
         }
 
-        /* 2. 익스팬더(메뉴) 아래쪽 기본 여백을 줄여서 밑의 버튼이 바짝 붙게 만들기 */
+        /* 2. 익스팬더(메뉴) 아래쪽 기본 여백을 0으로 만들어서 밑의 버튼이 바짝 붙게 만들기 */
         div[data-testid="stExpander"] {
-            margin-bottom: -15px !important; 
+            margin-bottom: 0px !important; 
         }
         </style>
     """, unsafe_allow_html=True)
 
-    # ✨ 가짜 껍데기(container, div) 싹 지우고 진짜 버튼 하나만 깔끔하게 둡니다.
+    # ✨ [추가된 부분] 버튼 바로 위에 '투명 자석'을 달아서 밑에 있는 버튼을 위로 확 끌어올립니다! 
+    # (혹시 너무 붙거나 덜 붙었다면 -25px 숫자를 조금씩 조절해 보세요!)
+    st.markdown("<div style='margin-top: -25px;'></div>", unsafe_allow_html=True)
+    
+    # 이카운트 버튼
     st.button("›  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
 
     # 기존 검색 화면
