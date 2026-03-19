@@ -343,7 +343,19 @@ def show_milkrun_table(df, warehouse_name):
         st.info("오늘은 밀크런이 없습니다")
         return
     display_df = filtered[['차량', '시간', '벤더', '센터', '수량']].reset_index(drop=True)
-    st.table(display_df)
+
+    # 차량 뒤 4자리만 표시
+    display_df['차량'] = display_df['차량'].apply(lambda x: str(x).strip()[-4:] if len(str(x).strip()) >= 4 else str(x).strip())
+
+    # 벤더 약칭 처리
+    vendor_abbr = {'빌리브': 'V', '글로브': 'G'}
+    display_df['벤더'] = display_df['벤더'].apply(lambda x: vendor_abbr.get(str(x).strip(), str(x).strip()))
+
+    # 인덱스 숨기고 HTML 테이블로 출력
+    st.markdown(
+        display_df.to_html(index=False, border=0),
+        unsafe_allow_html=True
+    )
 
 # ==========================================================
 # 이카운트 로그인 - SESSION_ID 동적 발급
