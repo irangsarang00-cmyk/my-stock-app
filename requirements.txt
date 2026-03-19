@@ -15,3 +15,4 @@ pdfplumber
 reportlab
 streamlit-aggrid
 streamlit-keyup
+streamlit-cookies-manager
