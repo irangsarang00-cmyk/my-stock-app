@@ -661,19 +661,34 @@ elif st.session_state.current_page == "ecount":
     if not sched_data.empty:
         sched_for_selection = sched_data[['날짜', '바코드', '제품명', '수량', '거래처']].copy()
         
+        # ✨ 1. 무조건 한국 시간(KST) 기준으로 이번 주 월요일 자정을 00시 00분으로 칼같이 계산합니다.
         today_kst = datetime.utcnow() + timedelta(hours=9)
         monday = today_kst - timedelta(days=today_kst.weekday()) 
         monday_start = monday.replace(hour=0, minute=0, second=0, microsecond=0)
         
+        # ✨ 2. 초강력 날짜 파서 (어떤 모양이든 월, 일 숫자만 뽑아냅니다!)
         def parse_and_filter(date_str):
             try:
-                dt = datetime.strptime(f"{today_kst.year}/{date_str.strip()}", "%Y/%m/%d")
-                if (dt - today_kst).days > 180: 
-                    dt = dt.replace(year=today_kst.year - 1)
-                return dt
-            except:
-                return datetime.min 
+                # 글자에서 숫자만 싹 다 건져냅니다. (예: "3/16(월)" -> ['3', '16'])
+                nums = re.findall(r'\d+', str(date_str))
                 
+                if len(nums) >= 2:
+                    m = int(nums[-2]) # 뒤에서 두 번째 숫자는 무조건 '월'
+                    d = int(nums[-1]) # 제일 마지막 숫자는 무조건 '일'
+                    
+                    dt = datetime(today_kst.year, m, d)
+                    
+                    # 혹시 작년 12월이나 내년 1월 데이터가 섞여 들어올 경우를 대비한 방어막
+                    if (dt - today_kst).days > 180: 
+                        dt = dt.replace(year=today_kst.year - 1)
+                    elif (today_kst - dt).days > 180:
+                        dt = dt.replace(year=today_kst.year + 1)
+                        
+                    return dt
+            except:
+                pass
+            return datetime.min # 해석이 안 되는 이상한 글자는 아주 옛날 날짜로 쳐서 걸러버립니다.
+            
         valid_dates = sched_for_selection['날짜'].apply(parse_and_filter)
         sched_for_selection = sched_for_selection[valid_dates >= monday_start]
         
@@ -744,7 +759,7 @@ elif st.session_state.current_page == "ecount":
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
         with st.expander("💡 작성 팁"):
-            st.markdown("    ✔️ <b>#만 있는 것</b> = 라온글로벌<br>    ✔️ <b>[YC]</b> = 우하모(야코브)<br>    ✔️ <b>[ECT]</b> = 이씨티<br>    ✔️ <b>[이우]</b> = 여기서 입고 불가. 창고이동에서 하세요.", unsafe_allow_html=True)
+            st.markdown("✔️ <b>#만 있는 것</b> = 라온글로벌<br>✔️ <b>[YC]</b> = 우하모(야코브)<br>✔️ <b>[ECT]</b> = 이씨티<br>✔️ <b>[이우]</b> = 여기서 입고 불가. 창고이동에서 하세요.", unsafe_allow_html=True)
     c3, c4 = st.columns(2)
     
     with c3:
