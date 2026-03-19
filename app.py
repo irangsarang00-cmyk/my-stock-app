@@ -483,6 +483,7 @@ if st.session_state.current_page == "main":
                         )
                         
                         # ✨ 여기서 표 아래 공간을 반으로 쪼갭니다!
+                        # ✨ 여기서 표 아래 공간을 반으로 쪼갭니다!
                         col_left, col_right = st.columns(2)
                         
                         with col_left:
@@ -518,6 +519,7 @@ if st.session_state.current_page == "main":
                                             
                                         copy_text += line_text + "\n"
                                 else:
+                                    # 아무것도 안 고르고 선택을 눌렀을 때의 경고창
                                     st.warning("선택된 항목이 없습니다.")
 
                             # ✨ 최종 버튼 그리기 (활성화 여부에 따라 색상과 작동이 달라집니다)
@@ -541,10 +543,6 @@ if st.session_state.current_page == "main":
                                     </button>
                                 </div>
                                 """, height=50)
-                                
-                                else:
-                                    # 아무것도 안 고르고 선택을 눌렀을 때의 경고창
-                                    st.warning("선택된 항목이 없습니다.")
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
