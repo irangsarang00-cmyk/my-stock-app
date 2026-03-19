@@ -460,14 +460,14 @@ if st.session_state.current_page == "main":
                         gb.configure_grid_options(suppressMovableColumns=True)
                         
                         # ✨ 여기서 열 너비 조절!
-                        gb.configure_column('날짜', pinned='left', width=90) 
-                        gb.configure_column('바코드', width=130)
-                        gb.configure_column('제품명', width=450, wrapText=True, autoHeight=True) 
+                        gb.configure_column('날짜', pinned='left', width=95) 
+                        gb.configure_column('바코드', width=145)
+                        gb.configure_column('제품명', width=500, wrapText=True, autoHeight=True) 
                         gb.configure_column('수량', width=80)
                         gb.configure_column('입고시간', width=90)
                         gb.configure_column('창고', width=80)
-                        gb.configure_column('컨테이너', width=120)
-                        gb.configure_column('거래처', width=150)
+                        gb.configure_column('컨테이너', width=130)
+                        gb.configure_column('거래처', width=160)
                         
                         gridOptions = gb.build()
                         
