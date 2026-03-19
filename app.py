@@ -301,45 +301,32 @@ def get_ecount_session():
     COM_CODE = "614508"
     USER_ID = "VILIV0730"
     API_CERT_KEY = "57f9bbb67e3a24eeebd5d254be1779e368"
+    zone = "CA"
 
     try:
-        # 1단계: 존 조회
-        zone_res = requests.post(
-            "https://oapi.ecount.com/OAPI/V2/OAPILogin",
-            json={
-                "COM_CODE": COM_CODE,
-                "USER_ID": USER_ID,
-                "API_CERT_KEY": API_CERT_KEY,
-                "LAN_TYPE": "ko-KR"
-            }
-        ).json()
-
-        # ✅ 디버깅 - 1단계 응답 확인
-        st.write("📡 1단계 존 조회 응답:", zone_res)
-
-        zone = zone_res.get("Data", {}).get("Zone", "CA")
-
-        # 2단계: 해당 존으로 실제 SESSION_ID 발급
+        # 앱스스크립트와 동일한 방식: zone 하드코딩 + ZONE 필드 포함
         login_res = requests.post(
             f"https://oapi{zone}.ecount.com/OAPI/V2/OAPILogin",
             json={
                 "COM_CODE": COM_CODE,
                 "USER_ID": USER_ID,
                 "API_CERT_KEY": API_CERT_KEY,
-                "LAN_TYPE": "ko-KR"
+                "LAN_TYPE": "ko-KR",
+                "ZONE": zone
             }
         ).json()
 
-        # ✅ 디버깅 - 2단계 응답 확인
-        st.write("📡 2단계 로그인 응답:", login_res)
-
-        session_id = login_res.get("Data", {}).get("SESSION_ID", "")
-
-        if not session_id:
-            err = login_res.get("Error", {}).get("Message", "알 수 없는 오류")
+        status = str(login_res.get("Status", ""))
+        if status == "200":
+            # 앱스스크립트 참고: Data.Datas.SESSION_ID
+            session_id = login_res.get("Data", {}).get("Datas", {}).get("SESSION_ID", "")
+            if session_id:
+                return zone, session_id, None
+            else:
+                return None, None, "SESSION_ID를 찾을 수 없습니다."
+        else:
+            err = login_res.get("Error", {}).get("Message", str(login_res))
             return None, None, f"로그인 실패: {err}"
-
-        return zone, session_id, None
 
     except Exception as e:
         return None, None, f"로그인 API 오류: {str(e)}"
