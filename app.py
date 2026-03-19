@@ -297,32 +297,17 @@ def load_real_data():
         return pd.DataFrame()
 
 # ==========================================================
-# 이카운트 구매입력 API 전송 함수
+# 이카운트 구매입력 API 전송 함수 (테스트 URL 모드)
 # ==========================================================
 def send_ecount_purchase(master_data, detail_data):
-    zone = "CA"
-    company_code = "614508"
-    user_id = "VILIV0730"
-    api_key = "07a00290661fe49c58fd7318a26e4f7100"
+    # ✨ 1. 주임님이 직접 발급받으신 SESSION_ID를 아래 따옴표 안에 넣어주세요!
+    session_id = "3631343530387c56494c495630373330:CA-ETI3CETPl_Qqh"
     
-    login_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/OAPILogin"
-    login_payload = {
-        "COM_CODE": company_code,
-        "USER_ID": user_id,
-        "API_CERT_KEY": api_key,
-        "LAN_TYPE": "ko-KR",
-        "ZONE": zone
-    }
+    # ✨ 2. 테스트용 URL을 여기에 넣어주세요! (아래는 예시입니다. 부여받은 테스트 URL로 덮어써주세요)
+    zone = "CA" # 존 번호가 다르면 변경해 주세요
+    save_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     try:
-        login_res = requests.post(login_url, json=login_payload).json()
-        session_id = login_res.get("Data", {}).get("V2_SESSION_ID")
-        
-        if not session_id:
-            return False, f"이카운트 로그인 실패: {login_res.get('Error', {}).get('Message', '알 수 없는 오류')}"
-            
-        save_url = f"https://sboapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
-        
         purchase_list = []
         for idx, row in detail_data.iterrows():
             if not row.get('품목코드'):
@@ -352,12 +337,15 @@ def send_ecount_purchase(master_data, detail_data):
             purchase_list.append(purchase_item)
             
         save_payload = {"PurchaseList": purchase_list}
+        
+        # 테스트 URL로 데이터를 쏩니다!
         save_res = requests.post(save_url, json=save_payload).json()
         
+        # 이카운트는 성공 시 Status "200"을 줍니다.
         if save_res.get("Status") == "200":
-            return True, "이카운트 구매입력이 완료되었습니다!"
+            return True, "✅ 이카운트 테스트 구매입력이 완료되었습니다!"
         else:
-            return False, f"전송 실패: {save_res.get('Error', {}).get('Message', '오류')}"
+            return False, f"전송 실패: {save_res.get('Error', {}).get('Message', '알 수 없는 오류')}"
             
     except Exception as e:
         return False, f"API 통신 오류: {e}"
