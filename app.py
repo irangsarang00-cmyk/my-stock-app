@@ -459,7 +459,7 @@ if st.session_state.current_page == "main":
                         )
                         gb.configure_grid_options(suppressMovableColumns=True)
                         
-                        # ✨ 여기서 열 너비 조절! 원하시는 대로 숫자를 바꿔주세요.
+                        # ✨ 여기서 열 너비 조절!
                         gb.configure_column('날짜', pinned='left', width=90) 
                         gb.configure_column('바코드', width=130)
                         gb.configure_column('제품명', width=450, wrapText=True, autoHeight=True) 
@@ -482,43 +482,50 @@ if st.session_state.current_page == "main":
                             reload_data=False 
                         )
                         
-                        # 2. 버튼 이름을 요청하신 대로 '복사'로 깔끔하게 변경합니다!
-                        generate_btn = st.form_submit_button("선택", use_container_width=True)
-                    
-                    # 3. '복사' 버튼을 눌렀을 때의 동작
-                    if generate_btn:
-                        selected_rows = grid_response['selected_rows']
+                        # ✨ 여기서 표 아래 공간을 반으로 쪼갭니다!
+                        col_left, col_right = st.columns(2)
                         
-                        if selected_rows is not None and len(selected_rows) > 0:
-                            copy_text = ""
-                            mfg_keywords = ['마스크', '닭가슴살']
-                            
-                            selected_df = pd.DataFrame(selected_rows)
-                            
-                            for _, row in selected_df.iterrows():
-                                barcode_str = str(row.get('바코드', '')).strip()
-                                barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
+                        with col_left:
+                            # 1. 왼쪽 칸에는 항목을 확정 짓는 '선택' 버튼을 둡니다.
+                            generate_btn = st.form_submit_button("선택", use_container_width=True)
+                    
+                        with col_right:
+                            # 2. 오른쪽 칸은 처음엔 비워두고, '선택' 버튼이 눌렸을 때만 로직이 돌아가게 합니다.
+                            if generate_btn:
+                                selected_rows = grid_response['selected_rows']
                                 
-                                prod_name = str(row.get('제품명', '')).strip()
-                                qty = str(row.get('수량', '')).strip()
-                                
-                                line_text = f"[{barcode_short}] {prod_name} / {qty}개"
-                                
-                                has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
-                                if has_keyword:
-                                    line_text += " ( 제조)"
+                                if selected_rows is not None and len(selected_rows) > 0:
+                                    copy_text = ""
+                                    mfg_keywords = ['마스크', '닭가슴살']
                                     
-                                copy_text += line_text + "\n"
-                            
-                            # ✨ 4. 팝업창과 텍스트 창을 싹 지우고, 클릭하면 버튼 글자만 슥 바뀌는 심플한 최종 버튼만 남깁니다!
-                            components.html(f"""
-                            <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사했습니다.';" 
-                                    style="width: 100%; background-color: #4A90E2; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                📋 클립보드에 복사
-                            </button>
-                            """, height=60)
-                        else:
-                            st.warning("선택된 항목이 없습니다.")
+                                    selected_df = pd.DataFrame(selected_rows)
+                                    
+                                    for _, row in selected_df.iterrows():
+                                        barcode_str = str(row.get('바코드', '')).strip()
+                                        barcode_short = barcode_str[-4:] if len(barcode_str) >= 4 else barcode_str
+                                        
+                                        prod_name = str(row.get('제품명', '')).strip()
+                                        qty = str(row.get('수량', '')).strip()
+                                        
+                                        line_text = f"[{barcode_short}] {prod_name} / {qty}개"
+                                        
+                                        has_keyword = any(keyword in prod_name for keyword in mfg_keywords)
+                                        if has_keyword:
+                                            line_text += " ( 제조)"
+                                            
+                                        copy_text += line_text + "\n"
+                                    
+                                    # ✨ 조립이 다 끝나면 바로 이 오른쪽 칸에 최종 복사 버튼을 띄웁니다!
+                                    # (버튼 높이를 왼쪽의 기본 스트림릿 버튼과 비슷하게 맞췄어요)
+                                    components.html(f"""
+                                    <button onclick="navigator.clipboard.writeText(`{copy_text}`); this.innerText='✔️ 복사 완료';" 
+                                            style="width: 100%; height: 45px; background-color: #4A90E2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        📋 복사
+                                    </button>
+                                    """, height=55)
+                                else:
+                                    # 아무것도 안 고르고 선택을 눌렀을 때의 경고창
+                                    st.warning("선택된 항목이 없습니다.")
                 else:
                     st.warning("예정된 가평 스케줄이 없습니다.")
 
