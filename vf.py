@@ -281,10 +281,9 @@ if uploaded_files:
                 )
             else:  # already_received - 바코드 안 찍힘
                 st.markdown(
-                    f"<div style='text-align:center; border: 2px solid #888888; "
-                    f"border-radius:6px; display:inline-block; padding:8px; "
-                    f"background:#f5f5f5; color:#888; font-size:14px;'>"
-                    f"🔒 기입고 발주서<br>바코드 미출력</div>",
+                    f"<div style='text-align:center;'><div style='display:inline-block; border: 2px solid #888888; "
+                    f"border-radius:6px; padding:8px; background:#f5f5f5; color:#888; font-size:14px;'>"
+                    f"🔒 기입고 발주서<br>바코드 미출력</div></div>",
                     unsafe_allow_html=True
                 )
 
