@@ -237,7 +237,7 @@ def get_incoming_schedule():
         df_filtered = df_filled[~mask_exclude]
 
         mask_gapyeong = df_filtered.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
-        date_pattern = r'(\d{2,4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2})|(\d{1,2}\s*[.\-/]\s*\d{1,2})'
+        date_pattern = r'(?:\d{2,4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2})|(?:\d{1,2}\s*[.\-/]\s*\d{1,2})'
         mask_date = df_filtered.astype(str).apply(lambda x: x.str.contains(date_pattern, regex=True)).any(axis=1)
 
         schedule_df = df_filtered[mask_gapyeong & mask_date].copy()
