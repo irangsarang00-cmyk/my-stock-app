@@ -7,7 +7,7 @@ import tempfile
 import os
 import re
 import requests 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta 
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
@@ -123,35 +123,10 @@ iframe {
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================================
-# 0. localStorage 기반 자동 로그인 (PWA 새로고침 대응)
+# 1. 구글 로그인 및 권한 설정
 # ==========================================================
 WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com", "ddadung77@gmail.com", "a01066531205@gmail.com", "seohanseung2@gmail.com", "afopis75@gmail.com", "gmsik00@gmail.com", "hamsungbin87@gmail.com", "policelee2@gmail.com", "leetic1224@gmail.com", "happyjinu@gmail.com"]
 
-# Step 1: localStorage에서 이메일 읽어서 쿼리파라미터로 전달
-components.html("""
-<script>
-(function() {
-    const email = localStorage.getItem('gp_user_email');
-    if (email) {
-        const url = new URL(window.parent.location.href);
-        if (!url.searchParams.get('cached_user')) {
-            url.searchParams.set('cached_user', email);
-            window.parent.location.replace(url.toString());
-        }
-    }
-})();
-</script>
-""", height=0)
-
-# Step 2: 쿼리파라미터에서 캐시된 이메일 확인 → 세션에 주입
-cached_user = st.query_params.get("cached_user", "")
-if cached_user in WHITELIST_EMAILS and not st.session_state.get("connected"):
-    st.session_state["connected"] = True
-    st.session_state["user_info"] = {"email": cached_user}
-
-# ==========================================================
-# 1. 구글 로그인 및 권한 설정
-# ==========================================================
 auth_secrets = st.secrets["google_oauth"]
 
 credentials_dict = {
@@ -176,12 +151,8 @@ authenticator = Authenticate(
     cookie_expiry_days=3650
 )
 
-authenticator.check_authentification()
-
-auto_user = st.query_params.get("user")
-if auto_user == "irang":
-    st.session_state["connected"] = True
-    st.session_state["user_info"] = {"email": "irangsarang00@gmail.com"}
+if not st.session_state.get("connected"):
+    authenticator.check_authentification()
 
 if not st.session_state.get("connected"):
     st.markdown("<div style='margin-top: 15vh;'></div>", unsafe_allow_html=True)
@@ -228,18 +199,6 @@ if user_email not in WHITELIST_EMAILS:
         authenticator.logout()
     st.stop()
 
-# Step 3: 로그인 성공 후 localStorage에 이메일 저장 (PWA 새로고침 대응)
-components.html(f"""
-<script>
-(function() {{
-    const email = '{user_email}';
-    if (email && email !== 'None') {{
-        localStorage.setItem('gp_user_email', email);
-    }}
-}})();
-</script>
-""", height=0)
-
 if "secret_log_printed" not in st.session_state:
     now_kst = datetime.now(timezone(timedelta(hours=9))).strftime('%H:%M:%S')
     print(f"👀 [{now_kst} KST] {user_email} 왔다 감.")
@@ -273,12 +232,12 @@ def get_incoming_schedule():
 
         exclude_keywords = ['상품전환', '주차 입고', '기준:날짜']
         mask_exclude = df_filled.astype(str).apply(
-            lambda x: x.str.contains('|'.join(exclude_keywords), regex=True)
+            lambda x: x.str.contains('|'.join(exclude_keywords))
         ).any(axis=1)
         df_filtered = df_filled[~mask_exclude]
 
         mask_gapyeong = df_filtered.astype(str).apply(lambda x: x.str.contains('가평')).any(axis=1)
-        date_pattern = r'(?:\d{2,4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2})|(?:\d{1,2}\s*[.\-/]\s*\d{1,2})'
+        date_pattern = r'(\d{2,4}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2})|(\d{1,2}\s*[.\-/]\s*\d{1,2})'
         mask_date = df_filtered.astype(str).apply(lambda x: x.str.contains(date_pattern, regex=True)).any(axis=1)
 
         schedule_df = df_filtered[mask_gapyeong & mask_date].copy()
@@ -354,6 +313,7 @@ def load_milkrun_data():
 
         df = pd.DataFrame(raw_data)
 
+        # A=0(벤더), B=1(센터), C=2(차량), D=3(시간), E=4(수량), F=5(창고)
         if df.shape[1] < 6:
             return pd.DataFrame()
 
@@ -367,6 +327,7 @@ def load_milkrun_data():
             '창고': df.iloc[:, 5],
         })
 
+        # 빈 행 제거
         result = result[result['차량'].str.strip().astype(bool) | result['벤더'].str.strip().astype(bool)]
         result = result.reset_index(drop=True)
 
@@ -377,12 +338,14 @@ def load_milkrun_data():
         return pd.DataFrame()
 
 def show_milkrun_table(df, warehouse_name):
+    """창고별 밀크런 테이블 표시"""
     filtered = df[df['창고'].str.strip() == warehouse_name].copy()
     if filtered.empty:
         st.info("오늘은 밀크런이 없습니다")
         return
     display_df = filtered[['차량', '시간', '벤더', '센터', '수량']].reset_index(drop=True)
 
+    # 차량 뒤 4자리만 표시 (하이픈은 그대로)
     def extract_vehicle(val):
         s = str(val).strip()
         if s == '-' or s == '' or s.lower() == 'nan':
@@ -390,6 +353,7 @@ def show_milkrun_table(df, warehouse_name):
         return s[-4:] if len(s) >= 4 else s
     display_df['차량'] = display_df['차량'].apply(extract_vehicle)
 
+    # 시간 HH:MM만 표시 (날짜 제거, 하이픈은 그대로)
     def extract_time(val):
         s = str(val).strip()
         if s == '-' or s == '' or s.lower() == 'nan':
@@ -400,11 +364,14 @@ def show_milkrun_table(df, warehouse_name):
         return s[:5]
     display_df["시간"] = display_df["시간"].apply(extract_time)
 
+    # 벤더 약칭 처리
     vendor_abbr = {'viliv_cplb': '빌리브', 'globe_': '글로브'}
     display_df['벤더'] = display_df['벤더'].apply(lambda x: vendor_abbr.get(str(x).strip(), str(x).strip()))
 
+    # 차량번호 기준 정렬
     display_df = display_df.sort_values('차량').reset_index(drop=True)
 
+    # CSS 스타일 (중괄호 충돌 방지를 위해 style 블록 별도 분리)
     st.markdown("""
         <style>
         .milkrun-table-wrap {
@@ -430,6 +397,7 @@ def show_milkrun_table(df, warehouse_name):
         </style>
     """, unsafe_allow_html=True)
 
+    # 테이블 HTML 별도 출력
     html = display_df.to_html(index=False, border=0)
     st.markdown('<div class="milkrun-table-wrap">' + html + '</div>', unsafe_allow_html=True)
 
@@ -443,6 +411,7 @@ def get_ecount_session():
     zone = "CA"
 
     try:
+        # 앱스스크립트와 동일한 방식: zone 하드코딩 + ZONE 필드 포함
         login_res = requests.post(
             f"https://oapi{zone}.ecount.com/OAPI/V2/OAPILogin",
             json={
@@ -456,6 +425,7 @@ def get_ecount_session():
 
         status = str(login_res.get("Status", ""))
         if status == "200":
+            # 앱스스크립트 참고: Data.Datas.SESSION_ID
             session_id = login_res.get("Data", {}).get("Datas", {}).get("SESSION_ID", "")
             if session_id:
                 return zone, session_id, None
@@ -478,6 +448,7 @@ def send_ecount_purchase(master_data, detail_data):
     save_url = f"https://oapi{zone}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     try:
+        # ✅ 품목 기준단가 한 번에 조회 (PRICE, SUPPLY_AMT, VAT_AMT 자동 입력용)
         price_map = {}
         try:
             price_url = f"https://oapi{zone}.ecount.com/OAPI/V2/InventoryBasic/GetBasicProductsList?SESSION_ID={session_id}"
@@ -490,16 +461,17 @@ def send_ecount_purchase(master_data, detail_data):
                 items = price_res.get("Data", {}).get("Result") or price_res.get("Data", {}).get("Datas") or []
                 for item in items:
                     pcd = str(item.get("PROD_CD", "")).strip()
+                    # 기준단가 (IN_PRICE = 구매기준단가)
                     price_val = str(item.get("IN_PRICE", "0") or "0").replace(",", "").strip()
                     try:
                         price_int = int(float(price_val))
                     except:
                         price_int = 0
-                    vat_yn = str(item.get("VAT_YN", "Y")).strip()
+                    vat_yn = str(item.get("VAT_YN", "Y")).strip()  # 과세여부
                     if pcd:
                         price_map[pcd] = {"price": price_int, "vat_yn": vat_yn}
         except Exception as pe:
-            pass
+            pass  # 단가 조회 실패해도 입력은 계속 진행
 
         purchase_list = []
         
@@ -516,12 +488,14 @@ def send_ecount_purchase(master_data, detail_data):
                 except Exception:
                     add_date_02 = str(exp_raw).replace("-", "").replace("/", "").replace(" ", "")
             
+            # 수량 변환 - 쉼표 제거 후 정수 변환
             qty_raw = str(row.get('수량', '0')).strip().replace(',', '').replace(' ', '')
             try:
                 qty_val = str(int(float(qty_raw)))
             except Exception:
                 qty_val = "0"
 
+            # ✅ 단가/공급가액/부가세 자동 계산
             prod_price_info = price_map.get(prod_cd, {})
             unit_price = prod_price_info.get("price", 0)
             vat_yn = prod_price_info.get("vat_yn", "Y")
@@ -571,6 +545,7 @@ def send_ecount_purchase(master_data, detail_data):
         return False, "API 통신 오류: " + str(e)
 
 def normalize_selected_items(df):
+    """selected_items의 제조일자 컬럼을 datetime 타입으로 통일해서 data_editor 오류 방지"""
     df = df.copy()
     def to_dt(v):
         if v is None or (isinstance(v, float) and pd.isna(v)):
@@ -664,8 +639,10 @@ warehouse_list = {
 # ==========================================================
 if st.session_state.current_page == "main":
 
+    # CSS: expander 내부 padding, 이카운트 버튼 스타일
     st.markdown("""
         <style>
+        /* 이카운트 버튼 expander 스타일 */
         .ecount-nav button {
             background-color: white !important;
             border: 1px solid rgba(49, 51, 63, 0.2) !important;
@@ -698,6 +675,7 @@ if st.session_state.current_page == "main":
         for email in WHITELIST_EMAILS:
             st.caption(f"✔️ {email}")
 
+    # session_state 초기화
     if "sched_copy_text" not in st.session_state:
         st.session_state.sched_copy_text = ""
     if "sched_copy_active" not in st.session_state:
@@ -742,7 +720,7 @@ if st.session_state.current_page == "main":
                     sched_data,
                     gridOptions=gridOptions,
                     update_mode=GridUpdateMode.NO_UPDATE,
-                    use_container_width=True,
+                    width='stretch',
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
                     fit_columns_on_grid_load=False,
                     theme="alpine",
@@ -802,22 +780,30 @@ if st.session_state.current_page == "main":
 
     render_sched_expander()
 
+    # ✨ 띄어쓰기 한 칸의 미학과 메뉴 사이의 쫀득함을 살린 최종 CSS!
     st.markdown("""
         <style>
+        /* 1. 화면에 보이는 모든 회색 구분선(hr) 싹 지우기 */
         hr {
             display: none !important;
         }
+
+        /* ✨ 2. 메뉴(익스팬더) 사이의 간격을 아~주 조금만 더 좁히기 (-5px 끌어올림) */
         div[data-testid="stExpander"] {
             margin-bottom: 0px !important; 
             margin-top: -5px !important; 
         }
+
+        /* 3. 이카운트 버튼 위로 끌어올리기 */
         div[data-testid="element-container"]:has(.ecount-anchor) + div,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div {
             margin-top: -25px !important; 
         }
+
+        /* ✨ 4. 버튼 안의 글씨를 왼쪽으로 밀고, 띄어쓰기 한 칸(8px)만큼의 여백 주기! */
         div[data-testid="element-container"]:has(.ecount-anchor) + div button,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button {
-            padding-left: 17px !important;
+            padding-left: 17px !important; /* 👈 원래 20px에서 8px(한 칸) 더 밀었습니다! */
         }
         div[data-testid="element-container"]:has(.ecount-anchor) + div button > div,
         div[data-testid="stElementContainer"]:has(.ecount-anchor) + div button > div {
@@ -833,8 +819,10 @@ if st.session_state.current_page == "main":
         <div class="ecount-anchor"></div>
     """, unsafe_allow_html=True)
 
+    # 알맹이 버튼 딱 하나!
     st.button("✔️  📝  이카운트 구매입력 하러가기", on_click=go_to_ecount, use_container_width=True, type="secondary")
 
+    # 밀크런 메뉴
     milkrun_df = pd.DataFrame()
     milkrun_loaded = False
 
@@ -859,6 +847,7 @@ if st.session_state.current_page == "main":
                 milkrun_loaded = True
         show_milkrun_table(milkrun_df, "1창고")
 
+    # 기존 검색 화면
     df = load_real_data()
 
     st.markdown("<div style='margin-top: 5vh;'></div>", unsafe_allow_html=True)
@@ -985,7 +974,7 @@ elif st.session_state.current_page == "ecount":
                 grid_response = AgGrid(
                     sched_for_selection,
                     gridOptions=gridOptions,
-                    use_container_width=True,
+                    width='stretch',
                     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
                     fit_columns_on_grid_load=False, 
                     theme="alpine",
@@ -1025,6 +1014,7 @@ elif st.session_state.current_page == "ecount":
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
         with st.expander("💡 작성 팁"):
+            # ✨ style 부분에 'padding-bottom: 10px;' 를 추가해서 아래쪽 여백을 푹신하게 만들었습니다!
             st.markdown("""
             <div style='padding-left: 15px; padding-bottom: 10px; line-height: 1.6;'>
                 ✔️ <b>#만 있는 것</b> = 라온글로벌<br>
