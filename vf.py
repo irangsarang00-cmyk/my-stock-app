@@ -48,7 +48,6 @@ def load_google_sheet():
 
 df_sheet = load_google_sheet()
 
-# 스크롤 시 화면 상단에 고정되도록 CSS를 강력하게 설정합니다.
 st.markdown("""
 <style>
 .block-container {
@@ -70,7 +69,7 @@ header[data-testid="stHeader"] {
     box-sizing: border-box;
 }
 .main-content {
-    margin-top: 220px; /* 고정 메뉴가 가리지 않도록 여백을 조금 더 주었습니다 */
+    margin-top: 220px;
 }
 .top-barcode-title {
     font-size: 20px;
@@ -86,7 +85,6 @@ header[data-testid="stHeader"] {
     display: block;
     margin: 0 auto;
 }
-/* 스트림릿 기본 iframe 여백 제거 */
 iframe { margin-bottom: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -94,7 +92,6 @@ iframe { margin-bottom: 0 !important; }
 workbench_img = get_barcode_base64("466-RCRT1-1-1")
 ibc_placeholder_img = get_barcode_base64("IBC")
 
-# HTML과 CSS를 활용해 글자와 입력칸을 화면 한가운데에 예쁘게 정렬했습니다.
 st.markdown(f"""
 <div class="fixed-top-bar">
     <div style="display: flex; justify-content: space-around; align-items: center; gap: 20px;">
@@ -147,7 +144,6 @@ window.parent.document.getElementById('ibc-input').addEventListener('input', fun
 
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
-# --- ZIP 파일 업로드 ---
 st.markdown("<h3 style='text-align: center;'>📁 파일 업로드</h3>", unsafe_allow_html=True)
 uploaded_files = st.file_uploader(
     "ZIP 파일 또는 XLSX 파일을 선택해주세요. (복수 선택 가능)",
@@ -162,11 +158,11 @@ if uploaded_files:
     file_names = [f.name for f in uploaded_files]
     print(f"👀 [{now_kst} KST] Gotcha! (파일명: {', '.join(file_names)})")
 
-    po_numbers = []        # (po_num, is_confirmed) 튜플 리스트
+    # ✅ status: "not_received"(확정), "unconfirmed"(미확정), "already_received"(기입고)
+    po_numbers = []
     extracted_data = []
 
-    def process_xlsx(ws, po_num, is_confirmed):
-        """워크시트에서 데이터 추출"""
+    def process_xlsx(ws, po_num, status):
         for ri in range(1, ws.max_row + 1):
             cv = str(ws.cell(ri, 3).value or "").strip()
             if cv.startswith("PL") or cv.startswith("880"):
@@ -175,18 +171,50 @@ if uploaded_files:
                     "po": po_num,
                     "barcode": cv,
                     "qty": qv,
-                    "confirmed": is_confirmed
+                    "status": status
                 })
 
-    def check_confirmed(ws):
-        """Q20~S20 병합셀에 '입고금액' 텍스트 여부 확인"""
-        for merged in ws.merged_cells.ranges:
-            if (merged.min_row == 20 and merged.max_row == 20 and
-                merged.min_col == 17 and merged.max_col == 19):  # Q=17, R=18, S=19
-                cell_val = str(ws.cell(20, 17).value or "").strip()
-                return cell_val == "입고금액"
+    def check_status(ws):
+        """
+        발주서 상태 판단:
+        1. Q20 셀이 '입고금액'이 아니면 → 'unconfirmed' (미확정, 빨간글씨)
+        2. Q20 셀이 '입고금액'이면서:
+           - H열과 I열(22행부터 2행씩 병합) 수량이 모두 일치 → 'already_received' (기입고, 회색)
+           - H열과 I열 수량이 하나라도 다름              → 'not_received' (미입고, 정상출력)
+        """
+        # Step 1: 미확정 여부 (Q=17열, 20행)
         cell_val = str(ws.cell(20, 17).value or "").strip()
-        return cell_val == "입고금액"
+        if cell_val != "입고금액":
+            return "unconfirmed"
+
+        # Step 2: H열(8열)과 I열(9열) 수량 비교 (22행부터 2행 간격)
+        all_match = True
+        has_data = False
+        row = 22
+        while row <= ws.max_row:
+            h_val = ws.cell(row, 8).value
+            i_val = ws.cell(row, 9).value
+            if h_val is None and i_val is None:
+                break
+            try:
+                h_num = float(str(h_val).replace(",", "").strip() or "0")
+            except:
+                h_num = 0
+            try:
+                i_num = float(str(i_val).replace(",", "").strip() or "0")
+            except:
+                i_num = 0
+            if h_num > 0:
+                has_data = True
+                if h_num != i_num:
+                    all_match = False
+                    break
+            row += 2
+
+        if has_data and all_match:
+            return "already_received"
+        else:
+            return "not_received"
 
     for uploaded_file in uploaded_files:
         filename = uploaded_file.name
@@ -200,42 +228,50 @@ if uploaded_files:
                         with z.open(fi) as f:
                             wb = openpyxl.load_workbook(io.BytesIO(f.read()), data_only=True)
                             ws = wb.active
-                            is_confirmed = check_confirmed(ws)
-                            if po_num and (po_num, is_confirmed) not in po_numbers:
-                                po_numbers.append((po_num, is_confirmed))
-                            process_xlsx(ws, po_num, is_confirmed)
+                            status = check_status(ws)
+                            if po_num and (po_num, status) not in po_numbers:
+                                po_numbers.append((po_num, status))
+                            process_xlsx(ws, po_num, status)
 
         elif filename.endswith(".xlsx"):
             po_num = re.sub(r'[^0-9]', '', filename)
             wb = openpyxl.load_workbook(io.BytesIO(uploaded_file.read()), data_only=True)
             ws = wb.active
-            is_confirmed = check_confirmed(ws)
-            if po_num and (po_num, is_confirmed) not in po_numbers:
-                po_numbers.append((po_num, is_confirmed))
-            process_xlsx(ws, po_num, is_confirmed)
+            status = check_status(ws)
+            if po_num and (po_num, status) not in po_numbers:
+                po_numbers.append((po_num, status))
+            process_xlsx(ws, po_num, status)
 
-    # 발주번호 타이틀 중앙 정렬
     st.markdown("<h3 style='text-align: center;'>[ 추출된 발주번호 ]</h3>", unsafe_allow_html=True)
-    st.write("") # 약간의 여백
+    st.write("")
     
     po_cols = st.columns(4)
-    for idx, (po, is_confirmed) in enumerate(po_numbers):
+    for idx, (po, status) in enumerate(po_numbers):
         with po_cols[idx % 4]:
-            text_color = "#222222" if is_confirmed else "#e00000"
-            label = f"📝 {po}" if is_confirmed else f"📝 {po} ⚠️ 미확정"
+            if status == "not_received":
+                text_color = "#222222"
+                label = f"📝 {po}"
+            elif status == "unconfirmed":
+                text_color = "#e00000"
+                label = f"📝 {po} ⚠️ 미확정"
+            else:  # already_received
+                text_color = "#888888"
+                label = f"📝 {po} 🔒 기입고"
+
             st.markdown(
                 f"<div style='text-align:center; font-size:18px; font-weight:bold; "
                 f"margin-bottom:4px; color:{text_color};'>{label}</div>",
                 unsafe_allow_html=True
             )
             img_b64 = get_barcode_base64(po)
-            if is_confirmed:
+
+            if status == "not_received":
                 st.markdown(
                     f"<div style='text-align:center;'>"
                     f"<img src='{img_b64}' style='max-width:300px;'></div>",
                     unsafe_allow_html=True
                 )
-            else:
+            elif status == "unconfirmed":
                 st.markdown(
                     f"<div style='text-align:center; border: 2px solid #e00000; "
                     f"border-radius:6px; display:inline-block; padding:4px;'>"
@@ -243,17 +279,28 @@ if uploaded_files:
                     f"filter: sepia(1) saturate(5) hue-rotate(-10deg);'></div>",
                     unsafe_allow_html=True
                 )
+            else:  # already_received - 바코드 안 찍힘
+                st.markdown(
+                    f"<div style='text-align:center; border: 2px solid #888888; "
+                    f"border-radius:6px; display:inline-block; padding:8px; "
+                    f"background:#f5f5f5; color:#888; font-size:14px;'>"
+                    f"🔒 기입고 발주서<br>바코드 미출력</div>",
+                    unsafe_allow_html=True
+                )
 
     st.divider()
 
-    # 상품 출력 목록 (토트 바코드 제거됨)
-    has_unconfirmed = any(not c for _, c in po_numbers)
-    unconfirmed_label = (
-        " <span style='color:#e00000; font-size:16px;'>* 미확정 발주서</span>"
-        if has_unconfirmed else ""
-    )
+    has_unconfirmed = any(s == "unconfirmed" for _, s in po_numbers)
+    has_already_received = any(s == "already_received" for _, s in po_numbers)
+
+    extra_label = ""
+    if has_unconfirmed:
+        extra_label += " <span style='color:#e00000; font-size:16px;'>* 미확정 발주서</span>"
+    if has_already_received:
+        extra_label += " <span style='color:#888888; font-size:16px;'>* 기입고 발주서</span>"
+
     st.markdown(
-        f"<h3 style='text-align: center;'>📋 상품 출력 목록{unconfirmed_label}</h3>",
+        f"<h3 style='text-align: center;'>📋 상품 출력 목록{extra_label}</h3>",
         unsafe_allow_html=True
     )
 
@@ -267,6 +314,7 @@ if uploaded_files:
     img { max-width: 280px; height: auto; }
     .product-name { font-size: 20px; text-align: left; padding-left: 10px; }
     .unconfirmed-name { font-size: 20px; text-align: left; padding-left: 10px; color: #e00000; }
+    .already-received-name { font-size: 20px; text-align: left; padding-left: 10px; color: #888888; }
     </style>
     <div class="table-container">
     <table>
@@ -284,9 +332,10 @@ if uploaded_files:
     for item in extracted_data:
         prod_barcode = item["barcode"]
         prod_qty = item["qty"]
-        is_confirmed = item["confirmed"]
+        status = item["status"]
         prod_name = "매칭 실패"
         loc_num = "0"
+        # ✅ 열 이름으로 창고 재고 불러오기
         w1 = w2 = w3 = w4 = "-"
 
         if not df_sheet.empty:
@@ -294,34 +343,41 @@ if uploaded_files:
             if not match_row.empty:
                 if len(match_row.columns) > 2:
                     prod_name = str(match_row.iloc[0, 2])
-                if len(match_row.columns) > 3:
-                    w1 = str(match_row.iloc[0, 3])
-                if len(match_row.columns) > 4:
-                    w2 = str(match_row.iloc[0, 4])
-                if len(match_row.columns) > 5:
-                    w3 = str(match_row.iloc[0, 5])
-                if len(match_row.columns) > 6:
-                    w4 = str(match_row.iloc[0, 6])
+                # ✅ 열 이름으로 접근 (인덱스 대신)
+                w1 = str(match_row['1창고 (007)'].iloc[0]) if '1창고 (007)' in match_row.columns else "-"
+                w2 = str(match_row['2창고 (012)'].iloc[0]) if '2창고 (012)' in match_row.columns else "-"
+                w3 = str(match_row['3창고 (017)'].iloc[0]) if '3창고 (017)' in match_row.columns else "-"
+                w4 = str(match_row['4창고 (018)'].iloc[0]) if '4창고 (018)' in match_row.columns else "-"
                 if len(match_row.columns) > 11:
                     loc_num = str(match_row.iloc[0, 11])
 
-        if is_confirmed:
+        if status == "not_received":
             img_prod_tag = f'<img src="{get_barcode_base64(prod_barcode)}">'
             name_class = "product-name"
             qty_style = "font-size: 24px; font-weight: bold;"
-        else:
+        elif status == "unconfirmed":
             img_prod_tag = (
                 f'<div style="color:#e00000; font-size:13px; font-weight:bold;">'
                 f'⚠️ 미확정<br>{prod_barcode}</div>'
             )
             name_class = "unconfirmed-name"
             qty_style = "font-size: 24px; font-weight: bold; color: #e00000;"
-            
-        img_loc  = get_barcode_base64(f"466-A1-1-{loc_num}")
+        else:  # already_received - 바코드 안 찍힘
+            img_prod_tag = (
+                f'<div style="color:#888888; font-size:13px; font-weight:bold;">'
+                f'🔒 기입고<br>{prod_barcode}</div>'
+            )
+            name_class = "already-received-name"
+            qty_style = "font-size: 24px; font-weight: bold; color: #888888;"
 
-        loc_tag = f'<img src="{img_loc}">' if is_confirmed else (
-            f'<img src="{img_loc}" style="filter: sepia(1) saturate(5) hue-rotate(-10deg);">'
-        )
+        img_loc = get_barcode_base64(f"466-A1-1-{loc_num}")
+
+        if status == "not_received":
+            loc_tag = f'<img src="{img_loc}">'
+        elif status == "unconfirmed":
+            loc_tag = f'<img src="{img_loc}" style="filter: sepia(1) saturate(5) hue-rotate(-10deg);">'
+        else:  # already_received
+            loc_tag = f'<img src="{img_loc}" style="filter: grayscale(100%); opacity: 0.5;">'
 
         html_table += f"""
         <tr>
@@ -340,12 +396,11 @@ if uploaded_files:
                 "2창고": w2,
                 "3창고": w3,
                 "4창고": w4,
-                "confirmed": is_confirmed
+                "status": status
             })
 
     html_table += "</table></div>"
 
-    # 이카운트 재고 현황
     inv_section = """
     <div style="margin-top: 24px;">
         <div style="font-size: 22px; font-weight: bold; margin-bottom: 8px; text-align: center;">📦 이카운트 재고 현황</div>
@@ -364,6 +419,7 @@ if uploaded_files:
         .inv-table tr:hover { background-color: #EBF5FB; }
         .inv-name { text-align: center; font-weight: 500; }
         .inv-name-red { text-align: center; font-weight: 500; color: #e00000; }
+        .inv-name-gray { text-align: center; font-weight: 500; color: #888888; }
         .inv-num  { font-weight: bold; color: #1a5276; }
         </style>
         <div class="inv-container">
@@ -374,7 +430,13 @@ if uploaded_files:
     """
 
     for row in inventory_rows:
-        name_cls = "inv-name" if row["confirmed"] else "inv-name-red"
+        if row["status"] == "not_received":
+            name_cls = "inv-name"
+        elif row["status"] == "unconfirmed":
+            name_cls = "inv-name-red"
+        else:
+            name_cls = "inv-name-gray"
+
         inv_section += f"""
             <tr>
                 <td class="{name_cls}">{row['상품명']}</td>
