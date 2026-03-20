@@ -1018,44 +1018,29 @@ elif st.session_state.current_page == "ecount":
     input_date = c1.date_input("일자", key="ecount_date").strftime("%Y%m%d")
     
     with c2:
+        # ✅ st.radio로 변경 → 키보드 완전 없음
         st.markdown("<div style='font-size: 14px; margin-bottom: 5px;'>거래처</div>", unsafe_allow_html=True)
-        # ✅ 키보드 방지 + 타이핑 방지 + 아래로만 펼치기 → st.selectbox에 CSS 강제 적용
-        vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
-        vendor_code = vendor_list[vendor_name]
         st.markdown("""
             <style>
-            /* 거래처 드롭다운 input 완전 잠금 */
-            div[data-testid="stSelectbox"] input {
-                pointer-events: none !important;
-                caret-color: transparent !important;
-                user-select: none !important;
-                -webkit-user-select: none !important;
-                -webkit-user-modify: read-only !important;
+            /* radio 버튼을 가로로 배치하지 않고 세로 compact하게 */
+            div[data-testid="stRadio"] > label { display: none; }
+            div[data-testid="stRadio"] > div {
+                max-height: 180px;
+                overflow-y: auto;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                padding: 4px 8px;
+                background: white;
             }
-            /* 드롭다운 항상 아래로만 */
-            div[data-testid="stSelectbox"] [data-baseweb="popover"] {
-                top: 100% !important;
-                bottom: auto !important;
+            div[data-testid="stRadio"] label {
+                font-size: 14px !important;
+                padding: 2px 0 !important;
             }
             </style>
-            <script>
-            function lockVendorInput() {
-                var boxes = document.querySelectorAll('[data-testid="stSelectbox"] input');
-                boxes.forEach(function(el) {
-                    el.setAttribute('readonly', 'true');
-                    el.setAttribute('inputmode', 'none');
-                    el.setAttribute('tabindex', '-1');
-                    el.addEventListener('focus', function(e) { e.target.blur(); });
-                    el.addEventListener('touchstart', function(e) { e.target.blur(); }, {passive: true});
-                });
-            }
-            lockVendorInput();
-            setTimeout(lockVendorInput, 500);
-            setTimeout(lockVendorInput, 1500);
-            </script>
         """, unsafe_allow_html=True)
+        vendor_name = st.radio("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
+        vendor_code = vendor_list[vendor_name]
         with st.expander("💡 작성 팁"):
-            # ✨ style 부분에 'padding-bottom: 10px;' 를 추가해서 아래쪽 여백을 푹신하게 만들었습니다!
             st.markdown("""
             <div style='padding-left: 15px; padding-bottom: 10px; line-height: 1.6;'>
                 ✔️ <b>#만 있는 것</b> = 라온글로벌<br>
