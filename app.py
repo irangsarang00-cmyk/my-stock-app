@@ -1019,29 +1019,39 @@ elif st.session_state.current_page == "ecount":
     
     with c2:
         st.markdown("<div style='font-size: 14px; margin-bottom: 5px;'>거래처</div>", unsafe_allow_html=True)
+        # ✅ 키보드 방지 + 타이핑 방지 + 아래로만 펼치기 → st.selectbox에 CSS 강제 적용
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
-        # ✅ 거래처 selectbox 글자 수정 및 모바일 키보드 방지
         st.markdown("""
             <style>
-            div[data-testid="stSelectbox"][data-key="ecount_vendor"] input {
+            /* 거래처 드롭다운 input 완전 잠금 */
+            div[data-testid="stSelectbox"] input {
                 pointer-events: none !important;
                 caret-color: transparent !important;
                 user-select: none !important;
                 -webkit-user-select: none !important;
+                -webkit-user-modify: read-only !important;
             }
-            div[data-testid="stSelectbox"][data-key="ecount_vendor"] input[type="text"] {
-                inputmode: none !important;
+            /* 드롭다운 항상 아래로만 */
+            div[data-testid="stSelectbox"] [data-baseweb="popover"] {
+                top: 100% !important;
+                bottom: auto !important;
             }
             </style>
             <script>
-            setTimeout(function() {
-                var inputs = document.querySelectorAll('[data-testid="stSelectbox"] input');
-                inputs.forEach(function(el) {
-                    el.setAttribute('readonly', 'readonly');
+            function lockVendorInput() {
+                var boxes = document.querySelectorAll('[data-testid="stSelectbox"] input');
+                boxes.forEach(function(el) {
+                    el.setAttribute('readonly', 'true');
                     el.setAttribute('inputmode', 'none');
+                    el.setAttribute('tabindex', '-1');
+                    el.addEventListener('focus', function(e) { e.target.blur(); });
+                    el.addEventListener('touchstart', function(e) { e.target.blur(); }, {passive: true});
                 });
-            }, 500);
+            }
+            lockVendorInput();
+            setTimeout(lockVendorInput, 500);
+            setTimeout(lockVendorInput, 1500);
             </script>
         """, unsafe_allow_html=True)
         with st.expander("💡 작성 팁"):
