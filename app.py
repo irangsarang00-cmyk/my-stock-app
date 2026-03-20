@@ -717,6 +717,7 @@ if st.session_state.current_page == "main":
                 gb.configure_column('창고', width=80)
                 gb.configure_column('컨테이너', width=130)
                 gb.configure_column('거래처', width=160)
+                gb.configure_column('_auto_unique_id_', hide=True)
 
                 gridOptions = gb.build()
 
