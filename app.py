@@ -7,7 +7,7 @@ import tempfile
 import os
 import re
 import requests 
-from datetime import datetime, timedelta, timezone 
+from datetime import datetime, timedelta 
 from google.oauth2.service_account import Credentials
 from streamlit_google_auth import Authenticate
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, ColumnsAutoSizeMode
@@ -153,6 +153,10 @@ authenticator = Authenticate(
 
 if not st.session_state.get("connected"):
     authenticator.check_authentification()
+    # ✅ 로그인 후 URL의 code 파라미터 제거 (InvalidGrantError 방지)
+    if "code" in st.query_params:
+        st.query_params.clear()
+        st.rerun()
 
 if not st.session_state.get("connected"):
     st.markdown("<div style='margin-top: 15vh;'></div>", unsafe_allow_html=True)
@@ -1038,7 +1042,7 @@ elif st.session_state.current_page == "ecount":
     
     final_items = st.data_editor(
         st.session_state.selected_items,
-        use_container_width=True,
+        width='stretch',
         hide_index=True, 
         column_config={
             "제조일자": st.column_config.DateColumn(
