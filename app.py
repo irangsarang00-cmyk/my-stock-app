@@ -611,6 +611,9 @@ def go_to_ecount():
 def go_to_main():
     st.session_state.current_page = "main"
     st.session_state.selected_items = pd.DataFrame(columns=["품목코드", "품목명", "수량", "제조일자"])
+    # ✅ 캐시 초기화 → 메인으로 돌아올 때 AgGrid 재생성되어 auto_unique_id 숨김 적용
+    if "sched_data_cache" in st.session_state:
+        del st.session_state["sched_data_cache"]
     keys_to_clear = ["ecount_date", "ecount_vendor", "ecount_actual_user", "ecount_wh"]
     for k in keys_to_clear:
         if k in st.session_state:
@@ -1018,6 +1021,29 @@ elif st.session_state.current_page == "ecount":
         st.markdown("<div style='font-size: 14px; margin-bottom: 5px;'>거래처</div>", unsafe_allow_html=True)
         vendor_name = st.selectbox("거래처", list(vendor_list.keys()), key="ecount_vendor", label_visibility="collapsed")
         vendor_code = vendor_list[vendor_name]
+        # ✅ 거래처 selectbox 글자 수정 및 모바일 키보드 방지
+        st.markdown("""
+            <style>
+            div[data-testid="stSelectbox"][data-key="ecount_vendor"] input {
+                pointer-events: none !important;
+                caret-color: transparent !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
+            }
+            div[data-testid="stSelectbox"][data-key="ecount_vendor"] input[type="text"] {
+                inputmode: none !important;
+            }
+            </style>
+            <script>
+            setTimeout(function() {
+                var inputs = document.querySelectorAll('[data-testid="stSelectbox"] input');
+                inputs.forEach(function(el) {
+                    el.setAttribute('readonly', 'readonly');
+                    el.setAttribute('inputmode', 'none');
+                });
+            }, 500);
+            </script>
+        """, unsafe_allow_html=True)
         with st.expander("💡 작성 팁"):
             # ✨ style 부분에 'padding-bottom: 10px;' 를 추가해서 아래쪽 여백을 푹신하게 만들었습니다!
             st.markdown("""
