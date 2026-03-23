@@ -49,9 +49,9 @@ def make_tote_page(center, sku_code):
     draw = ImageDraw.Draw(img)
     
     # 글자 크기를 아주 큼직하게 키웠습니다!
-    f_center = get_font(500)  # 센터명 크기
-    f_num    = get_font(350)  # 팔렛트/박스 숫자 크기
-    f_code   = get_font(150)  # SKU 번호 크기
+    f_center = get_font(200)  # 센터명 크기
+    f_num    = get_font(100)  # 팔렛트/박스 숫자 크기
+    f_code   = get_font(70)  # SKU 번호 크기
 
     dc(draw, center,       *TOTE_CENTER_XY, f_center)
     dc(draw, str(box),     *TOTE_BOX_XY,   f_num)
