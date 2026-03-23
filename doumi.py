@@ -15,25 +15,38 @@ NUM_BLOCKS = 3
 ROWS_PER_BLOCK = 6
 
 # ── 텍스트 삽입 좌표 ───────────────────────────────────
-TOTE_CENTER_XY   = (1219, 742);  TOTE_SKU_XY      = (1120, 1050)
-TOTE_BOX_XY      = (1323, 1050); TOTE_UNIT_XY     = (1525, 1050)
+# 글씨가 커진 만큼 중앙 정렬을 위해 좌표를 그대로 유지하거나 살짝 조정합니다.
+TOTE_CENTER_XY   = (1219, 742)
+TOTE_SKU_XY      = (1120, 1050)
+TOTE_BOX_XY      = (1323, 1050)
+TOTE_UNIT_XY     = (1525, 1050)
 TOTE_CODE_XY     = (1617, 1152)
-CONT_CENTER_XY   = (1247, 742);  CONT_SKU_XY      = (1525, 1063)
+
+CONT_CENTER_XY   = (1247, 742)
+CONT_SKU_XY      = (1525, 1063)
 
 # ── 폰트 및 그리기 함수 ────────────────────────────────
-def get_font(size, kind='kr'):
-    kr_candidates = ['C:/Windows/Fonts/malgunbd.ttf', 'C:/Windows/Fonts/malgun.ttf']
-    num_candidates = ['C:/Windows/Fonts/arialbd.ttf', 'C:/Windows/Fonts/arial.ttf']
-    candidates = kr_candidates if kind == 'kr' else num_candidates
-    for path in candidates:
+def get_font(size):
+    # 윈도우 PC에 기본으로 있는 한글 지원 폰트들을 순서대로 찾습니다.
+    kr_fonts = [
+        'C:/Windows/Fonts/malgunbd.ttf', # 맑은 고딕 굵게
+        'C:/Windows/Fonts/malgun.ttf',   # 맑은 고딕
+        'C:/Windows/Fonts/gulim.ttc',    # 굴림
+        'C:/Windows/Fonts/batang.ttc'    # 바탕
+    ]
+    for path in kr_fonts:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
+    
+    # 만약 위 폰트가 하나도 없다면 기본 폰트를 사용합니다 (한글이 깨질 수 있음)
     return ImageFont.load_default()
 
 def dc(draw, text, cx, cy, font):
+    # anchor='mm' 옵션이 텍스트를 정확히 가운데(Middle-Middle)로 정렬해 줍니다.
     draw.text((cx, cy), text, font=font, fill='black', anchor='mm')
 
 def dc_right(draw, text, rx, y, font):
+    # 우측 하단 정렬용
     b = draw.textbbox((0, 0), text, font=font)
     draw.text((rx - (b[2]-b[0]), y), text, font=font, fill='black')
 
@@ -42,9 +55,11 @@ def make_tote_page(center, sku_code):
     box, unit = SKU_INFO[sku_code]
     img = Image.open("tote.jpg")
     draw = ImageDraw.Draw(img)
-    f_center = get_font(200, 'kr')
-    f_num    = get_font(90,  'num')
-    f_code   = get_font(36,  'num')
+    
+    # 글자 크기를 완전 대박 크게 키웠습니다!
+    f_center = get_font(450)
+    f_num    = get_font(250)
+    f_code   = get_font(120)
 
     dc(draw, center,       *TOTE_CENTER_XY, f_center)
     dc(draw, str(box),     *TOTE_BOX_XY,   f_num)
@@ -55,7 +70,9 @@ def make_tote_page(center, sku_code):
 def make_container_page(center):
     img = Image.open("container.jpg")
     draw = ImageDraw.Draw(img)
-    f_center = get_font(200, 'kr')
+    
+    # 컨테이너 센터 글자 크기도 똑같이 대폭 키웠습니다!
+    f_center = get_font(450)
     dc(draw, center, *CONT_CENTER_XY, f_center)
     return img
 
@@ -187,6 +204,6 @@ if generate_clicked:
                 mime="application/pdf"
             )
         except FileNotFoundError:
-            st.error("🚨 `container.jpg` 또는 `tote.jpg` 파일을 찾을 수 없습니다.")
+            st.error("🚨 `container.jpg` 또는 `tote.jpg` 파일을 찾을 수 없습니다. 코드가 있는 폴더에 이미지를 넣어주세요.")
         except Exception as e:
             st.error(f"오류가 발생했습니다: {e}")
