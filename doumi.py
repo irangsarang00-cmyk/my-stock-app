@@ -1,6 +1,5 @@
 import streamlit as st
 import io
-import os
 from PIL import Image, ImageDraw, ImageFont
 from pypdf import PdfWriter
 
@@ -15,7 +14,6 @@ NUM_BLOCKS = 3
 ROWS_PER_BLOCK = 6
 
 # ── 텍스트 삽입 좌표 ───────────────────────────────────
-# 글씨가 커진 만큼 중앙 정렬을 위해 좌표를 그대로 유지하거나 살짝 조정합니다.
 TOTE_CENTER_XY   = (1219, 742)
 TOTE_SKU_XY      = (1120, 1050)
 TOTE_BOX_XY      = (1323, 1050)
@@ -27,22 +25,16 @@ CONT_SKU_XY      = (1525, 1063)
 
 # ── 폰트 및 그리기 함수 ────────────────────────────────
 def get_font(size):
-    # 윈도우 PC에 기본으로 있는 한글 지원 폰트들을 순서대로 찾습니다.
-    kr_fonts = [
-        'C:/Windows/Fonts/malgunbd.ttf', # 맑은 고딕 굵게
-        'C:/Windows/Fonts/malgun.ttf',   # 맑은 고딕
-        'C:/Windows/Fonts/gulim.ttc',    # 굴림
-        'C:/Windows/Fonts/batang.ttc'    # 바탕
-    ]
-    for path in kr_fonts:
-        if os.path.exists(path):
-            return ImageFont.truetype(path, size)
-    
-    # 만약 위 폰트가 하나도 없다면 기본 폰트를 사용합니다 (한글이 깨질 수 있음)
-    return ImageFont.load_default()
+    # 같은 폴더에 있는 나눔스퀘어 폰트를 바로 불러옵니다.
+    font_path = "NanumSquare_acEB.ttf"
+    try:
+        return ImageFont.truetype(font_path, size)
+    except IOError:
+        st.error(f"🚨 폰트 파일을 찾을 수 없어요! 폴더 안에 '{font_path}' 파일이 있는지 확인해 주세요.")
+        return ImageFont.load_default()
 
 def dc(draw, text, cx, cy, font):
-    # anchor='mm' 옵션이 텍스트를 정확히 가운데(Middle-Middle)로 정렬해 줍니다.
+    # 글자를 지정된 좌표의 정중앙에 배치합니다.
     draw.text((cx, cy), text, font=font, fill='black', anchor='mm')
 
 def dc_right(draw, text, rx, y, font):
@@ -56,10 +48,10 @@ def make_tote_page(center, sku_code):
     img = Image.open("tote.jpg")
     draw = ImageDraw.Draw(img)
     
-    # 글자 크기를 완전 대박 크게 키웠습니다!
-    f_center = get_font(450)
-    f_num    = get_font(250)
-    f_code   = get_font(120)
+    # 글자 크기를 아주 큼직하게 키웠습니다!
+    f_center = get_font(500)  # 센터명 크기
+    f_num    = get_font(350)  # 팔렛트/박스 숫자 크기
+    f_code   = get_font(150)  # SKU 번호 크기
 
     dc(draw, center,       *TOTE_CENTER_XY, f_center)
     dc(draw, str(box),     *TOTE_BOX_XY,   f_num)
@@ -71,8 +63,8 @@ def make_container_page(center):
     img = Image.open("container.jpg")
     draw = ImageDraw.Draw(img)
     
-    # 컨테이너 센터 글자 크기도 똑같이 대폭 키웠습니다!
-    f_center = get_font(450)
+    # 컨테이너 센터 글자 크기
+    f_center = get_font(500)
     dc(draw, center, *CONT_CENTER_XY, f_center)
     return img
 
@@ -114,7 +106,7 @@ def generate_pdf_bytes(rows, progress_cb=None):
     pdf_buf.seek(0)
     return pdf_buf, len(container_imgs), len(tote_imgs)
 
-# ── 스트림릿 UI 구성 ───────────────────────────────────
+# ── 스트림릿 화면 구성 ───────────────────────────────────
 st.set_page_config(page_title="부착물 자동생성", layout="wide")
 
 st.markdown("<h1 style='text-align: center;'>📦 부착물 자동생성</h1>", unsafe_allow_html=True)
@@ -132,7 +124,7 @@ if "initialized" not in st.session_state:
     reset_inputs()
     st.session_state["initialized"] = True
 
-# 3등분 화면 생성 (사진과 동일한 구조)
+# 3등분 화면 생성
 cols = st.columns(3)
 
 for b in range(NUM_BLOCKS):
@@ -204,6 +196,6 @@ if generate_clicked:
                 mime="application/pdf"
             )
         except FileNotFoundError:
-            st.error("🚨 `container.jpg` 또는 `tote.jpg` 파일을 찾을 수 없습니다. 코드가 있는 폴더에 이미지를 넣어주세요.")
+            st.error("🚨 `container.jpg` 또는 `tote.jpg` 이미지를 찾을 수 없어요. 코드가 있는 폴더에 이미지를 꼭 넣어주세요!")
         except Exception as e:
             st.error(f"오류가 발생했습니다: {e}")
