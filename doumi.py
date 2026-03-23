@@ -150,7 +150,7 @@ with col_left:
                             st.dataframe(df, use_container_width=True)
                         
                         st.download_button(
-                            label="📥 병합 PDF 다운로드",
+                            label="📥 다운로드",
                             data=merged_pdf_buf,
                             file_name=f"가평3_{date_str}.pdf",
                             mime="application/pdf",
