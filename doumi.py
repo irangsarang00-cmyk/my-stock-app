@@ -19,7 +19,7 @@ st.set_page_config(page_title="가평 업무 도우미", layout="wide")
 col_left, col_right = st.columns(2)
 
 with col_left:
-    st.markdown("### 📄 [1] 서류 취합")
+    st.markdown("### 📄 [1] 3창고 서류 취합")
     st.markdown("<div style='background-color: #f0f2f5; padding: 15px; border-radius: 10px;'>", unsafe_allow_html=True)
     
     uploaded_zips = st.file_uploader("📁 ZIP 파일 업로드", type="zip", accept_multiple_files=True)
