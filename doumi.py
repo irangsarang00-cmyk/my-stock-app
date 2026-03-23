@@ -14,13 +14,13 @@ NUM_BLOCKS = 3
 ROWS_PER_BLOCK = 6
 
 # ── 텍스트 삽입 좌표 ───────────────────────────────────
-TOTE_CENTER_XY   = (1219, 760)
+TOTE_CENTER_XY   = (1248, 742)
 TOTE_SKU_XY      = (1120, 1050)
-TOTE_BOX_XY      = (1319, 1059)
-TOTE_UNIT_XY     = (1525, 1059)
+TOTE_BOX_XY      = (1319, 1058)
+TOTE_UNIT_XY     = (1525, 1058)
 TOTE_CODE_XY     = (1617, 1152)
 
-CONT_CENTER_XY   = (1247, 760)
+CONT_CENTER_XY   = (1248, 742)
 CONT_SKU_XY      = (1525, 1063)
 
 # ── 폰트 및 그리기 함수 ────────────────────────────────
