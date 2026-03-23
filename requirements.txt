@@ -16,3 +16,4 @@ reportlab
 streamlit-aggrid
 streamlit-keyup
 streamlit-cookies-manager
+pypdf
