@@ -13,16 +13,13 @@ import pandas as pd
 # 기본 설정
 # =====================================================================
 # 상단 타이틀 글자 제거
-st.set_page_config(page_title="창고 관리", layout="wide")
+st.set_page_config(page_title="가평 업무 도우미", layout="wide")
 
 # 좌우 화면 분할
 col_left, col_right = st.columns(2)
 
-# =====================================================================
-# [왼쪽 화면] 1. 발주서 추출 및 PDF 병합 (가평3)
-# =====================================================================
 with col_left:
-    st.markdown("### 📄 [1] 발주서 추출 및 PDF 병합 (가평3)")
+    st.markdown("### 📄 [1] 서류 취합")
     st.markdown("<div style='background-color: #f0f2f5; padding: 15px; border-radius: 10px;'>", unsafe_allow_html=True)
     
     uploaded_zips = st.file_uploader("📁 ZIP 파일 업로드", type="zip", accept_multiple_files=True)
@@ -170,7 +167,7 @@ with col_left:
 # [오른쪽 화면] 2. 부착물 자동생성
 # =====================================================================
 with col_right:
-    st.markdown("### 🏷️ [2] 부착물 자동생성")
+    st.markdown("### 🏷️ [2] VFR3 부착물 생성")
     st.markdown("<div style='background-color: #f0f2f5; padding: 15px; border-radius: 10px;'>", unsafe_allow_html=True)
     
     CENTERS  = ["대구2", "동탄1", "인천14", "이천2", "양산1", "고양1"]
