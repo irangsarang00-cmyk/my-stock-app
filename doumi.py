@@ -16,8 +16,8 @@ ROWS_PER_BLOCK = 6
 # ── 텍스트 삽입 좌표 ───────────────────────────────────
 TOTE_CENTER_XY   = (1219, 742)
 TOTE_SKU_XY      = (1120, 1050)
-TOTE_BOX_XY      = (1323, 1050)
-TOTE_UNIT_XY     = (1525, 1050)
+TOTE_BOX_XY      = (1320, 1060)
+TOTE_UNIT_XY     = (1525, 1060)
 TOTE_CODE_XY     = (1617, 1152)
 
 CONT_CENTER_XY   = (1247, 742)
@@ -49,9 +49,9 @@ def make_tote_page(center, sku_code):
     draw = ImageDraw.Draw(img)
     
     # 글자 크기를 아주 큼직하게 키웠습니다!
-    f_center = get_font(200)  # 센터명 크기
-    f_num    = get_font(100)  # 팔렛트/박스 숫자 크기
-    f_code   = get_font(70)  # SKU 번호 크기
+    f_center = get_font(220)  # 센터명 크기
+    f_num    = get_font(110)  # 팔렛트/박스 숫자 크기
+    f_code   = get_font(10)  # SKU 번호 크기
 
     dc(draw, center,       *TOTE_CENTER_XY, f_center)
     dc(draw, str(box),     *TOTE_BOX_XY,   f_num)
@@ -64,7 +64,7 @@ def make_container_page(center):
     draw = ImageDraw.Draw(img)
     
     # 컨테이너 센터 글자 크기
-    f_center = get_font(500)
+    f_center = get_font(220)
     dc(draw, center, *CONT_CENTER_XY, f_center)
     return img
 
