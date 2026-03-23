@@ -14,13 +14,13 @@ NUM_BLOCKS = 3
 ROWS_PER_BLOCK = 6
 
 # ── 텍스트 삽입 좌표 ───────────────────────────────────
-TOTE_CENTER_XY   = (1219, 742)
+TOTE_CENTER_XY   = (1219, 760)
 TOTE_SKU_XY      = (1120, 1050)
-TOTE_BOX_XY      = (1320, 1060)
-TOTE_UNIT_XY     = (1525, 1060)
+TOTE_BOX_XY      = (1319, 1059)
+TOTE_UNIT_XY     = (1525, 1059)
 TOTE_CODE_XY     = (1617, 1152)
 
-CONT_CENTER_XY   = (1247, 742)
+CONT_CENTER_XY   = (1247, 760)
 CONT_SKU_XY      = (1525, 1063)
 
 # ── 폰트 및 그리기 함수 ────────────────────────────────
@@ -51,7 +51,7 @@ def make_tote_page(center, sku_code):
     # 글자 크기를 아주 큼직하게 키웠습니다!
     f_center = get_font(220)  # 센터명 크기
     f_num    = get_font(110)  # 팔렛트/박스 숫자 크기
-    f_code   = get_font(10)  # SKU 번호 크기
+    f_code   = get_font(30)  # SKU 번호 크기
 
     dc(draw, center,       *TOTE_CENTER_XY, f_center)
     dc(draw, str(box),     *TOTE_BOX_XY,   f_num)
