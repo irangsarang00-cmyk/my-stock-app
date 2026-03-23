@@ -125,7 +125,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # ==========================================================
 # 1. 구글 로그인 및 권한 설정
 # ==========================================================
-WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com", "ddadung77@gmail.com", "a01066531205@gmail.com", "seohanseung2@gmail.com", "afopis75@gmail.com", "gmsik00@gmail.com", "hamsungbin87@gmail.com", "policelee2@gmail.com", "leetic1224@gmail.com", "happyjinu@gmail.com"]
+WHITELIST_EMAILS = ["irangsarang00@gmail.com", "hiyokosan0314@gmail.com", "ddadung77@gmail.com", "a01066531205@gmail.com", "seohanseung2@gmail.com", "afopis75@gmail.com", "gmsik00@gmail.com", "hamsungbin87@gmail.com", "policelee2@gmail.com", "leetic1224@gmail.com", "happyjinu@gmail.com", "heoyeong1234@gmail.com"]
 
 auth_secrets = st.secrets["google_oauth"]
 
