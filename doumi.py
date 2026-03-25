@@ -8,6 +8,10 @@ from PIL import Image, ImageDraw, ImageFont
 from pypdf import PdfWriter, PdfReader
 import pdfplumber
 import pandas as pd
+import logging
+
+# pdfminer 관련 불필요한 경고 로그 숨기기
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 # =====================================================================
 # 기본 설정
@@ -24,7 +28,7 @@ with col_left:
     
     uploaded_zips = st.file_uploader("📁 ZIP 파일 업로드", type="zip", accept_multiple_files=True)
     
-    if st.button("🚀 실행", type="primary", use_container_width=True):
+    if st.button("🚀 실행", type="primary", width="stretch"):
         if not uploaded_zips:
             st.warning("ZIP 파일 선택 필요")
         else:
@@ -155,7 +159,7 @@ with col_left:
                             file_name=f"가평3_{date_str}.pdf",
                             mime="application/pdf",
                             type="primary",
-                            use_container_width=True
+                            width="stretch"
                         )
 
                 except Exception as e:
@@ -289,11 +293,10 @@ with col_right:
     st.write("")
     btn1, btn2 = st.columns([1, 2])
     with btn1:
-        if st.button("🔄 초기화", use_container_width=True):
-            reset_inputs()
-            st.rerun()
+        # on_click을 사용하여 초기화 함수를 연결
+        st.button("🔄 초기화", width="stretch", on_click=reset_inputs)
     with btn2:
-        generate_clicked = st.button("📄 생성", type="primary", use_container_width=True)
+        generate_clicked = st.button("📄 생성", type="primary", width="stretch")
 
     if generate_clicked:
         rows = []
@@ -326,7 +329,7 @@ with col_right:
                     data=pdf_bytes,
                     file_name="부착물.pdf",
                     mime="application/pdf",
-                    use_container_width=True
+                    width="stretch"
                 )
             except FileNotFoundError:
                 st.error("이미지 파일 없음")
