@@ -429,7 +429,9 @@ with tab_1창고:
                             st.dataframe(display_df, use_container_width=True, height=350)
 
                             out_buf = io.BytesIO()
-                            result_df.to_excel(out_buf, index=False, header=False)
+                            empty_row = pd.DataFrame([[""] * len(result_df.columns)], columns=result_df.columns)
+                            export_df = pd.concat([empty_row, result_df], ignore_index=True)
+                            export_df.to_excel(out_buf, index=False, header=False)
                             out_buf.seek(0)
                             today = datetime.now().strftime("%Y%m%d")
                             st.download_button(
