@@ -524,12 +524,15 @@ def send_ecount_purchase(master_data, detail_data):
         
         save_res = requests.post(save_url, json=save_payload).json()
         
+        import json as _json
+        payload_str = _json.dumps(save_payload, ensure_ascii=False, indent=2)
+        
         if str(save_res.get("Status")) == "200":
-            return True, "✅ 이카운트 구매입력이 완료되었습니다!"
+            return True, f"✅ 이카운트 구매입력이 완료되었습니다!\n\n[전송된 페이로드]\n{payload_str}"
         else:
             err_msg = save_res.get("Error", {}).get("Message", "")
             full_res = str(save_res)
-            return False, f"전송 실패: {err_msg}\n\n[전체 응답] {full_res}"
+            return False, f"전송 실패: {err_msg}\n\n[전송된 페이로드]\n{payload_str}\n\n[전체 응답]\n{full_res}"
     
     except Exception as e:
         return False, "API 통신 오류: " + str(e)
