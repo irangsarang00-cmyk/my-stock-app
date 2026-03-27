@@ -488,11 +488,10 @@ def send_ecount_purchase(master_data, detail_data):
                 qty_int = 0
 
             supply_amt = unit_price * qty_int
-            # vat_yn 값이 "Y", "1", "과세" 등 다양할 수 있으므로 "N", "0", "면세" 가 아닌 경우 과세로 처리
-            is_taxable = vat_yn not in ("N", "0", "면세", "영세", "")
-            vat_amt = supply_amt // 10 if is_taxable else 0
+            # VAT_YN 조회 결과와 무관하게 품목 기준단가가 0이 아닌 경우 무조건 과세로 처리
+            vat_amt = supply_amt // 10 if unit_price > 0 else 0
 
-            # PROD_DES 특수문자 제거 (쉼표, 따옴표 등이 JSON 파싱 오류 유발 가능)
+            # PROD_DES 특수문자 제거
             prod_des = str(row.get('품목명', '')).strip()
             prod_des = prod_des.replace('"', '').replace("'", '').replace(',', ' ')
 
@@ -506,9 +505,13 @@ def send_ecount_purchase(master_data, detail_data):
                 "PRICE":      str(unit_price),
                 "SUPPLY_AMT": str(supply_amt),
                 "VAT_AMT":    str(vat_amt),
-                "ADD_DATE_02": add_date_02,
                 "U_MEMO1":    "작성자 : " + str(master_data['담당자'])
             }
+            # ADD_DATE_02는 품목 레벨이 아닌 전표 마스터 레벨 필드이므로
+            # 별도로 각 BulkDatas에 ADD_DATE_02 키를 직접 추가
+            if add_date_02:
+                purchase_item["ADD_DATE_02"] = add_date_02
+
             purchase_list.append(purchase_item)
         
         if not purchase_list:
