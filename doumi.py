@@ -1037,48 +1037,52 @@ with tab_1창고:
                 if not uploaded_a_files:
                     st.warning("A파일을 먼저 업로드해주세요.")
                 else:
-                    with st.spinner("처리중..."):
-                        logs = [f"▶ 취합 시작 — {len(uploaded_a_files)}개 파일\n"]
-                        all_dfs_e = []
-                        for uf in uploaded_a_files:
-                            df_e = e_process_file(uf, uf.name, st.session_state["e_shop_mapping"], logs)
-                            if df_e is not None and not df_e.empty:
-                                all_dfs_e.append(df_e)
-                        log_placeholder.code("\n".join(logs), language=None)
-                        if not all_dfs_e:
-                            st.error("처리된 데이터가 없습니다. 파일명을 확인해주세요.")
-                        else:
-                            merged_e = pd.concat(all_dfs_e, ignore_index=True)
-                            if "금액" in merged_e.columns:
-                                def _round_amt(v):
-                                    try: return str(round(float(v))) if v != "" else ""
-                                    except: return v
-                                merged_e["금액"] = merged_e["금액"].apply(_round_amt)
-                            tmp_buf = io.BytesIO()
-                            merged_e.to_excel(tmp_buf, index=False)
-                            tmp_buf.seek(0)
-                            wb_e = openpyxl.load_workbook(tmp_buf)
-                            ws_e = wb_e.active
-                            for col_cells in ws_e.iter_cols():
-                                cl = col_cells[0].column_letter
-                                ci = col_cells[0].column
-                                cn = OUTPUT_COLUMNS_E[ci-1] if ci-1 < len(OUTPUT_COLUMNS_E) else None
-                                if cn not in ACTIVE_COLS_E:
-                                    ws_e.column_dimensions[cl].hidden = True
-                                else:
-                                    mx = max((len(str(c.value)) if c.value else 0) for c in col_cells)
-                                    ws_e.column_dimensions[cl].width = min(mx+2, 60)
-                            final_buf_e = io.BytesIO()
-                            wb_e.save(final_buf_e)
-                            final_buf_e.seek(0)
-                            today_e = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            st.success(f"✅ 취합 완료 — 총 {len(merged_e)}건")
-                            st.download_button(
-                                "📥 취합 엑셀 다운로드", data=final_buf_e,
-                                file_name=f"취합_{today_e}.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                type="primary", use_container_width=True
-                            )
+                    logs = [f"▶ 취합 시작 — {len(uploaded_a_files)}개 파일\n"]
+                    all_dfs_e = []
+                    prog_e = st.progress(0, text="파일 처리 준비 중...")
+                    for i_uf, uf in enumerate(uploaded_a_files):
+                        prog_e.progress(i_uf / len(uploaded_a_files), text=f"처리 중 ({i_uf+1}/{len(uploaded_a_files)}): {uf.name}")
+                        df_e = e_process_file(uf, uf.name, st.session_state["e_shop_mapping"], logs)
+                        if df_e is not None and not df_e.empty:
+                            all_dfs_e.append(df_e)
+                    log_placeholder.code("\n".join(logs), language=None)
+                    if not all_dfs_e:
+                        prog_e.empty()
+                        st.error("처리된 데이터가 없습니다. 파일명을 확인해주세요.")
+                    else:
+                        prog_e.progress(0.9, text="엑셀 파일 생성 중...")
+                        merged_e = pd.concat(all_dfs_e, ignore_index=True)
+                        if "금액" in merged_e.columns:
+                            def _round_amt(v):
+                                try: return str(round(float(v))) if v != "" else ""
+                                except: return v
+                            merged_e["금액"] = merged_e["금액"].apply(_round_amt)
+                        tmp_buf = io.BytesIO()
+                        merged_e.to_excel(tmp_buf, index=False)
+                        tmp_buf.seek(0)
+                        wb_e = openpyxl.load_workbook(tmp_buf)
+                        ws_e = wb_e.active
+                        for col_cells in ws_e.iter_cols():
+                            cl = col_cells[0].column_letter
+                            ci = col_cells[0].column
+                            cn = OUTPUT_COLUMNS_E[ci-1] if ci-1 < len(OUTPUT_COLUMNS_E) else None
+                            if cn not in ACTIVE_COLS_E:
+                                ws_e.column_dimensions[cl].hidden = True
+                            else:
+                                mx = max((len(str(c.value)) if c.value else 0) for c in col_cells)
+                                ws_e.column_dimensions[cl].width = min(mx+2, 60)
+                        final_buf_e = io.BytesIO()
+                        wb_e.save(final_buf_e)
+                        final_buf_e.seek(0)
+                        prog_e.empty()
+                        today_e = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        st.success(f"✅ 취합 완료 — 총 {len(merged_e)}건")
+                        st.download_button(
+                            "📥 취합 엑셀 다운로드", data=final_buf_e,
+                            file_name=f"취합_{today_e}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            type="primary", use_container_width=True
+                        )
 
             if run_inv_e:
                 if not uploaded_a_files:
@@ -1086,89 +1090,97 @@ with tab_1창고:
                 elif not uploaded_c_file:
                     st.warning("C파일(송장번호 파일)을 선택해주세요.")
                 else:
-                    with st.spinner("처리중..."):
-                        logs = [f"▶ 송장번호 기재 시작 — {len(uploaded_a_files)}개 A파일\n"]
-                        try:
-                            uploaded_c_file.seek(0)
-                            df_c_e = pd.read_excel(uploaded_c_file, header=0, dtype=str).fillna("")
-                            cols_c = df_c_e.columns.tolist()
-                            shop_invoice_e = {}
-                            for _, row_c in df_c_e.iterrows():
-                                shop = str(row_c[cols_c[0]]).strip()
-                                name = str(row_c[cols_c[1]]).strip()
-                                inv  = str(row_c[cols_c[2]]).strip()
-                                if not shop or not name or not inv: continue
-                                shop_invoice_e.setdefault(shop, {})[name] = inv
+                    logs = [f"▶ 송장번호 기재 시작 — {len(uploaded_a_files)}개 A파일\n"]
+                    prog_inv = st.progress(0, text="C파일 읽는 중...")
+                    try:
+                        uploaded_c_file.seek(0)
+                        df_c_e = pd.read_excel(uploaded_c_file, header=0, dtype=str).fillna("")
+                        cols_c = df_c_e.columns.tolist()
+                        shop_invoice_e = {}
+                        for _, row_c in df_c_e.iterrows():
+                            shop = str(row_c[cols_c[0]]).strip()
+                            name = str(row_c[cols_c[1]]).strip()
+                            inv  = str(row_c[cols_c[2]]).strip()
+                            if not shop or not name or not inv: continue
+                            shop_invoice_e.setdefault(shop, {})[name] = inv
 
-                            def _find_c_shop(shopname):
-                                if shopname in shop_invoice_e: return shopname
-                                for cs in shop_invoice_e:
-                                    if cs in shopname or shopname in cs: return cs
-                                def _core(s):
-                                    return re.sub(r'(주식회사|\(주\)|\[.*?\]|\(.*?\))', '', s).strip()
-                                core_s = _core(shopname)
-                                for cs in shop_invoice_e:
-                                    if core_s and (core_s in _core(cs) or _core(cs) in core_s): return cs
-                                return None
+                        def _find_c_shop(shopname):
+                            if shopname in shop_invoice_e: return shopname
+                            for cs in shop_invoice_e:
+                                if cs in shopname or shopname in cs: return cs
+                            def _core(s):
+                                return re.sub(r'(주식회사|\(주\)|\[.*?\]|\(.*?\))', '', s).strip()
+                            core_s = _core(shopname)
+                            for cs in shop_invoice_e:
+                                if core_s and (core_s in _core(cs) or _core(cs) in core_s): return cs
+                            return None
 
-                            result_files_e = []
-                            for uf in uploaded_a_files:
-                                sk, sinfo = e_identify_shop(uf.name, st.session_state["e_shop_mapping"])
-                                if sinfo is None:
-                                    logs.append(f"⚠️ [{uf.name}] 인식 불가 — 스킵")
-                                    continue
-                                sname = sinfo["shopname"]
-                                matched = _find_c_shop(sname)
-                                if matched is None:
-                                    logs.append(f"⚠️ [{uf.name}] C파일에 '{sname}' 없음 — 스킵")
-                                    continue
-                                inv_map_e = shop_invoice_e[matched]
-                                inv_key_e = sk if sk and sk in st.session_state["e_invoice_col_map"] else list(st.session_state["e_invoice_col_map"].keys())[0]
-                                res = e_write_invoice(uf, uf.name, inv_key_e, inv_map_e, st.session_state["e_invoice_col_map"], st.session_state["e_shop_mapping"], logs)
-                                if res: result_files_e.append(res)
+                        result_files_e = []
+                        for i_inv, uf in enumerate(uploaded_a_files):
+                            prog_inv.progress((i_inv) / len(uploaded_a_files), text=f"송장 기재 중 ({i_inv+1}/{len(uploaded_a_files)}): {uf.name}")
+                            sk, sinfo = e_identify_shop(uf.name, st.session_state["e_shop_mapping"])
+                            if sinfo is None:
+                                logs.append(f"⚠️ [{uf.name}] 인식 불가 — 스킵")
+                                continue
+                            sname = sinfo["shopname"]
+                            matched = _find_c_shop(sname)
+                            if matched is None:
+                                logs.append(f"⚠️ [{uf.name}] C파일에 '{sname}' 없음 — 스킵")
+                                continue
+                            inv_map_e = shop_invoice_e[matched]
+                            inv_key_e = sk if sk and sk in st.session_state["e_invoice_col_map"] else list(st.session_state["e_invoice_col_map"].keys())[0]
+                            res = e_write_invoice(uf, uf.name, inv_key_e, inv_map_e, st.session_state["e_invoice_col_map"], st.session_state["e_shop_mapping"], logs)
+                            if res: result_files_e.append(res)
 
-                            log_placeholder.code("\n".join(logs), language=None)
+                        log_placeholder.code("\n".join(logs), language=None)
+                        prog_inv.empty()
 
-                            if len(result_files_e) == 1:
-                                buf_inv, fname_inv = result_files_e[0]
-                                st.success("✅ 송장번호 기재 완료")
-                                st.download_button("📥 회신 파일 다운로드", data=buf_inv, file_name=fname_inv,
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    type="primary", use_container_width=True)
-                            elif len(result_files_e) > 1:
-                                st.success(f"✅ {len(result_files_e)}개 파일 기재 완료")
-                                zip_buf_e = io.BytesIO()
-                                with zipfile.ZipFile(zip_buf_e, "w") as zf:
-                                    for buf_inv, fname_inv in result_files_e:
-                                        zf.writestr(fname_inv, buf_inv.read())
-                                zip_buf_e.seek(0)
-                                st.download_button("📥 전체 회신 ZIP 다운로드", data=zip_buf_e,
-                                    file_name=f"송장회신_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
-                                    mime="application/zip", type="primary", use_container_width=True)
-                            else:
-                                st.warning("기재된 파일이 없습니다.")
-                        except Exception as ex_inv:
-                            st.error(f"오류: {ex_inv}")
+                        if len(result_files_e) == 1:
+                            buf_inv, fname_inv = result_files_e[0]
+                            st.success("✅ 송장번호 기재 완료")
+                            st.download_button("📥 회신 파일 다운로드", data=buf_inv, file_name=fname_inv,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                type="primary", use_container_width=True)
+                        elif len(result_files_e) > 1:
+                            st.success(f"✅ {len(result_files_e)}개 파일 기재 완료")
+                            zip_buf_e = io.BytesIO()
+                            with zipfile.ZipFile(zip_buf_e, "w") as zf:
+                                for buf_inv, fname_inv in result_files_e:
+                                    zf.writestr(fname_inv, buf_inv.read())
+                            zip_buf_e.seek(0)
+                            st.download_button("📥 전체 회신 ZIP 다운로드", data=zip_buf_e,
+                                file_name=f"송장회신_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+                                mime="application/zip", type="primary", use_container_width=True)
+                        else:
+                            st.warning("기재된 파일이 없습니다.")
+                    except Exception as ex_inv:
+                        prog_inv.empty()
+                        st.error(f"오류: {ex_inv}")
 
         with settings_tab_e:
             st.markdown("#### ⚙️ 쇼핑몰 매핑 설정")
             st.info("쇼핑몰별 파일명 키워드, 헤더 행, 열 매핑, 거래처명을 수정할 수 있습니다. 수정 후 **저장** 버튼을 눌러야 적용됩니다.")
 
+            # 위젯 key 버전 카운터 — 저장할 때마다 올려서 위젯을 강제로 새로 그림
+            if "e_cfg_ver" not in st.session_state:
+                st.session_state["e_cfg_ver"] = 0
+            _ver = st.session_state["e_cfg_ver"]
+
             cfg_t1, cfg_t2, cfg_t3 = st.tabs(["🗺️ 열 매핑 수정", "➕ 쇼핑몰 추가/삭제", "📦 송장 열 설정"])
 
             with cfg_t1:
                 mapping_cfg = st.session_state["e_shop_mapping"]
-                sel_shop = st.selectbox("수정할 쇼핑몰", list(mapping_cfg.keys()), key="cfg_sel")
+                sel_shop = st.selectbox("수정할 쇼핑몰", list(mapping_cfg.keys()), key=f"cfg_sel_{_ver}")
                 if sel_shop:
                     info_s = mapping_cfg[sel_shop]
                     c1s, c2s = st.columns(2)
                     with c1s:
-                        new_sn  = st.text_input("거래처명(shopname)", value=info_s["shopname"], key=f"sn_{sel_shop}")
-                        new_hr  = st.number_input("헤더 행 (0-based)", value=int(info_s["header_row"]), min_value=0, step=1, key=f"hr_{sel_shop}")
-                        new_sh  = st.text_input("시트명 (first=활성)", value=str(info_s["sheet"]), key=f"sh_{sel_shop}")
+                        new_sn  = st.text_input("거래처명(shopname)", value=info_s["shopname"], key=f"sn_{sel_shop}_{_ver}")
+                        new_hr  = st.number_input("헤더 행 (0-based)", value=int(info_s["header_row"]), min_value=0, step=1, key=f"hr_{sel_shop}_{_ver}")
+                        new_sh  = st.text_input("시트명 (first=활성)", value=str(info_s["sheet"]), key=f"sh_{sel_shop}_{_ver}")
                     with c2s:
-                        new_sk  = st.checkbox("숨긴 행 제외", value=bool(info_s["skip_hidden"]), key=f"sk_{sel_shop}")
-                        new_kw  = st.text_input("파일명 키워드 (쉼표 구분)", value=", ".join(info_s["keywords"]), key=f"kw_{sel_shop}")
+                        new_sk  = st.checkbox("숨긴 행 제외", value=bool(info_s["skip_hidden"]), key=f"sk_{sel_shop}_{_ver}")
+                        new_kw  = st.text_input("파일명 키워드 (쉼표 구분)", value=", ".join(info_s["keywords"]), key=f"kw_{sel_shop}_{_ver}")
                     st.markdown("**열 매핑** — 특수값: `auto` / `[API]` / `[공란]` / `0` / `1` / `열A&\" \"&열B`")
                     COL_LABELS_E = [
                         ("쇼핑몰주문번호","주문번호 열"),("주문자명","주문자명 열"),
@@ -1182,18 +1194,20 @@ with tab_1창고:
                     cp = st.columns(2)
                     for idx2, (ck, cl_lbl) in enumerate(COL_LABELS_E):
                         with cp[idx2 % 2]:
-                            new_cols_cfg[ck] = st.text_input(cl_lbl, value=info_s["cols"].get(ck,""), key=f"col_{sel_shop}_{ck}")
-                    if st.button("💾 저장", type="primary", key=f"save_{sel_shop}"):
+                            new_cols_cfg[ck] = st.text_input(cl_lbl, value=info_s["cols"].get(ck,""), key=f"col_{sel_shop}_{ck}_{_ver}")
+                    if st.button("💾 저장", type="primary", key=f"save_{sel_shop}_{_ver}"):
                         st.session_state["e_shop_mapping"][sel_shop] = {
                             "keywords": [k.strip() for k in new_kw.split(",") if k.strip()],
                             "header_row": int(new_hr), "sheet": new_sh.strip(),
                             "skip_hidden": new_sk, "shopname": new_sn.strip(), "cols": new_cols_cfg,
                         }
+                        st.session_state["e_cfg_ver"] += 1
                         st.success(f"✅ '{sel_shop}' 저장 완료!")
                         st.rerun()
-                    if st.button("🔄 이 쇼핑몰 기본값 복원", key=f"rst_{sel_shop}"):
+                    if st.button("🔄 이 쇼핑몰 기본값 복원", key=f"rst_{sel_shop}_{_ver}"):
                         if sel_shop in DEFAULT_SHOP_MAPPING_E:
                             st.session_state["e_shop_mapping"][sel_shop] = _json_e.loads(_json_e.dumps(DEFAULT_SHOP_MAPPING_E[sel_shop]))
+                            st.session_state["e_cfg_ver"] += 1
                             st.success("복원 완료!")
                             st.rerun()
 
@@ -1210,6 +1224,7 @@ with tab_1창고:
                             "cols":{"쇼핑몰주문번호":"주문번호","주문자명":"수령자명","주문자휴대폰번호":"휴대폰번호","수령자명":"수령자명","수령자휴대폰번호":"휴대폰번호","우편번호":"우편번호","주소":"주소","배송메세지":"배송메세지","온라인 상품명":"상품명","옵션명":"[공란]","주문수량":"수량","건별출고수량":"1","금액":"0"}
                         }
                         st.session_state["e_invoice_col_map"][nk] = {"col_name":"송장번호","header_row":0,"skip_hidden":False}
+                        st.session_state["e_cfg_ver"] += 1
                         st.success(f"'{nk}' 추가 완료! [열 매핑 수정] 탭에서 설정하세요.")
                         st.rerun()
                 st.markdown("---")
@@ -1218,12 +1233,14 @@ with tab_1창고:
                 if st.button("삭제", type="primary", key="del_shop_btn"):
                     del st.session_state["e_shop_mapping"][del_s]
                     if del_s in st.session_state["e_invoice_col_map"]: del st.session_state["e_invoice_col_map"][del_s]
+                    st.session_state["e_cfg_ver"] += 1
                     st.success(f"'{del_s}' 삭제 완료!")
                     st.rerun()
                 st.markdown("---")
                 if st.button("🔄 전체 기본값으로 초기화", key="reset_all"):
                     st.session_state["e_shop_mapping"]    = _json_e.loads(_json_e.dumps(DEFAULT_SHOP_MAPPING_E))
                     st.session_state["e_invoice_col_map"] = _json_e.loads(_json_e.dumps(DEFAULT_INVOICE_COL_MAP_E))
+                    st.session_state["e_cfg_ver"] += 1
                     st.success("전체 초기화 완료!")
                     st.rerun()
 
@@ -1231,20 +1248,21 @@ with tab_1창고:
                 st.markdown("##### 📦 쇼핑몰별 송장 열 설정")
                 st.info("A파일에서 송장번호를 기재할 열 이름과 헤더 행을 설정합니다. col_name이 빈칸이면 마지막 열 다음에 자동 추가됩니다.")
                 inv_cfg_ui = st.session_state["e_invoice_col_map"]
-                inv_sel = st.selectbox("쇼핑몰 선택", list(inv_cfg_ui.keys()), key="inv_sel")
+                inv_sel = st.selectbox("쇼핑몰 선택", list(inv_cfg_ui.keys()), key=f"inv_sel_{_ver}")
                 if inv_sel:
                     cur_inv = inv_cfg_ui[inv_sel]
                     ic1, ic2, ic3 = st.columns(3)
                     with ic1:
-                        new_icol = st.text_input("송장 열 이름 (없으면 비워두기)", value=cur_inv["col_name"] or "", key=f"icol_{inv_sel}")
+                        new_icol = st.text_input("송장 열 이름 (없으면 비워두기)", value=cur_inv["col_name"] or "", key=f"icol_{inv_sel}_{_ver}")
                     with ic2:
-                        new_ihr  = st.number_input("헤더 행", value=int(cur_inv["header_row"]), min_value=0, step=1, key=f"ihr_{inv_sel}")
+                        new_ihr  = st.number_input("헤더 행", value=int(cur_inv["header_row"]), min_value=0, step=1, key=f"ihr_{inv_sel}_{_ver}")
                     with ic3:
-                        new_isk  = st.checkbox("숨긴 행 제외", value=bool(cur_inv["skip_hidden"]), key=f"isk_{inv_sel}")
-                    if st.button("💾 저장", type="primary", key=f"isave_{inv_sel}"):
+                        new_isk  = st.checkbox("숨긴 행 제외", value=bool(cur_inv["skip_hidden"]), key=f"isk_{inv_sel}_{_ver}")
+                    if st.button("💾 저장", type="primary", key=f"isave_{inv_sel}_{_ver}"):
                         st.session_state["e_invoice_col_map"][inv_sel] = {
                             "col_name": new_icol.strip() if new_icol.strip() else None,
                             "header_row": int(new_ihr), "skip_hidden": new_isk,
                         }
+                        st.session_state["e_cfg_ver"] += 1
                         st.success(f"✅ '{inv_sel}' 송장 설정 저장 완료!")
                         st.rerun()
