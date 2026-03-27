@@ -460,14 +460,14 @@ def send_ecount_purchase(master_data, detail_data):
             if not prod_cd or prod_cd == 'nan':
                 continue
             
-            # ✅ 수정: 제조일자 필드명 ADD_DATE_02 → MFG_DATE
+            # 제조일자 변환 (ADD_DATE_02 필드로 전송)
             exp_raw = row.get('제조일자')
-            mfg_date = ""
+            add_date_02 = ""
             if exp_raw and str(exp_raw) != 'None' and str(exp_raw) != 'nan':
                 try:
-                    mfg_date = pd.to_datetime(exp_raw).strftime("%Y%m%d")
+                    add_date_02 = pd.to_datetime(exp_raw).strftime("%Y%m%d")
                 except Exception:
-                    mfg_date = str(exp_raw).replace("-", "").replace("/", "").replace(" ", "")
+                    add_date_02 = str(exp_raw).replace("-", "").replace("/", "").replace(" ", "")
             
             # 수량 변환
             qty_raw = str(row.get('수량', '0')).strip().replace(',', '').replace(' ', '')
@@ -487,8 +487,8 @@ def send_ecount_purchase(master_data, detail_data):
                 qty_int = 0
 
             supply_amt = unit_price * qty_int
-            # ✅ 수정: 부가세 = 공급가 / 11 반올림 (일반적인 역산 방식)
-            tax_amt = round(supply_amt / 11) if vat_yn == "Y" else 0
+            # 부가세 = 공급가액 * 0.1
+            vat_amt = supply_amt // 10 if vat_yn == "Y" else 0
 
             purchase_item = {
                 "IO_DATE": str(master_data['일자']),
@@ -499,8 +499,8 @@ def send_ecount_purchase(master_data, detail_data):
                 "QTY": qty_val,
                 "PRICE": str(unit_price),
                 "SUPPLY_AMT": str(supply_amt),
-                "TAX_AMT": str(tax_amt),       # ✅ VAT_AMT → TAX_AMT
-                "MFG_DATE": mfg_date,           # ✅ ADD_DATE_02 → MFG_DATE
+                "VAT_AMT": str(vat_amt),
+                "ADD_DATE_02": add_date_02,
                 "U_MEMO1": "작성자 : " + str(master_data['담당자'])
             }
             purchase_list.append(purchase_item)
@@ -508,9 +508,10 @@ def send_ecount_purchase(master_data, detail_data):
         if not purchase_list:
             return False, "전송할 품목이 없습니다."
         
+        # BulkDatas는 리스트로 감싸야 이카운트 API가 정상 인식함
         save_payload = {
             "PurchasesList": [
-                {"BulkDatas": item}
+                {"BulkDatas": [item]}
                 for item in purchase_list
             ]
         }
