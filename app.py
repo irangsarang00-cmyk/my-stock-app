@@ -508,11 +508,12 @@ def send_ecount_purchase(master_data, detail_data):
         if not purchase_list:
             return False, "전송할 품목이 없습니다."
         
-        # BulkDatas는 리스트로 감싸야 이카운트 API가 정상 인식함
+        # 전체 품목을 BulkDatas 하나의 리스트로 묶어서 한 번에 전송
         save_payload = {
             "PurchasesList": [
-                {"BulkDatas": [item]}
-                for item in purchase_list
+                {
+                    "BulkDatas": purchase_list
+                }
             ]
         }
         
@@ -521,8 +522,9 @@ def send_ecount_purchase(master_data, detail_data):
         if str(save_res.get("Status")) == "200":
             return True, "✅ 이카운트 구매입력이 완료되었습니다!"
         else:
-            err_msg = save_res.get("Error", {}).get("Message", str(save_res))
-            return False, "전송 실패: " + str(err_msg)
+            err_msg = save_res.get("Error", {}).get("Message", "")
+            full_res = str(save_res)
+            return False, f"전송 실패: {err_msg}\n\n[전체 응답] {full_res}"
     
     except Exception as e:
         return False, "API 통신 오류: " + str(e)
