@@ -342,7 +342,7 @@ with tab_1창고:
         "📦 쿠팡 택배 송장 양식 가공",
         "🖨️ 1창고 서류 취합",
         "✂️ 쿠팡 택배 서류 출력",
-        "🛒 수동몰 플토 양식으로 가공",
+        "🛒 수동몰 플토 양식 가공",
     ])
 
     # ==================================================================
@@ -983,13 +983,11 @@ with tab_1창고:
                 return None
 
         # ── UI ────────────────────────────────────────────────────────
-        st.markdown("### 🛒 쇼핑몰 주문 취합")
         main_tab_e, settings_tab_e = st.tabs(["▶ 실행", "⚙️ 매핑 설정"])
 
         with main_tab_e:
             col_le, col_re = st.columns(2)
             with col_le:
-                st.markdown("#### 📂 A파일 — 쇼핑몰 주문 파일")
                 uploaded_a_files = st.file_uploader(
                     "엑셀 파일 업로드 (복수 선택 가능)",
                     type=["xlsx","xls"], accept_multiple_files=True, key="e_a_files"
@@ -1000,7 +998,6 @@ with tab_1창고:
                         badge = f"✅ {sk}" if sk else "❓ 인식불가"
                         st.markdown(f"- `{uf.name}` &nbsp; **{badge}**", unsafe_allow_html=True)
             with col_re:
-                st.markdown("#### 📄 C파일 — 송장번호 파일")
                 uploaded_c_file = st.file_uploader(
                     "A열:쇼핑몰명 / B열:수령자명 / C열:운송장번호",
                     type=["xlsx","xls"], accept_multiple_files=False, key="e_c_file"
