@@ -496,40 +496,31 @@ def send_ecount_purchase(master_data, detail_data):
             prod_des = prod_des.replace('"', '').replace("'", '').replace(',', ' ')
 
             purchase_item = {
-                "IO_DATE": str(master_data['일자']),
-                "CUST": str(master_data['거래처코드']),
-                "WH_CD": str(master_data['창고코드']),
-                "PROD_CD": prod_cd,
-                "PROD_DES": prod_des,
-                "QTY": qty_val,
-                "PRICE": str(unit_price),
+                "IO_DATE":    str(master_data['일자']),
+                "CUST":       str(master_data['거래처코드']),
+                "WH_CD":      str(master_data['창고코드']),
+                "PROD_CD":    prod_cd,
+                "PROD_DES":   prod_des,
+                "QTY":        qty_val,
+                "PRICE":      str(unit_price),
                 "SUPPLY_AMT": str(supply_amt),
-                "VAT_AMT": str(vat_amt),
+                "VAT_AMT":    str(vat_amt),
                 "ADD_DATE_02": add_date_02,
-                "U_MEMO1": "작성자 : " + str(master_data['담당자'])
+                "U_MEMO1":    "작성자 : " + str(master_data['담당자'])
             }
             purchase_list.append(purchase_item)
         
         if not purchase_list:
             return False, "전송할 품목이 없습니다."
         
-        # 전체 품목을 BulkDatas 하나의 리스트로 묶어서 한 번에 전송
+        # 이카운트 API 공식 구조:
+        # PurchasesList 배열에 품목마다 {"BulkDatas": {...}} 객체를 하나씩 넣음
         save_payload = {
             "PurchasesList": [
-                {
-                    "BulkDatas": purchase_list
-                }
+                {"BulkDatas": item}
+                for item in purchase_list
             ]
         }
-        
-        save_res = requests.post(save_url, json=save_payload).json()
-        
-        if str(save_res.get("Status")) == "200":
-            return True, "✅ 이카운트 구매입력이 완료되었습니다!"
-        else:
-            err_msg = save_res.get("Error", {}).get("Message", "")
-            full_res = str(save_res)
-            return False, f"전송 실패: {err_msg}\n\n[전체 응답] {full_res}"
         
         save_res = requests.post(save_url, json=save_payload).json()
         
