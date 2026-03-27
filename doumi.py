@@ -514,7 +514,6 @@ with tab_1창고:
 
                                     center_val = ""
                                     pallet_val = ""
-                                    items      = []
 
                                     if num_pdf or receipt_pdf:
                                         if num_pdf:
@@ -543,41 +542,8 @@ with tab_1창고:
 
                                         if receipt_pdf:
                                             all_pdfs_f.append((z_file, receipt_pdf, 'receipt'))
-                                            try:
-                                                with pdfplumber.open(io.BytesIO(z.read(receipt_pdf))) as pdf:
-                                                    for page in pdf.pages:
-                                                        words       = page.extract_words()
-                                                        page_ns     = "".join(w.get('text', '') for w in words).replace(" ", "")
-                                                        if "업체보관용" in page_ns:
-                                                            continue
-                                                        text_layout = page.extract_text(layout=True) or ""
-                                                        lines       = text_layout.split('\n')
-                                                        for idx, line in enumerate(lines):
-                                                            b_match = re.search(r'(PL\d+|880\d+)', line)
-                                                            if b_match:
-                                                                barcode_val = b_match.group(1).strip()
-                                                                b_idx = b_match.start()
-                                                                prod_parts = []
-                                                                for offset in (2, 1):
-                                                                    if idx - offset >= 0:
-                                                                        prev = lines[idx - offset]
-                                                                        for m2 in re.finditer(r'\S(?:.*?\S)?(?=\s{2,}|$)', prev):
-                                                                            s, e = m2.start(), m2.end()
-                                                                            if s - 25 <= b_idx <= e + 25:
-                                                                                part = m2.group().strip()
-                                                                                if re.search(r'[가-힣a-zA-Z]', part):
-                                                                                    prod_parts.append(part)
-                                                                                break
-                                                                prod_val = " ".join(prod_parts).strip() or "상품명 없음"
-                                                                items.append((prod_val, barcode_val))
-                                            except Exception:
-                                                pass
 
-                                        if items:
-                                            for i, (prod, bc) in enumerate(items):
-                                                table_data_f.append((vendor, center_val, bc, prod, pallet_val if i == 0 else ""))
-                                        else:
-                                            table_data_f.append((vendor, center_val, "-", "-", pallet_val))
+                                        table_data_f.append((vendor, center_val, pallet_val))
 
                         if not all_pdfs_f:
                             st.warning("조건에 맞는 가평1 파일을 찾지 못했습니다.")
@@ -607,19 +573,8 @@ with tab_1창고:
                             st.success(f"✅ 병합 완료 — PDF {len(all_pdfs_f)}개 처리")
 
                             if table_data_f:
-                                df_f = pd.DataFrame(table_data_f, columns=["벤더", "센터", "바코드", "상품명", "팔레트"])
+                                df_f = pd.DataFrame(table_data_f, columns=["벤더", "센터", "팔레트"])
                                 st.dataframe(df_f, use_container_width=True, height=300)
-
-                                clip_text = "벤더\t센터\t바코드\t상품명\t팔레트\n"
-                                for row in table_data_f:
-                                    clip_text += "\t".join(str(v) for v in row) + "\n"
-                                st.download_button(
-                                    label="📋 표 내용 엑셀용 텍스트 다운로드 (.tsv)",
-                                    data=clip_text.encode("utf-8-sig"),
-                                    file_name=f"가평1_추출결과_{date_str}.tsv",
-                                    mime="text/tab-separated-values",
-                                    use_container_width=True
-                                )
 
                             st.download_button(
                                 label="📥 병합 PDF 다운로드",
