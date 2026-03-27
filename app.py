@@ -517,6 +517,10 @@ def send_ecount_purchase(master_data, detail_data):
             ]
         }
         
+        # 디버그: 전송 직전 페이로드 확인용
+        import json as _json
+        return False, "🔍 전송 전 페이로드 확인:\n\n" + _json.dumps(save_payload, ensure_ascii=False, indent=2)
+        
         save_res = requests.post(save_url, json=save_payload).json()
         
         if str(save_res.get("Status")) == "200":
