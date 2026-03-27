@@ -460,14 +460,15 @@ def send_ecount_purchase(master_data, detail_data):
             if not prod_cd or prod_cd == 'nan':
                 continue
             
-            # 제조일자 변환 (ADD_DATE_02 필드로 전송)
+            # 제조일자 변환 — 이카운트 ADD_DATE_02는 YYYY/MM/DD 형식
             exp_raw = row.get('제조일자')
             add_date_02 = ""
             if exp_raw and str(exp_raw) != 'None' and str(exp_raw) != 'nan':
                 try:
-                    add_date_02 = pd.to_datetime(exp_raw).strftime("%Y%m%d")
+                    add_date_02 = pd.to_datetime(exp_raw).strftime("%Y/%m/%d")
                 except Exception:
-                    add_date_02 = str(exp_raw).replace("-", "").replace("/", "").replace(" ", "")
+                    raw_str = str(exp_raw).replace("-", "/").replace(" ", "")
+                    add_date_02 = raw_str
             
             # 수량 변환
             qty_raw = str(row.get('수량', '0')).strip().replace(',', '').replace(' ', '')
@@ -524,15 +525,12 @@ def send_ecount_purchase(master_data, detail_data):
         
         save_res = requests.post(save_url, json=save_payload).json()
         
-        import json as _json
-        payload_str = _json.dumps(save_payload, ensure_ascii=False, indent=2)
-        
         if str(save_res.get("Status")) == "200":
-            return True, f"✅ 이카운트 구매입력이 완료되었습니다!\n\n[전송된 페이로드]\n{payload_str}"
+            return True, "✅ 이카운트 구매입력이 완료되었습니다!"
         else:
             err_msg = save_res.get("Error", {}).get("Message", "")
             full_res = str(save_res)
-            return False, f"전송 실패: {err_msg}\n\n[전송된 페이로드]\n{payload_str}\n\n[전체 응답]\n{full_res}"
+            return False, f"전송 실패: {err_msg}\n\n[전체 응답] {full_res}"
     
     except Exception as e:
         return False, "API 통신 오류: " + str(e)
