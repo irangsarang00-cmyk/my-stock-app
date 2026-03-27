@@ -487,15 +487,20 @@ def send_ecount_purchase(master_data, detail_data):
                 qty_int = 0
 
             supply_amt = unit_price * qty_int
-            # 부가세 = 공급가액 * 0.1
-            vat_amt = supply_amt // 10 if vat_yn == "Y" else 0
+            # vat_yn 값이 "Y", "1", "과세" 등 다양할 수 있으므로 "N", "0", "면세" 가 아닌 경우 과세로 처리
+            is_taxable = vat_yn not in ("N", "0", "면세", "영세", "")
+            vat_amt = supply_amt // 10 if is_taxable else 0
+
+            # PROD_DES 특수문자 제거 (쉼표, 따옴표 등이 JSON 파싱 오류 유발 가능)
+            prod_des = str(row.get('품목명', '')).strip()
+            prod_des = prod_des.replace('"', '').replace("'", '').replace(',', ' ')
 
             purchase_item = {
                 "IO_DATE": str(master_data['일자']),
                 "CUST": str(master_data['거래처코드']),
                 "WH_CD": str(master_data['창고코드']),
                 "PROD_CD": prod_cd,
-                "PROD_DES": str(row.get('품목명', '')).strip(),
+                "PROD_DES": prod_des,
                 "QTY": qty_val,
                 "PRICE": str(unit_price),
                 "SUPPLY_AMT": str(supply_amt),
@@ -517,9 +522,14 @@ def send_ecount_purchase(master_data, detail_data):
             ]
         }
         
-        # 디버그: 전송 직전 페이로드 확인용
-        import json as _json
-        return False, "🔍 전송 전 페이로드 확인:\n\n" + _json.dumps(save_payload, ensure_ascii=False, indent=2)
+        save_res = requests.post(save_url, json=save_payload).json()
+        
+        if str(save_res.get("Status")) == "200":
+            return True, "✅ 이카운트 구매입력이 완료되었습니다!"
+        else:
+            err_msg = save_res.get("Error", {}).get("Message", "")
+            full_res = str(save_res)
+            return False, f"전송 실패: {err_msg}\n\n[전체 응답] {full_res}"
         
         save_res = requests.post(save_url, json=save_payload).json()
         
